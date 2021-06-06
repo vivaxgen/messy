@@ -1,0 +1,30 @@
+
+body {
+/* Show it is fixed to the top */
+	min-height: 75rem;
+	padding-top: 4.5rem;
+	font-family: 'Source Sans Pro';
+	font-size: 0.875rem;
+	background-color: #f0f1ee !important;
+}
+
+.dropdown-menu {
+	font-size: 0.875rem;
+}
+
+.bg-red {
+	background-color: #9a141e;
+}
+
+.bg-greenish {
+	background-color: #17a2b8 !important;
+}
+
+.navbar-brand {
+	font-size: 1rem;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255,255,255,.75);
+}
+
