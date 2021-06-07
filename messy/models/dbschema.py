@@ -19,17 +19,6 @@ import dateutil.parser
 # Sequence: managed by Sequence Manager (eg bioinformaticist, sequence analyst)
 #
 
-
-def update_object_with_dict(obj, a_dict, fields):
-    for f in fields:
-        if f in a_dict:
-            setattr(obj, f, a_dict.get(f))
-
-def update_object_ek_with_dict(obj, a_dict, fields, dbh):
-    for f in fields:
-        if f in a_dict:
-            setattr(obj, f + '_id', EK.getid(a_dict[f], dbh.session()))
-
 def dict_from_fields(obj, fields, exclude=None):
     d = {}
     for f in fields:
