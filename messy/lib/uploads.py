@@ -139,7 +139,7 @@ class SampleUploadJob(UploadJob):
 
         dbh  = get_dbhandler()
         samples = len(self.dicts)
-        err_msgs = self.check_duplicate_codes() + self.check_institution_codes()
+        err_msgs = self.check_duplicate_codes()
 
         for d in self.dicts:
             err_msgs.extend( self.fix_fields(d, dbh) )
@@ -230,8 +230,12 @@ class SampleUploadJob(UploadJob):
         session = dbh.session()
         err_msgs = []
         for code in institution_codes:
-            inst = dbh.Institution.search_text(code, session, 1)[0]
-            err_msgs.append(f'Intitution code "{code}" => {inst.code} | {inst.name}')
+            insts = dbh.Institution.search_text(code, session, 1)
+            if len(insts) > 0:
+                inst = insts[0]
+                err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
+            else:
+                err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
         return err_msgs
 
@@ -243,8 +247,9 @@ class SampleUploadJob(UploadJob):
 
     def get_institution(self, inst_code, dbh):
         if len(inst_code.split()) == 1:
-            inst = dbh.get_institutions_by_codes(inst_code, None)[0]
-            return inst
+            inst = dbh.get_institutions_by_codes(inst_code, None)
+            if len(inst) == 1:
+                return inst[0]
 
         inst = dbh.Institution.search_text(inst_code, dbh.session(), 1)[0]
         return inst
@@ -276,26 +281,27 @@ class SampleUploadJob(UploadJob):
         err_msgs = []
         
         code = d['originating_institution']
-        inst = self.get_institution(code, dbh)
-        if inst.code != code:
-            del d['originating_institution']
-            d['originating_institution_id'] = inst.id
-            err_msgs.append( f'Intitution code "{code}" => {inst.code} | {inst.name}' )
+        try:
+            inst = self.get_institution(code, dbh)
+            if inst.code != code:
+                del d['originating_institution']
+                d['originating_institution_id'] = inst.id
+                err_msgs.append( f'WARN: Institution code "{code}" => {inst.code} | {inst.name}' )
+        except IndexError:
+            err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
         code = d['sampling_institution']
-        inst = self.get_institution(code, dbh)
-        if inst.code != code:
-            del d['sampling_institution']
-            d['sampling_institution_id'] = inst.id
-            err_msgs.append( f'Intitution code "{code}" => {inst.code} | {inst.name}' )
+        try:
+            inst = self.get_institution(code, dbh)
+            if inst.code != code:
+                del d['sampling_institution']
+                d['sampling_institution_id'] = inst.id
+                err_msgs.append( f'WARN: Institution code "{code}" => {inst.code} | {inst.name}' )
+        except IndexError:
+            err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
-        err_msgs.extend( self.fix_ekey(d, 'species', dbh) )
-        err_msgs.extend( self.fix_ekey(d, 'passage', dbh) )
-        err_msgs.extend( self.fix_ekey(d, 'host', dbh) )
-        err_msgs.extend( self.fix_ekey(d, 'host_status', dbh) )
-        err_msgs.extend( self.fix_ekey(d, 'category', dbh) )
-        err_msgs.extend( self.fix_ekey(d, 'specimen_type', dbh) )
-        err_msgs.extend( self.fix_ekey(d, 'ct_method', dbh))
+        for f in dbh.Sample.__ek_fields__:
+            err_msgs.extend( self.fix_ekey(d, f, dbh) )
 
         return err_msgs
 
