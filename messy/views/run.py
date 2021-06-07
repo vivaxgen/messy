@@ -67,7 +67,7 @@ class RunViewer(BaseViewer):
             fieldset(
                 input_text(self.form_fields['code'][0], 'Code', value=obj.code,
                     offset=2, static=readonly, update_dict=update_dict),
-                input_text(self.form_fields['serial'][0], 'Serial', value=obj.run_code,
+                input_text(self.form_fields['serial'][0], 'Serial', value=obj.serial,
                     offset=2, static=readonly, update_dict=update_dict),
                 input_select(self.form_fields['sequencing_provider_id'][0], 'Sequencing Provider',
                     value = prov_inst.id if prov_inst else '', offset=2, size=5, static=readonly,
@@ -109,7 +109,7 @@ def generate_run_table(runs, request):
                 td(literal('<input type="checkbox" name="run-ids" value="%d" />' % run.id)
                     if not_guest else ''),
                 td( a(run.code, href=request.route_url('messy.run-view', id=run.id)) ),
-                td( run.run_code ),
+                td( run.serial ),
                 td( run.sequencing_kit ),
                 td( run.remark[:60] + '...')
             )
@@ -120,7 +120,7 @@ def generate_run_table(runs, request):
             tr(
                 th('', style="width: 2em"),
                 th('Code'),
-                th('Run Code'),
+                th('Serial'),
                 th('Sequencing Kit'),
                 th('Remark'),
             )
