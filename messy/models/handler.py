@@ -60,20 +60,23 @@ class DBHandler(rhombus_handler.DBHandler):
     # add additional methods here
 
 
+    def fix_result(self, query, fetch, raise_if_empty):
+        if not fetch:
+            return query
+
+        res = query.all()
+        if raise_if_empty and len(res) == 0:
+            raise rhombus_handler.exc.NoResultFound()
+        return res
+
+
     # Institutions
 
     def get_institutions(self, groups=None, specs=None, fetch=True, raise_if_empty=False):
 
         q = self.construct_query(self.Institution, specs).order_by( self.Institution.code )
 
-        if not fetch:
-            return q
-
-        res = q.all()
-        if raise_if_empty and len(res) == 0:
-            raise RuntimeError('Institution not found')
-
-        return res
+        return self.fix_result(q, fetch, raise_if_empty)
 
 
     def get_institutions_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
@@ -94,14 +97,7 @@ class DBHandler(rhombus_handler.DBHandler):
             q = q.filter( self.Collection.group_id.in_( [ x[1] for x in groups ] ))
         q = q.order_by( self.Collection.code )
 
-        if not fetch:
-            return q
-
-        res = q.all()
-        if raise_if_empty and len(res) == 0:
-            raise RuntimeError('Collection not found')
-
-        return res
+        return self.fix_result(q, fetch, raise_if_empty)
 
     def get_collections_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
         return self.get_collections(groups, [ {'collection_id': ids} ], fetch=fetch, raise_if_empty=False)
@@ -119,14 +115,7 @@ class DBHandler(rhombus_handler.DBHandler):
 
         q = q.order_by( self.Sample.code.desc() )
 
-        if not fetch:
-            return q
-
-        res = q.all()
-        if raise_if_empty and len(res) == 0:
-            raise RuntimeError('Collection not found')
-
-        return res
+        return self.fix_result(q, fetch, raise_if_empty)
 
     def get_samples_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
         return self.get_samples(groups, [ {'sample_id': ids} ], fetch=fetch, raise_if_empty=False)
@@ -138,14 +127,7 @@ class DBHandler(rhombus_handler.DBHandler):
 
         q = self.construct_query(self.Sequence, specs).order_by( self.Sequence.id.desc() )
 
-        if not fetch:
-            return q
-
-        res = q.all()
-        if raise_if_empty and len(res) == 0:
-            raise RuntimeError('Collection not found')
-
-        return res
+        return self.fix_result(q, fetch, raise_if_empty)
 
 
     def get_sequences_by_ids(self, ids, groups, fetch=True):
@@ -161,14 +143,7 @@ class DBHandler(rhombus_handler.DBHandler):
         if groups is not None:
             q = q.filter( self.Plate.group_id.in_ ( [ x[1] for x in groups ] ))
 
-        if not fetch:
-            return q
-
-        res = q.all()
-        if raise_if_empty and len(res) == 0:
-            raise RuntimeError('Plate not found')
-
-        return res
+        return self.fix_result(q, fetch, raise_if_empty)
 
     def get_plates_by_ids(self, ids, groups, fetch=True):
         return self.get_plates(groups, [ {'plate_id': ids} ], fetch = fetch)
@@ -180,44 +155,7 @@ class DBHandler(rhombus_handler.DBHandler):
 
         q = self.construct_query(self.SequencingRun, specs).order_by( self.SequencingRun.id.desc() )
 
-        if not fetch:
-            return q
-
-        res = q.all()
-        if raise_if_empty and len(res) == 0:
-            raise RuntimeError('Sequencing run not found')
-
-        return res
+        return self.fix_result(q, fetch, raise_if_empty)
 
     def get_sequencingruns_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
         return self.get_sequencingruns(groups, [ {'run_id': ids} ], fetch=fetch, raise_if_empty=False)
-
-
-def construct_query_from_list_xxx( a_list ):
-    exprs = []
-    classes = []
-    for spec in a_list:
-        spec_exprs, spec_classes = construct_query_from_dict( spec )
-        exprs.append( spec_exprs )
-        classes.extend( spec_classes )
-
-    classes = set( classes )
-    return or_(* exprs), classes
-
-def construct_query_from_dict_xxx( a_dict ):
-
-    exprs = []
-    classes = []
-
-    for k, val in a_dict.items():
-        f = field_specs[k]
-        if f.class_ not in classes:
-            classes.append( f.class_ )
-        if isinstance(val, list):
-            exprs.append( f.in_(val) )
-        elif '%' in val:
-            exprs.append( f.like(val))
-        else:
-            exprs.append( f == val )
-
-    return and_( *exprs ), classes
