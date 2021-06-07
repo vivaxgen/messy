@@ -162,9 +162,9 @@ class UploadViewer(object):
         method = self.request.POST['_method']
         added, updated = job.commit(method)
         html = div()[
-            h2('Uploaded Institution'),
-            div(f"Added institution(s): {added}"),
-            div(f"Updated institution(s): {updated}"),
+            h2('Uploaded Samples'),
+            div(f"Added sample(s): {added}"),
+            div(f"Updated sample(s): {updated}"),
         ]
         return render_to_response("messy:templates/generic_page.mako",
                 {   'html': html,
