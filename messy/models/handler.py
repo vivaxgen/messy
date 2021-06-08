@@ -118,20 +118,20 @@ class DBHandler(rhombus_handler.DBHandler):
         return self.fix_result(q, fetch, raise_if_empty)
 
     def get_samples_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
-        return self.get_samples(groups, [ {'sample_id': ids} ], fetch=fetch, raise_if_empty=False)
+        return self.get_samples(groups, [ {'sample_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
 
 
     # Sequences
 
-    def get_sequences(self, groups, specs=None, fetch=True, raise_if_emtpy=False):
+    def get_sequences(self, groups, specs=None, fetch=True, raise_if_empty=False):
 
         q = self.construct_query(self.Sequence, specs).order_by( self.Sequence.id.desc() )
 
         return self.fix_result(q, fetch, raise_if_empty)
 
 
-    def get_sequences_by_ids(self, ids, groups, fetch=True):
-        return get_sequences(groups, [ {'sequence_id': ids} ], fetch=fetch, raise_if_empty=False)
+    def get_sequences_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
+        return get_sequences(groups, [ {'sequence_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
 
 
     # Plates
@@ -145,8 +145,8 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_plates_by_ids(self, ids, groups, fetch=True):
-        return self.get_plates(groups, [ {'plate_id': ids} ], fetch = fetch)
+    def get_plates_by_ids(self, ids, groups, fetch=True, raise_if_mepty=False):
+        return self.get_plates(groups, [ {'plate_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
 
 
     # Runs
@@ -158,4 +158,4 @@ class DBHandler(rhombus_handler.DBHandler):
         return self.fix_result(q, fetch, raise_if_empty)
 
     def get_sequencingruns_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
-        return self.get_sequencingruns(groups, [ {'run_id': ids} ], fetch=fetch, raise_if_empty=False)
+        return self.get_sequencingruns(groups, [ {'run_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
