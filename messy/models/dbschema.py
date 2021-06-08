@@ -150,6 +150,7 @@ class Sample(Base, BaseMixIn):
     # various code
     code = Column(types.String(16), nullable=False, unique=True, server_default='')
     lab_code = Column(types.String(16), nullable=False, unique=True, server_default='')
+    received_date = Column(types.Date, nullable=False)
 
     sequence_name = Column(types.String(64), nullable=False, unique=True, server_default='')
 
