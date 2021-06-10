@@ -31,9 +31,9 @@ class Institution(Base, BaseMixIn):
 
     __tablename__ = 'institutions'
 
-    code = Column(types.String(16), nullable=False, unique=True)
-    name = Column(types.String(64), nullable=False, unique=True)
-    address = Column(types.String(128), nullable=False, server_default='')
+    code = Column(types.String(24), nullable=False, unique=True)
+    name = Column(types.String(128), nullable=False, unique=True)
+    address = deferred(Column(types.String(128), nullable=False, server_default=''))
     zipcode = Column(types.String(8), nullable=False, server_default='')
     contact = Column(types.String(64), nullable=False, server_default='')
     remark = deferred(Column(types.String(2048), nullable=False, server_default=''))
@@ -81,7 +81,7 @@ class Collection(Base, BaseMixIn):
     code = Column(types.String(16), nullable=False, unique=True)
     description = Column(types.String(256), nullable=False, server_default='')
     remark = deferred(Column(types.String(2048), nullable=False, server_default=''))
-    data = deferred(Column(types.JSON, nullable=False, server_default=''))
+    data = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
     group = relationship(Group, uselist=False, foreign_keys = group_id)
@@ -170,6 +170,10 @@ class Sample(Base, BaseMixIn):
     host_info = Column(types.String(64), nullable=False, server_default='')
     host_gender = Column(types.String(1))
     host_age = Column(types.Integer)
+
+    host_occupation_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
+    host_occupation = EK.proxy('host_occupation_id', '@HOST_OCCUPATION')
+
     host_status_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     host_status = EK.proxy('host_status_id', '@HOST_STATUS')
 
@@ -186,17 +190,20 @@ class Sample(Base, BaseMixIn):
 
     viral_load = Column(types.Float, nullable=False, server_default='-1')
     ct_value = Column(types.Float, nullable=False, server_default='-1')
+
     ct_method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     ct_method = EK.proxy('ct_method_id', '@CT_METHOD')
 
     # originating lab, where diagnostic tests were performed or samples were prepared
     originating_code = Column(types.String(32), nullable=True)
+
     originating_institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     originating_institution = relationship(Institution, uselist=False, foreign_keys = originating_institution_id)
 
     # sampling institution, where the samples were initially taken, usually hospital
     # or health facility.
     sampling_code = Column(types.String(32), nullable=True)
+
     sampling_institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     sampling_institution = relationship(Institution, uselist=False, foreign_keys = sampling_institution_id)
 
@@ -434,7 +441,6 @@ class Sequence(Base, BaseMixIn):
     aa_mutations = Column(types.Integer, nullable=False, server_default='-1')
     inframe_gaps = Column(types.Integer, nullable=False, server_default='-1')
     outframe_gaps = Column(types.Integer, nullable=False, server_default='-1')
-    #reads_stat = deferred(Column(types.JSON, nullable=False, server_default=''))
     reads_raw = Column(types.Integer, nullable=False, server_default='-1')
     reads_optical_dedup = Column(types.Integer, nullable=False, server_default='-1')
     reads_trimmed = Column(types.Integer, nullable=False, server_default='-1')
@@ -445,8 +451,8 @@ class Sequence(Base, BaseMixIn):
     reads_med_insertsize = Column(types.Integer, nullable=False, server_default='-1')
     reads_stddev_insertsize = Column(types.Integer, nullable=False, server_default='-1')
 
-    snvs = deferred(Column(types.JSON, nullable=False, server_default=''))
-    aa_change = deferred(Column(types.JSON, nullable=False, server_default=''))
+    snvs = deferred(Column(types.JSON, nullable=False, server_default='null'))
+    aa_change = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
     remarks = deferred(Column(types.Text, nullable=False, server_default=''))
 
