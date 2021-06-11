@@ -19,7 +19,7 @@ class ParseFormError(RuntimeError):
         self.field = field
 
 
-class BaseViewer(object):
+class BaseViewer_XXX(object):
 
     template_edit = 'rhombus:templates/generics/formpage.mako'
     managing_roles = [ SYSADM, DATAADM ]
