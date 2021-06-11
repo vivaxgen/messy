@@ -168,8 +168,8 @@ class Sample(Base, BaseMixIn):
     host = EK.proxy('host_id', '@HOST')
 
     host_info = Column(types.String(64), nullable=False, server_default='')
-    host_gender = Column(types.String(1))
-    host_age = Column(types.Integer)
+    host_gender = Column(types.String(1), nullable=False, server_default='X')
+    host_age = Column(types.Float, nullable=False, server_default='0')
 
     host_occupation_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     host_occupation = EK.proxy('host_occupation_id', '@HOST_OCCUPATION')
@@ -186,7 +186,7 @@ class Sample(Base, BaseMixIn):
     outbreak = Column(types.String, nullable=False, server_default='')
     last_vaccinated_date = Column(types.Date, nullable=True)
     last_vaccinated_info = Column(types.String, nullable=False, server_default='')
-    treatment = Column(types.String(64), nullable=True, server_default='')
+    treatment = Column(types.String(64), nullable=False, server_default='')
 
     viral_load = Column(types.Float, nullable=False, server_default='-1')
     ct_value = Column(types.Float, nullable=False, server_default='-1')
@@ -216,15 +216,8 @@ class Sample(Base, BaseMixIn):
         UniqueConstraint('originating_code', 'originating_institution_id'),
     )
 
-    plain_fields = ['collection_id', 'code', 'lab_code', 'sequence_name', 'species_id', 'passage_id',
-        'collection_date', 'location', 'location_info', 'host_id', 'host_info',
-        'host_gender', 'host_age', 'host_status', 'specimen_type_id', 'outbreak',
-        'last_vaccinated_date', 'last_vaccinated_info', 'treatment',
-        'ct_value', 'ct_method_id', 'category_id',
-        'originating_institution_id', 'sampling_institution_id', 'related_sample_id', 'comment', 'extdata']
-
-    __ek_fields__ = [ 'species', 'passage', 'host', 'host_status', 'specimen_type', 'ct_method', 'category' ]
-    __aux_fields__ = ['collection',  'originating_institution', 'sampling_institution']
+    __ek_fields__ = [ 'species', 'passage', 'host', 'host_status', 'host_occupation', 
+                        'specimen_type', 'ct_method', 'category' ]
 
 
     def update(self, obj):
@@ -235,12 +228,6 @@ class Sample(Base, BaseMixIn):
 
             if 'collection' in obj:
                 self.collection_id = dbh.get_collections_by_code(obj['collection']).id
-
-            self.update_ek_with_dict(obj,
-                [    'species', 'host', 'host_status', 'specimen_type', 'ct_method',
-                    'category' ],
-                dbh
-            )
 
             if 'originating_institution' in obj:
                 self.originating_institution_id = dbh.get_institutions_by_codes(
@@ -253,7 +240,11 @@ class Sample(Base, BaseMixIn):
             if 'collection_date' in obj and isinstance(obj['collection_date'], str):
                 obj['collection_date'] = dateutil.parser.parse(obj['collection_date'])
 
-            self.update_fields_with_dict(obj, self.plain_fields)
+            if 'received_date' in obj and isinstance(obj['received_date'], str):
+                obj['received_date'] = dateutil.parser.parse(obj['received_date'])
+
+            self.update_fields_with_dict(obj)
+            self.update_ek_with_dict(obj, dbh=dbh)
 
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
