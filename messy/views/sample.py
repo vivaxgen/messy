@@ -4,16 +4,13 @@ from messy.views import *
 
 class SampleViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ SAMPLE_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [ SAMPLE_MANAGE ]
+    modifying_roles = managing_roles + [ SAMPLE_MODIFY ]
 
-    class_func = get_dbhandler().Sample
+    object_class = get_dbhandler().Sample
     fetch_func = get_dbhandler().get_samples_by_ids
     edit_route = 'messy.sample-edit'
     view_route = 'messy.sample-view'
-
-    def __init__(self, request):
-        super().__init__(request)
-        self.sample = None
 
 
     @m_roles( PUBLIC )
@@ -67,7 +64,7 @@ class SampleViewer(BaseViewer):
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
-        obj = obj or self.sample
+        obj = obj or self.obj
         dbh = self.dbh
         req = self.request
 

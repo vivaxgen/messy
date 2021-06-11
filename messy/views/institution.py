@@ -4,9 +4,10 @@ from messy.views import *
 
 class InstitutionViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ INSTITUTION_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [ INSTITUTION_MANAGE ]
+    modifying_roles = managing_roles + [ INSTITUTION_MODIFY ]
 
-    class_func = get_dbhandler().Institution
+    object_class = get_dbhandler().Institution
     fetch_func = get_dbhandler().get_institutions_by_ids
     edit_route = 'messy.institution-edit'
     view_route = 'messy.institution-view'
@@ -41,8 +42,7 @@ class InstitutionViewer(BaseViewer):
             request = self.request)
 
 
-    @m_roles(PUBLIC)
-    def lookup(self):
+    def lookup_helper(self):
         q = self.request.params.get('q')
         if not q:
             return error_page(self.request, "q not provided")

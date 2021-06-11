@@ -5,9 +5,10 @@ import json
 
 class PlateViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ PLATE_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [ PLATE_MANAGE ]
+    modifying_roles = [ PLATE_MODIFY ] + managing_roles
 
-    class_func = get_dbhandler().Plate
+    object_class = get_dbhandler().Plate
     fetch_func = get_dbhandler().get_plates_by_ids
     edit_route = 'messy.plate-edit'
     view_route = 'messy.plate-view'

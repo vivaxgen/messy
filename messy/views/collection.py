@@ -5,9 +5,10 @@ import json
 
 class CollectionViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ COLLECTION_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [ COLLECTION_MANAGE ]
+    modifying_roles = [ COLLECTION_MODIFY ] + managing_roles
 
-    class_func = get_dbhandler().Collection
+    object_class = get_dbhandler().Collection
     fetch_func = get_dbhandler().get_collections_by_ids
     edit_route = 'messy.collection-edit'
     view_route = 'messy.collection-view'
@@ -21,11 +22,6 @@ class CollectionViewer(BaseViewer):
             'remark':           ('messy-collection-remark'),
             'data':             ('messy-collection-data', json.loads),
     }
-
-
-    def __init__(self, request):
-        super().__init__(request)
-        self.collection = None
 
 
     @m_roles( PUBLIC )
@@ -79,7 +75,7 @@ class CollectionViewer(BaseViewer):
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
-        obj = obj or self.collection
+        obj = obj or self.obj
         dbh = self.dbh
 
         # dealing with messy-collection-institution_ids field
@@ -177,5 +173,3 @@ def generate_collection_table(collections, request):
         code = ''
 
     return html, code
-
-

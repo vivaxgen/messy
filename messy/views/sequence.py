@@ -3,12 +3,14 @@ from messy.views import *
 
 class SequenceViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ SEQUENCE_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [ SEQUENCE_MANAGE ]
+    modifying_roles = managing_roles + [ SEQUENCE_MODIFY ]
 
+    object_class = get_dbhandler().Sequence
+    fetch_func = get_dbhandler().get_sequences_by_ids
+    edit_route = 'messy.sequence-edit'
+    view_route = 'messy.sequence-view'
 
-    def __init__(self, request):
-        super().__init__(request)
-        self.sequence = None
 
     @m_roles(PUBLIC)
     def index(self):

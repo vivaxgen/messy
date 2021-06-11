@@ -4,9 +4,10 @@ from messy.views import *
 
 class RunViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ SEQUENCINGRUN_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [ SEQUENCINGRUN_MANAGE ]
+    modifying_roles = managing_roles + [ SEQUENCINGRUN_MODIFY ]
 
-    class_func = get_dbhandler().SequencingRun
+    object_class = get_dbhandler().SequencingRun
     fetch_func = get_dbhandler().get_sequencingruns_by_ids
     edit_route = 'messy.run-edit'
     view_route = 'messy.run-view'
