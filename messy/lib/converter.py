@@ -6,7 +6,7 @@ import pandas as pd
 def import_gisaid_csv(filename):
     """ create a list of dictionary suitable for Sample.bulk_load() from GISAID metadata file"""
 
-    df = pd.read_table(filename, sep=',')
+    df = pd.read_table(filename, sep=',', keep_default_na=False)
     for f in ['fn', 'covv_subm_sample_id', 'covv_add_host_info', 'covv_last_vaccinated', 'covv_outbreak']:
         df[f] = df[f].fillna('').astype('str')
 
@@ -22,26 +22,31 @@ def import_gisaid_csv(filename):
             collection_date = r['covv_collection_date'],
             location = r['covv_location'],
             add_location = r['covv_add_location'],
+            received_date = '1970-01-01',    # add Unix epoch time to indicate NA
 
             host = r['covv_host'],
             host_info = r['covv_add_host_info'] or '',
-            host_gender = r['covv_gender'],
+            host_gender = r['covv_gender'][0],
             host_age = r['covv_patient_age'],
             host_status = r['covv_patient_status'],
+            host_occupation = 'other',
 
             specimen_type = r['covv_specimen'],
             outbreak = r['covv_outbreak'],
             last_vaccinated_info = r['covv_last_vaccinated'],
             treatment = r['covv_treatment'],
 
-            originating_code = r['covv_provider_sample_id'],
+            originating_code = r['covv_provider_sample_id'] or r['covv_provider_sample_id'] or r['fn'],
             originating_institution = r['covv_orig_lab'],
             sampling_institution = r['covv_orig_lab'],
 
-            ct_method = 'berlin',
+            ct_method = 'rtpcr',
         )
         d['category'] = 'S-SU' if not d['last_vaccinated_info'] else 'F-PO'
-        d['ct_method'] = 'rtpcr'
+        if 'month' in d['host_age'].lower():
+            d['host_age'] = int(d['host_age'].split()[0])/12
+        elif 'unknown' in d['host_age'].lower():
+            d['host_age'] = -1
         a_list.append( d )
 
     return a_list
