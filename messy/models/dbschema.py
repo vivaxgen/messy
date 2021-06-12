@@ -177,6 +177,8 @@ class Sample(Base, BaseMixIn):
     host_status_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     host_status = EK.proxy('host_status_id', '@HOST_STATUS')
 
+    host_severity = Column(types.Integer, nullable=False, server_default='-1')
+
     category_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     category = EK.proxy('category_id', '@CATEGORY')
 
