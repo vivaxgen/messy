@@ -192,12 +192,12 @@ class BaseViewer_XXX(object):
 
 
 
-def generate_sesskey(user_id, obj_id=None):
+def xxxgenerate_sesskey(user_id, obj_id=None):
     node_id_part = '%08x' % obj_id if obj_id else 'XXXXXXXX'
     return '%08x%s%s' % (user_id, random_string(8), node_id_part)
 
 
-def check_stamp(request, obj):
+def xxxcheck_stamp(request, obj):
     print( "\n>> Time stamp >>", obj.stamp.timestamp(), float(request.params['messy-stamp']), "\n")
     if (request.method == 'POST' and 
         abs( obj.stamp.timestamp() - float(request.params['messy-stamp']) ) > 0.01):
@@ -207,12 +207,12 @@ def check_stamp(request, obj):
             )
     return True
 
-def form_submit_bar(create=True):
+def xxxform_submit_bar(create=True):
     if create:
         return custom_submit_bar(('Add', 'save'), ('Add and continue editing', 'save_edit')).set_offset(2)
     return custom_submit_bar(('Save', 'save'), ('Save and continue editing', 'save_edit')).set_offset(2)
 
-def select2_lookup(**keywords):
+def xxxselect2_lookup(**keywords):
     """ requires minlen, tag, placeholder, parenttag """
     if keywords.get('usetag', True):
         keywords['template'] = "templateSelection: function(data, container) { return data.text.split('|', 1); },"
