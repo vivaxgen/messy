@@ -17,7 +17,7 @@ class SequenceViewer(BaseViewer):
 
         sequences = self.dbh.get_sequences(groups=None, fetch=False)
         html, code = generate_sequence_table(sequences, self.request)
-        html = div()[ h2('Sequencs'), html ]
+        html = div()[ h2('Sequences'), html ]
 
         return render_to_response("messy:templates/generic_page.mako",
             { 'html': html
@@ -42,6 +42,7 @@ def generate_sequence_table(sequences, request):
                 td( sample.sequence_name ),
                 td( sample.location),
                 td( sample.collection_date),
+                td( sample.lineage_1),
             )
         )
 
@@ -54,6 +55,7 @@ def generate_sequence_table(sequences, request):
                 th('Name'),
                 th('Location'),
                 th('Collection Date'),
+                th('Lineage 1'),
             )
         )
     ]
