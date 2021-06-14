@@ -13,7 +13,7 @@ def index(request):
 
     return render_to_response('messy:templates/generic_page.mako',
         {
-            'html': literal('<h2>MESSy: Molecular Epidemiology by Sequences database management System</h2>'),
+            'html': literal('<h2>MESSy: Molecular Epidemiology and Surveillance System</h2>'),
         }, request = request
     )
 
