@@ -111,7 +111,7 @@ class DBHandler(rhombus_handler.DBHandler):
         # if groups is not None, we need to join sample with collection to get 
         # all samples under collections owned by certain groups to enforce security
         if groups is not None:
-            q = q.join( dbh.Collection ).filter( self.Collection.group_id.in_( [ x[1] for x in groups ] ))
+            q = q.join( self.Collection ).filter( self.Collection.group_id.in_( [ x[1] for x in groups ] ))
 
         q = q.order_by( self.Sample.code.desc() )
 
