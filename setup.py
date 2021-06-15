@@ -17,6 +17,11 @@ requires = [
     'transaction',
     'alembic',
     'rhombus',
+    'whoosh',
+    'pandas',
+    'docutils',
+    'pyramid_rpc',
+    'joblib',
     ]
 
 setup(name='MESSy',
