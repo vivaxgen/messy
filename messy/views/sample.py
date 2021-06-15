@@ -1,5 +1,6 @@
 
 from messy.views import *
+import dateutil
 
 
 class SampleViewer(BaseViewer):
@@ -20,8 +21,8 @@ class SampleViewer(BaseViewer):
         'sequence_name': ('messy-sample-sequence_name', ),
         'location': ('messy-sample-location', ),
         'location_info': ('messy-sample-location_info', ),
-        'collection_date': ('messy-sample-collection_date', ),
-        'received_date': ('messy-sample-received_date', ),
+        'collection_date': ('messy-sample-collection_date', dateutil.parser.parse),
+        'received_date': ('messy-sample-received_date', dateutil.parser.parse),
         'specimen_type_id': ('messy-sample-specimen_type_id', ),
         'passage_id': ('messy-sample-passage_id', ),
         'species_id': ('messy-sample-species_id', ),
@@ -31,6 +32,9 @@ class SampleViewer(BaseViewer):
         'host_age': ('messy-sample-host_age', float),
         'host_status_id': ('messy-sample-host_status_id', ),
         'host_severity': ('messy-sample-host_severity', int),
+        'host_dob': ('messy-sample-host_dob', dateutil.parser.parse),
+        'host_nik': ('messy-sample-host_nik', ),
+        'host_nar': ('messy-sample-host_nar', ),
         'host_occupation_id': ('messy-sample-host_occupation_id', ),
         'originating_institution_id': ('messy-sample-originating_institution_id', ),
         'originating_code': ('messy-sample-originating_code', ),
@@ -118,13 +122,18 @@ class SampleViewer(BaseViewer):
                     offset=2, static=readonly,  update_dict=update_dict),
                 input_select_ek(ff['host_status_id'][0], 'Host Status',
                     value = obj.host_status_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@CATEGORY')),
+                    parent_ek = dbh.get_ekey('@HOST_STATUS')),
                 input_text(ff['host_severity'][0], 'Host Severity', value=obj.host_severity,
                     offset=2, static=readonly, update_dict=update_dict),
                 input_select_ek(ff['host_occupation_id'][0], 'Host Occupation',
                     value = obj.host_occupation_id, offset=2, size=5, static=readonly,
                     parent_ek = dbh.get_ekey('@HOST_OCCUPATION')),
-
+                input_text(ff['host_dob'][0], 'Host Date of Birth', value=obj.host_dob,
+                    offset=2, static=readonly, update_dict=update_dict),
+                input_text(ff['host_nik'][0], 'Host NIK', value=obj.host_nik,
+                    offset=2, static=readonly, update_dict=update_dict),
+                input_text(ff['host_nar'][0], 'Host NAR Number', value=obj.host_nar,
+                    offset=2, static=readonly, update_dict=update_dict),
                 input_select_ek(ff['passage_id'][0], 'Passage',
                     value = obj.passage_id, offset=2, size=5, static=readonly,
                     parent_ek = dbh.get_ekey('@PASSAGE')),
