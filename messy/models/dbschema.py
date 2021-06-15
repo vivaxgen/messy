@@ -121,7 +121,7 @@ class Collection(Base, BaseMixIn):
 
     def as_dict(self):
         d = super().as_dict()
-        d.update( d.update( dict_from_fields(self, self.plain_fields, 
+        d.update( d.update( dict_from_fields(self, self.plain_fields,
             exclude=[ 'group_id' ]))  )
         return d
 
@@ -211,6 +211,12 @@ class Sample(Base, BaseMixIn):
 
     related_sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=True)
 
+    # sample identification
+
+    host_dob = Column(types.Date, nullable=True)
+    host_nik = Column(types.String(24), nullable=False, server_default='')
+    host_nar = Column(types.String(24), nullable=False, server_default='')
+
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
@@ -218,7 +224,7 @@ class Sample(Base, BaseMixIn):
         UniqueConstraint('originating_code', 'originating_institution_id'),
     )
 
-    __ek_fields__ = [ 'species', 'passage', 'host', 'host_status', 'host_occupation', 
+    __ek_fields__ = [ 'species', 'passage', 'host', 'host_status', 'host_occupation',
                         'specimen_type', 'ct_method', 'category' ]
 
 
@@ -332,7 +338,7 @@ class PlatePosition(Base, BaseMixIn):
 
     __table_args__ = (
         UniqueConstraint('plate_id', 'position'),
-    )    
+    )
 
 
 
@@ -348,7 +354,7 @@ class SequencingRun(Base, BaseMixIn):
 
     sequencing_provider_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     sequencing_provider = relationship(Institution, uselist=False, foreign_keys = sequencing_provider_id)
-    
+
     sequencing_kit_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     sequencing_kit = EK.proxy('sequencing_kit_id', '@SEQUENCING_KIT')
 
@@ -404,7 +410,7 @@ class Sequence(Base, BaseMixIn):
 
     __tablename__ = 'sequences'
 
-    # referencing 
+    # referencing
 
     sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
     sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=False)
