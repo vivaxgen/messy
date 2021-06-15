@@ -251,6 +251,9 @@ class Sample(Base, BaseMixIn):
             if 'received_date' in obj and isinstance(obj['received_date'], str):
                 obj['received_date'] = dateutil.parser.parse(obj['received_date'])
 
+            if 'host_dob' in obj and isinstance(obj['host_dob'], str):
+                obj['host_dob'] = dateutil.parser.parse(obj['host_dob'])
+
             self.update_fields_with_dict(obj)
             self.update_ek_with_dict(obj, dbh=dbh)
 
