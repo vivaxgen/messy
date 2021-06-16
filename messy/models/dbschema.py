@@ -3,6 +3,7 @@ from rhombus.models.ek import *
 from rhombus.models.user import *
 from messy.lib.roles import *
 import dateutil.parser
+from sqlalchemy.sql import func
 
 # Design Consideration
 # ====================
@@ -25,6 +26,10 @@ def dict_from_fields(obj, fields, exclude=None):
         if exclude and f in exclude: continue
         d[f] = str(getattr(obj, f))
     return d
+
+def convert_date(obj, field):
+    if fieldl in obj and isinstance(obj[field], str):
+        obj[field] = dateutil.parser.parse(obj[field])
 
 
 class Institution(Base, BaseMixIn):
@@ -245,14 +250,8 @@ class Sample(Base, BaseMixIn):
                 self.sampling_institution_id = dbh.get_institutions_by_codes(
                             obj['sampling_institution'], None, raise_if_empty=True)[0].id
 
-            if 'collection_date' in obj and isinstance(obj['collection_date'], str):
-                obj['collection_date'] = dateutil.parser.parse(obj['collection_date'])
-
-            if 'received_date' in obj and isinstance(obj['received_date'], str):
-                obj['received_date'] = dateutil.parser.parse(obj['received_date'])
-
-            if 'host_dob' in obj and isinstance(obj['host_dob'], str):
-                obj['host_dob'] = dateutil.parser.parse(obj['host_dob'])
+            for f in ['collection_date', 'received_data', 'host_dob']:
+                convert_date(obj, f)
 
             self.update_fields_with_dict(obj)
             self.update_ek_with_dict(obj, dbh=dbh)
@@ -286,6 +285,7 @@ class Plate(Base, BaseMixIn):
     group = relationship(Group, uselist=False, foreign_keys = group_id)
 
     code = Column(types.String(32), nullable=False, unique=True, server_default='')
+    date = Column(types.Date, nullable=False, server_default=func.current_date())
 
     specimen_type_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     specimen_type = EK.proxy('specimen_type_id', '@SPECIMEN_TYPE')
@@ -308,6 +308,8 @@ class Plate(Base, BaseMixIn):
 
             if 'group' in obj:
                 obj['group_id'] = dbh.get_group(obj['code']).id
+
+            convert_date(obj, 'date')
 
             self.update_fields_with_dict(obj)
             self.update_ek_with_dict(obj, dbh=dbh)
@@ -354,6 +356,7 @@ class SequencingRun(Base, BaseMixIn):
 
     code = Column(types.String(16), nullable=False, unique=True, server_default='')
     serial = Column(types.String(32), nullable=False, unique=True, server_default='')
+    date = Column(types.Date, nullable=False, server_default=func.current_date())
 
     sequencing_provider_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     sequencing_provider = relationship(Institution, uselist=False, foreign_keys = sequencing_provider_id)
@@ -384,6 +387,8 @@ class SequencingRun(Base, BaseMixIn):
             if 'sequencing_provider' in obj:
                 self.sequencing_provider_id = dbh.get_institutions_by_code(
                         obj['collection'], None, raise_if_empty=True)[0].id
+
+            convert_date(obj, 'date')
 
             self.update_fields_with_dict(obj)
             self.update_ek_with_dict(obj, dbh=dbh)
@@ -424,6 +429,7 @@ class Sequence(Base, BaseMixIn):
     method = EK.proxy('method_id', '@METHOD')
 
     accid = Column(types.String(32), nullable=True, unique=True)
+    submission_date = Column(types.Date, nullable=True)
 
     sequence = Column(types.Text, nullable=False, server_default='')
     avg_depth = Column(types.Integer, nullable=False, server_default='-1')
@@ -482,12 +488,10 @@ class Sequence(Base, BaseMixIn):
             if 'sample' in obj:
                 self.sample_id = dbh.get_samples_by_lab_code(obj['sample']).id
 
-            update_object_ek_with_dict(self, obj,
-                [ 'method '],
-                dbh
-            )
+            convert_date(obj, 'submission_date')
 
-            update_object_with_dict(self, obj, self.plain_fields)
+            self.update_fields_with_dict(obj)
+            self.update_ek_with_dict(obj, dbh=dbh)
 
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
