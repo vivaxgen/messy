@@ -145,7 +145,7 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_plates_by_ids(self, ids, groups, fetch=True, raise_if_mepty=False):
+    def get_plates_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
         return self.get_plates(groups, [ {'plate_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
 
 
