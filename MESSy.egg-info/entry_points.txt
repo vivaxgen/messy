@@ -1,6 +1,0 @@
-      [paste.app_factory]
-      main = messy:main
-      [console_scripts]
-      messy-run = messy.scripts.run:main
-      messy-shell = messy.scripts.shell:main
-      
