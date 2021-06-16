@@ -28,7 +28,7 @@ def dict_from_fields(obj, fields, exclude=None):
     return d
 
 def convert_date(obj, field):
-    if fieldl in obj and isinstance(obj[field], str):
+    if field in obj and isinstance(obj[field], str):
         obj[field] = dateutil.parser.parse(obj[field])
 
 
