@@ -116,6 +116,7 @@ def generate_plate_table(plates, request):
                     if not_guest else ''),
                 td( a(plate.code, href=request.route_url('messy.plate-view', id=plate.id)) ),
                 td( plate.user ),
+                td( plate.date ),
                 td( plate.specimen_type ),
                 td( plate.experiment_type ),
                 td( plate.remark[:60] + '...')
@@ -128,6 +129,7 @@ def generate_plate_table(plates, request):
                 th('', style="width: 2em"),
                 th('Code'),
                 th('User'),
+                th('Date'),
                 th('Specimen Type'),
                 th('Experiment Type'),
                 th('Remark'),
