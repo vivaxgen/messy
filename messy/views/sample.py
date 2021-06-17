@@ -99,10 +99,10 @@ class SampleViewer(BaseViewer):
                             groups = None if req.user.has_roles( SYSADM, DATAADM ) else req.user.groups
                         ) ],
                     static=readonly),
-                input_text(ff['code'][0], 'Code', value=obj.code,
-                    offset=2, static=readonly, update_dict=update_dict),
                 input_text(ff['lab_code'][0], 'Lab Code', value=obj.lab_code,
-                    offset=2, static=readonly, update_dict=update_dict),
+                        offset=2, static=readonly, update_dict=update_dict),
+                input_text(ff['code'][0], 'Code', value=obj.code,
+                        offset=2, static=readonly, update_dict=update_dict),
                 input_text(ff['received_date'][0], 'Received Date', value=obj.received_date,
                     offset=2, static=readonly, update_dict=update_dict),
                 input_select_ek(ff['category_id'][0], 'Category',
@@ -166,7 +166,7 @@ class SampleViewer(BaseViewer):
                         select2_lookup(tag='messy-sample-sampling_institution_id', minlen=3,
                             placeholder="Type an institution name",
                             parenttag="messy-sample-fieldset", usetag=False,
-                            url=self.request.route_url('messy.institution-lookup'))            
+                            url=self.request.route_url('messy.institution-lookup'))
         else:
             jscode = ''
 
