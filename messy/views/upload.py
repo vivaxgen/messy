@@ -270,7 +270,7 @@ def institution_upload_form(request):
 
     dbh = get_dbhandler()
 
-    html = div(HR, h3('Institution'))
+    html = div(HR, h3('Institutions'))
     eform = form( name='messy/institution', method=POST, enctype=FORM_MULTIPART)
     eform.add(
         fieldset(
