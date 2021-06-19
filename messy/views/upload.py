@@ -227,7 +227,7 @@ class UploadViewer(object):
 
 def generate_token_form(request):
 
-    html = div(h3('Token Generator'))
+    html = div(HR, h3('Token Generator', styles="bg-dark;"))
     eform = form( name='messy/token-generator', method=POST)
     eform.add(
         custom_submit_bar( ('Generate token', 'generate_token') ).set_offset(1).show_reset_button(False)
@@ -240,18 +240,22 @@ def sample_upload_form(request):
 
     dbh = get_dbhandler()
 
-    html = div(h3('Samples'))
+    html = div(HR, h3('Samples'))
     sampleform = form( name='messy/sample', method=POST, enctype=FORM_MULTIPART)
     sampleform.add(
         fieldset(
+            input_file('messy-sample/infile', 'CSV or JSON/YAML file',
+                offset=2, size=6,
+                info = 'Click <a href="/help/templates/index.rst" target="_blank">here</a>'
+                        ' to see templates.'),
+            div('or', offset=2),
+            input_file('messy-sample/gisaidfile', 'GISAID CSV file',
+                offset=2, size=6,
+                info = 'Click <a href="/help/templates/index.rst" target="_blank">here</a>'
+                        ' to see templates.'),
             input_select('messy-sample/collection_id', 'Collection',
                 value = None, offset=1, size=2,
                 options = [ (c.id, c.code) for c in dbh.get_collections(groups=None)] ),
-            input_file('messy-sample/infile', 'CSV or JSON/YAML file',
-                offset=2, size=6),
-            div('or', offset=2),
-            input_file('messy-sample/gisaidfile', 'GISAID CSV file',
-                offset=2, size=6),
             custom_submit_bar( ('Upload', 'upload_samples') ).set_offset(1),
         )
     )
@@ -266,12 +270,14 @@ def institution_upload_form(request):
 
     dbh = get_dbhandler()
 
-    html = div(h3('Institution'))
+    html = div(HR, h3('Institution'))
     eform = form( name='messy/institution', method=POST, enctype=FORM_MULTIPART)
     eform.add(
         fieldset(
             input_file('messy-institution/infile', 'CSV or JSON/YAML file',
-                offset=2, size=6),
+                offset=2, size=6,
+                info = 'Click <a href="/help/templates/index.rst" target="_blank">here</a>'
+                        ' to see templates.'),
             custom_submit_bar( ('Upload', 'upload_institution') ).set_offset(1),
         )
     )
