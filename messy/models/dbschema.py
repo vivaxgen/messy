@@ -154,10 +154,10 @@ class Sample(Base, BaseMixIn):
 
     # various code
     code = Column(types.String(16), nullable=False, unique=True, server_default='')
-    lab_code = Column(types.String(16), nullable=False, unique=True, server_default='')
+    acc_code = Column(types.String(15), nullable=True, unique=True, server_default='')
     received_date = Column(types.Date, nullable=False)
 
-    sequence_name = Column(types.String(64), nullable=False, unique=True, server_default='')
+    sequence_name = Column(types.String(63), nullable=True, unique=True, server_default='')
 
     species_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     species = EK.proxy('species_id', '@SPECIES')
@@ -223,10 +223,13 @@ class Sample(Base, BaseMixIn):
     host_nar = Column(types.String(24), nullable=False, server_default='')
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
+
+    flag = Column(types.Interger, nullable=False, server_default='0')
     extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
     __table_args__ = (
         UniqueConstraint('originating_code', 'originating_institution_id'),
+        UniqueConstraint('sampling_code', 'sampling_institution_id'),
     )
 
     __ek_fields__ = [ 'species', 'passage', 'host', 'host_status', 'host_occupation',
