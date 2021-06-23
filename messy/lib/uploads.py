@@ -201,21 +201,21 @@ class SampleUploadJob(UploadJob):
 
 
     def check_duplicate_codes(self):
-        """ check for duplicate sample codes & labcodes """
+        """ check for duplicate sample codes & acc_codes """
 
-        composite_codes = [ (r['code'], r['lab_code']) for r in self.dicts ]
+        composite_codes = [ (r['code'], r['acc_code']) for r in self.dicts ]
         codes = {}
-        labcodes = {}
+        acc_codes = {}
         err_msgs = []
-        for (c, lc) in composite_codes:
+        for (c, ac) in composite_codes:
             if c in codes:
                 err_msgs.append( f'Duplicate code: {c}' )
             else:
                 codes[c] = True
-            if lc in labcodes:
-                err_msgs.append( f'Duplicate labcode: {lc}' )
+            if ac in acc_codes:
+                err_msgs.append( f'Duplicate acccode: {ac}' )
             else:
-                labcodes[lc] = True
+                acc_codes[ac] = True
         return err_msgs
 
 
@@ -255,6 +255,19 @@ class SampleUploadJob(UploadJob):
         return inst
 
     def get_ekey(self, key, dbh):
+        ek_id = dbh.EK.getid(key, dbh.session())
+        if ek_id:
+            return key
+
+        eks = dbh.EK.search_text(key, dbh.session(), 1)
+        if len(eks) == 0:
+            raise KeyError(f'key "{key}"" not found')
+        return eks[0].key
+
+
+
+
+
         ek = dbh.get_ekey(key)
         if ek:
             return ek
@@ -266,11 +279,12 @@ class SampleUploadJob(UploadJob):
 
     def fix_ekey(self, d, field, dbh):
         key = d[field]
+        print(f'>>> fix_ekey(): {key} >>>')
         try:
-            ek = self.get_ekey(key, dbh)
-            d[field] = ek.key
-            if ek.key.lower() != key.lower():
-                return [ f'{field}: "{key}" => {ek,key}' ]
+            ekey = self.get_ekey(key, dbh)
+            d[field] = ekey
+            if ekey.lower() != key.lower():
+                return [ f'{field}: "{key}" => {ekey}' ]
         except KeyError as err:
             return [ f'{field} error: {str(err)}']
         return []
