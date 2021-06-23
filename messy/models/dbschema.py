@@ -154,10 +154,10 @@ class Sample(Base, BaseMixIn):
 
     # various code
     code = Column(types.String(16), nullable=False, unique=True, server_default='')
-    acc_code = Column(types.String(15), nullable=True, unique=True, server_default='')
+    acc_code = Column(types.String(15), nullable=True, unique=True)
     received_date = Column(types.Date, nullable=False)
 
-    sequence_name = Column(types.String(63), nullable=True, unique=True, server_default='')
+    sequence_name = Column(types.String(63), nullable=True, unique=True)
 
     species_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     species = EK.proxy('species_id', '@SPECIES')
@@ -224,7 +224,7 @@ class Sample(Base, BaseMixIn):
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
-    flag = Column(types.Interger, nullable=False, server_default='0')
+    flag = Column(types.Integer, nullable=False, server_default='0')
     extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
     __table_args__ = (
@@ -239,6 +239,8 @@ class Sample(Base, BaseMixIn):
     def update(self, obj):
 
         if isinstance(obj, dict):
+
+            # for any empty string, remove the reference to fields that are nullable
 
             dbh = get_dbhandler()
 
