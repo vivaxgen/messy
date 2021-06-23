@@ -5,6 +5,7 @@ from rhombus.lib.utils import cerr, cout
 from .setup import setup
 
 from messy.models import dbschema
+from messy.lib.roles import *
 from sqlalchemy import or_, and_
 
 
@@ -20,8 +21,10 @@ class MessyQueryConstructor(rhombus_handler.QueryConstructor):
         'collection_code': dbschema.Collection.code,
 
         'sample_id': dbschema.Sample.id,
-        'sample_lab_code': dbschema.Sample.lab_code,
-        'lab_code': dbschema.Sample.lab_code,
+        'sample_code': dbschema.Sample.code,
+        'acc_code': dbschema.Sample.acc_code,
+        'nik': dbschema.Sample.host_nik,
+        'nar': dbschema.Sample.host_nar,
 
         'sequence': dbschema.Sample.sequence_name,
         'sequence_id': dbschema.Sequence.id,
@@ -72,24 +75,24 @@ class DBHandler(rhombus_handler.DBHandler):
 
     # Institutions
 
-    def get_institutions(self, groups=None, specs=None, fetch=True, raise_if_empty=False):
+    def get_institutions(self, groups=None, specs=None, user=None, fetch=True, raise_if_empty=False):
 
         q = self.construct_query(self.Institution, specs).order_by( self.Institution.code )
 
         return self.fix_result(q, fetch, raise_if_empty)
 
 
-    def get_institutions_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
-        return self.get_institutions(groups, [ {'institution_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_institutions_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_institutions(groups, [ {'institution_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
 
-    def get_institutions_by_codes(self, codes, groups, fetch=True, raise_if_empty=False):
-        return self.get_institutions(groups, [ {'institution_code': codes} ], fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_institutions_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_institutions(groups, [ {'institution_code': codes} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
 
     # Collections
 
-    def get_collections(self, groups, specs=None, fetch=True, raise_if_empty=False):
+    def get_collections(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
         q = self.construct_query(self.Collection, specs)
         if groups is not None:
@@ -99,17 +102,25 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_collections_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
-        return self.get_collections(groups, [ {'collection_id': ids} ], fetch=fetch, raise_if_empty=False)
+    def get_collections_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_collections(groups, [ {'collection_id': ids} ], user=user, fetch=fetch, raise_if_empty=False)
 
     # Samples
 
-    def get_samples(self, groups, specs=None, fetch=True, raise_if_empty=False):
+    def get_samples(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
         q = self.construct_query(self.Sample, specs)
 
         # if groups is not None, we need to join sample with collection to get 
         # all samples under collections owned by certain groups to enforce security
+
+        if groups is None and user is None:
+            raise RuntimeError('ERR: either groups or user needs to be provided!')
+
+        if groups is None:
+            if not user.has_roles(SYSADM, DATAADM, SAMPLE_MANAGE, SAMPLE_MODIFY, SAMPLE_VIEW):
+                groups = user.groups
+
         if groups is not None:
             q = q.join( self.Collection ).filter( self.Collection.group_id.in_( [ x[1] for x in groups ] ))
 
@@ -117,26 +128,26 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_samples_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
-        return self.get_samples(groups, [ {'sample_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_samples_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_samples(groups, [ {'sample_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
 
     # Sequences
 
-    def get_sequences(self, groups, specs=None, fetch=True, raise_if_empty=False):
+    def get_sequences(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
         q = self.construct_query(self.Sequence, specs).order_by( self.Sequence.id.desc() )
 
         return self.fix_result(q, fetch, raise_if_empty)
 
 
-    def get_sequences_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
-        return get_sequences(groups, [ {'sequence_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_sequences_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+        return get_sequences(groups, [ {'sequence_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
 
     # Plates
 
-    def get_plates(self, groups, specs=None, fetch=True, raise_if_empty=False):
+    def get_plates(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
         q = self.construct_query(self.Plate, specs).order_by( self.Plate.id.desc() )
 
@@ -145,17 +156,17 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_plates_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
-        return self.get_plates(groups, [ {'plate_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_plates_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_plates(groups, [ {'plate_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
 
     # Runs
 
-    def get_sequencingruns(self, groups, specs=None, fetch=True, raise_if_empty=False):
+    def get_sequencingruns(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
         q = self.construct_query(self.SequencingRun, specs).order_by( self.SequencingRun.id.desc() )
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_sequencingruns_by_ids(self, ids, groups, fetch=True, raise_if_empty=False):
-        return self.get_sequencingruns(groups, [ {'run_id': ids} ], fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_sequencingruns_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_sequencingruns(groups, [ {'run_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
