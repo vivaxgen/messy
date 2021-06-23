@@ -3,6 +3,7 @@ from rhombus.lib.utils import cerr, cout, random_string
 #from rhombus.lib.roles import SYSADM, DATAADM
 from rhombus.views.generics import error_page
 from rhombus.views import *
+from rhombus.lib.modals import *
 
 from messy.lib.roles import *
 
@@ -12,7 +13,7 @@ from sqlalchemy import or_
 import time, copy
 
 
-class ParseFormError(RuntimeError):
+class ParseFormError_XXX(RuntimeError):
 
     def __init__(self, msg, field):
         super().__init__(msg)
