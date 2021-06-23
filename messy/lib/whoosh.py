@@ -202,10 +202,12 @@ class TextSearcher(object):
         self.ci = ci
         self.query_parser = QueryParser('text', schema=ci.ix.schema, termclass=CustomFuzzyTerm)
 
-    def __call__(self, text, session, limit=None):
+    def __call__(self, text, session, limit=None, id_only=False):
 
         query = self.query_parser.parse(text)
         with self.ci.ix.searcher() as searcher:
             results = searcher.search(query, limit=limit)
             dbids = [ r['dbid'] for r in results ]
+        if id_only:
+            return dbids
         return [ self.class_.query(session).get(dbid) for dbid in dbids ]
