@@ -14,8 +14,8 @@ def import_gisaid_csv(filename):
 
     for _, r in df.iterrows():
         d = dict(
-            code = r['covv_subm_sample_id'],
-            lab_code = r['covv_provider_sample_id'] or r['fn'],
+            code = r['covv_provider_sample_id'] or r['fn'],
+            acc_code = r['covv_subm_sample_id'],
             sequence_name = r['covv_virus_name'],
             species = r['covv_type'],
             passage = r['covv_passage'],
@@ -36,7 +36,7 @@ def import_gisaid_csv(filename):
             last_vaccinated_info = r['covv_last_vaccinated'],
             treatment = r['covv_treatment'],
 
-            originating_code = r['covv_provider_sample_id'] or r['covv_provider_sample_id'] or r['fn'],
+            #originating_code = r['covv_provider_sample_id'] or r['fn'],
             originating_institution = r['covv_orig_lab'],
             sampling_institution = r['covv_orig_lab'],
 
