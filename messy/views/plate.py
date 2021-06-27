@@ -86,6 +86,23 @@ class PlateViewer(BaseViewer):
 
         return div()[ h2('Plate'), eform], ''
 
+    def view_helper(self, render=True):
+
+        plate_html, plate_jscode = super().view_helper(render=False)
+
+        plate_html.add(
+            HR,
+            h4('Plate Layout'),
+        )
+
+        if not self.obj.has_layout:
+            plate_html.add(p('No layout defined.'))
+        else:
+            plate_html.add(p('View layout'))
+
+
+
+        return self.render_edit_form(plate_html, plate_jscode)
 
     @m_roles( PUBLIC )
     def position(self):
