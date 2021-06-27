@@ -217,6 +217,19 @@ class SampleViewer(BaseViewer):
         return div()[ h2('Sample'), eform], jscode
 
 
+    def lookup_helper(self):
+        q = self.request.params.get('q')
+        if not q:
+            return error_page(self.request, "q not provided")
+        q = '%' + q.lower() + '%'
+
+        samples = get_dbhandler().get_samples_by_codes(q, groups=None, user=self.request.user)
+        result = [
+            {'id': s.id, 'text': f'{s.code} | {s.collection.code}'} for s in samples
+        ]
+
+        return result
+
     def action_post(self):
 
         request = self.request
