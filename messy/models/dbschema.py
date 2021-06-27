@@ -4,6 +4,7 @@ from rhombus.models.user import *
 from messy.lib.roles import *
 import dateutil.parser
 from sqlalchemy.sql import func
+from sqlalchemy import exists
 import io
 
 # Design Consideration
@@ -279,10 +280,28 @@ class Sample(Base, BaseMixIn):
         return self.code
 
 
+class PlatePosition(Base, BaseMixIn):
+
+    __tablename__ = 'platepositions'
+
+    plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
+    sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=False)
+
+    # position will be 384:A01 -> P24, 96: A01 -> H12
+    position = Column(types.String(3), nullable=False, server_default='')
+    value = Column(types.Float, nullable=False, server_default='-1')
+    volume = Column(types.Float, nullable=False, server_default='-1')
+
+    __table_args__ = (
+        UniqueConstraint('plate_id', 'position'),
+    )
+
+
 class Plate(Base, BaseMixIn):
 
     __tablename__ = 'plates'
 
+    id = Column(types.Integer, primary_key=True)
     user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
     user = relationship(User, uselist=False, foreign_keys = user_id)
 
@@ -302,6 +321,10 @@ class Plate(Base, BaseMixIn):
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
     __ek_fields__ = [ 'specimen_type', 'experiment_type' ]
+
+    has_layout = column_property(
+        exists().where(PlatePosition.plate_id == id)
+    )
 
     def update(self, obj):
 
@@ -333,24 +356,6 @@ class Plate(Base, BaseMixIn):
 
     def __str__(self):
         return self.code
-
-
-class PlatePosition(Base, BaseMixIn):
-
-    __tablename__ = 'platepositions'
-
-    plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
-    sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=False)
-
-    # position will be 384:A01 -> P24, 96: A01 -> H12
-    position = Column(types.String(3), nullable=False, server_default='')
-    value = Column(types.Float, nullable=False, server_default='-1')
-    volume = Column(types.Float, nullable=False, server_default='-1')
-
-    __table_args__ = (
-        UniqueConstraint('plate_id', 'position'),
-    )
-
 
 
 class SequencingRun(Base, BaseMixIn):
