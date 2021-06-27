@@ -1,5 +1,7 @@
 
 from messy.views import *
+from pyramid.response import Response, FileIter
+import dateutil
 
 
 class RunViewer(BaseViewer):
@@ -15,9 +17,10 @@ class RunViewer(BaseViewer):
     form_fields = {
         'code':                     ('messy-run-code', ),
         'serial':                   ('messy-run-serial', ),
+        'date?':                     ('messy-run-date', dateutil.parser.parse),
         'sequencing_provider_id':   ('messy-run-sequencing_provider_id', ),
         'sequencing_kit_id':        ('messy-run-sequencing_kit_id', ),
-        'depthplots':               ('messy-run-depthplots', ),
+        'depthplots?':               ('messy-run-depthplots', lambda x: x.file.read() if x != b'' else None),
         'qcreport':                 ('messy-run-qcreport', ),
         'remark':                   ('messy-run-remark', ),
     }
@@ -37,6 +40,19 @@ class RunViewer(BaseViewer):
             },
             request = self.request)
 
+    @m_roles(PUBLIC)
+    def depthplots(self):
+
+        rq = self.request
+        obj_id = int(rq.matchdict.get('id'))
+
+        obj = self.get_object(obj_id, self.fetch_func)
+        if not (fp := obj.depthplots_fp()):
+            return error_page(request, 'Depth plot not available')
+
+        return Response(app_iter=FileIter(fp),
+                        content_type='application/pdf',
+                        request=self.request)
 
     def update_object(self, obj, d):
         rq = self.request
@@ -63,7 +79,15 @@ class RunViewer(BaseViewer):
             prov_inst = dbh.get_institutions_by_ids(
                     update_dict[self.form_fields['sequencing_provider_id'][0]], None)[0]
 
-        eform = form( name='messy-run', method=POST)[
+        # processing depthplots url
+        if obj.depthplots_fp():
+            url_depthplots = literal(a('View', href=self.request.route_url('messy.run-depthplots', id=obj.id)))
+            #view_link = '<div class="col-md-1">' + url_depthplots + '</div>'
+        else:
+            url_depthplots = 'Not available'
+            view_link = ''
+
+        eform = form( name='messy-run', method=POST, enctype=FORM_MULTIPART)[
             self.hidden_fields(obj),
             fieldset(
                 input_text(self.form_fields['code'][0], 'Code', value=obj.code,
@@ -76,6 +100,8 @@ class RunViewer(BaseViewer):
                 input_select_ek(self.form_fields['sequencing_kit_id'][0], 'Sequencing Kit',
                     value = obj.sequencing_kit_id, offset=2, size=5, static=readonly,
                     parent_ek = dbh.get_ekey('@SEQUENCING_KIT')),
+                input_file(self.form_fields['depthplots?'][0], 'Depth plots', value=url_depthplots,
+                           offset=2, size=3, static=readonly).set_view_link(url_depthplots),
                 input_textarea(self.form_fields['remark'][0], 'Remark', value=obj.remark,
                     offset=2, static=readonly, update_dict=update_dict),
                 name = 'messy-run-fieldset',
@@ -97,6 +123,18 @@ class RunViewer(BaseViewer):
 
         return div()[ h2('Sequencing Run'), eform], jscode
 
+    def lookup_helper(self):
+        q = self.request.params.get('q')
+        if not q:
+            return error_page(self.request, "q not provided")
+        q = '%' + q.lower() + '%'
+
+        runs = get_dbhandler().get_sequencingruns_by_codes(q, groups=None, user=self.request.user)
+        result = [
+            {'id': r.id, 'text': r.code} for r in runs
+        ]
+
+        return result
 
 def generate_run_table(runs, request):
 
@@ -112,7 +150,7 @@ def generate_run_table(runs, request):
                 td( a(run.code, href=request.route_url('messy.run-view', id=run.id)) ),
                 td( run.serial ),
                 td( run.sequencing_kit ),
-                td( run.remark[:60] + '...')
+                td( run.remark[:60] + ('...' if len(run.remark) > 60 else '')),
             )
         )
 
