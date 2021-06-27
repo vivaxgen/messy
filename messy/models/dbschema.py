@@ -4,6 +4,7 @@ from rhombus.models.user import *
 from messy.lib.roles import *
 import dateutil.parser
 from sqlalchemy.sql import func
+import io
 
 # Design Consideration
 # ====================
@@ -382,6 +383,14 @@ class SequencingRun(Base, BaseMixIn):
     def __str__(self):
         return self.code
 
+    def __repr__(self):
+        return f'<SequencingRun: {self.code}>'
+
+    def depthplots_fp(self):
+        if not self.depthplots or len(self.depthplots) == 0:
+            return None
+        return io.BytesIO(self.depthplots)
+
 
     def update(self, obj):
 
@@ -426,6 +435,8 @@ class Sequence(Base, BaseMixIn):
     # referencing
 
     sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
+    sequencingrun = relationship(SequencingRun, uselist=False,
+                                 backref=backref('sequences', lazy='dynamic', passive_deletes=True))
     sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=False)
     sample = relationship(Sample, uselist=False,
                 backref=backref('sequence', lazy='dynamic', passive_deletes=True))
@@ -469,17 +480,7 @@ class Sequence(Base, BaseMixIn):
 
     remarks = deferred(Column(types.Text, nullable=False, server_default=''))
 
-    plain_fields = [    'sequencingrun_id', 'sample_id', 'method_id', 'accid', 'sequence',
-                        'avg_depth', 'depth_plot', 'length', 'gaps', 'base_N',
-                        'lineage_1', 'prob_1', 'lineage_2', 'prob_2', 'lineage_3', 'prob_3',
-                        'refid', 'point_mutations', 'aa_mutations', 'inframe_gaps', 'outframe_gaps',
-                        'reads_raw', 'reads_optical_dedup', 'reads_trimmed', 'reads_pp_mapped',
-                        'reads_pcr_dedup', 'reads_consensus_mapped',
-                        'reads_mean_insertsize', 'reads_med_insertsize', 'reads_stddev_insertsize',
-                        'snvs', 'aa_change', 'remarks'
-   ]
-    aux_fields = [  'sequencerun', 'sample', 'method' ]
-
+    __ek_fields__ = ['method']
 
     def update(self, obj):
 
@@ -501,10 +502,8 @@ class Sequence(Base, BaseMixIn):
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
-
     def as_dict(self):
         d = super().as_dict()
-        d.update( dict_from_fields(self, self.plain_fields,
-            exclude = [    'sequencingrun_id', 'sample_id', 'method_id'  ]) )
+        d.update(dict_from_fields(self, self.plain_fields,
+                 exclude=['sequencingrun_id', 'sample_id', 'method_id']))
         return d
-
