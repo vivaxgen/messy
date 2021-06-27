@@ -182,6 +182,7 @@ ek_initlist = [
             ('NovaSeqSPv1.5-300', 'NovaSeq 6000 SP v1.5 300-cycle'),
             ('NovaSeqSPv1.5-200', 'NovaSeq 6000 SP v1.5 200-cycle'),
             ('NovaSeqSPv1.5-100', 'NovaSeq 6000 SP v1.5 100-cycle'),
+            ('data-container', 'Container for imported data')
         ]
     ),
     (   '@METHOD', 'Upstream analysis method',
@@ -189,6 +190,8 @@ ek_initlist = [
             ('ncov19-pipeline/artic', 'ncov19-pipeline ARTIC mode'),
             ('ncov19-pipeline/mapping', 'ncov19-pipeline generic mapping (minimap2) mode'),
             ('ncov19-pipeline/assembling', 'ncov19-pipeline generic denovo assembling (SPAdes) mode'),
+            ('gisaid', 'direct GISAID import'),
+            ('other', 'other analysis method'),
         ]
     ),
 ]
