@@ -31,6 +31,7 @@ class MessyQueryConstructor(rhombus_handler.QueryConstructor):
         'accid': dbschema.Sequence.accid,
 
         'plate_id': dbschema.Plate.id,
+        'plate_code': dbchema.Plate.code,
 
         'run_id': dbschema.SequencingRun.id,
         'run_code': dbschema.SequencingRun.code,
@@ -105,6 +106,7 @@ class DBHandler(rhombus_handler.DBHandler):
     def get_collections_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_collections(groups, [ {'collection_id': ids} ], user=user, fetch=fetch, raise_if_empty=False)
 
+    #
     # Samples
 
     def get_samples(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
@@ -131,7 +133,10 @@ class DBHandler(rhombus_handler.DBHandler):
     def get_samples_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_samples(groups, [ {'sample_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
+    def get_samples_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_samples(groups, [{'sample_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
+    #
     # Sequences
 
     def get_sequences(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
@@ -159,6 +164,8 @@ class DBHandler(rhombus_handler.DBHandler):
     def get_plates_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_plates(groups, [ {'plate_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
+    def get_plates_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_plates(groups, [{'plate_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
     # Runs
 
@@ -170,3 +177,6 @@ class DBHandler(rhombus_handler.DBHandler):
 
     def get_sequencingruns_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_sequencingruns(groups, [ {'run_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+
+    def get_sequencingruns_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_sequencingruns(groups, [{'run_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
