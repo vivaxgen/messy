@@ -65,6 +65,7 @@ def includeme( config ):
         '/sample',
         '/sample/@@action',
         '/sample/@@add',
+        ('/sample/@@lookup', 'lookup', 'json'),
         '/sample/{id}@@edit',
         '/sample/{id}@@save',
         ('/sample/{id}', 'view')
@@ -83,6 +84,7 @@ def includeme( config ):
         '/plate',
         '/plate/@@action',
         '/plate/@@add',
+        ('/plate@@lookup', 'lookup', 'json'),
         '/plate/{id}@@edit',
         '/plate/{id}@@save',
         ('/plate/{id}@@position', 'position', 'json'),
@@ -93,8 +95,10 @@ def includeme( config ):
         '/run',
         '/run/@@action',
         '/run/@@add',
+        ('/run/@@lookup', 'lookup', 'json'),
         '/run/{id}@@edit',
         '/run/{id}@@save',
+        '/run/{id}@@depthplots',
         ('/run/{id}', 'view')
     )
 
