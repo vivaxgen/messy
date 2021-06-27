@@ -17,7 +17,7 @@ class MessyQueryConstructor(rhombus_handler.QueryConstructor):
         'institution_code': dbschema.Institution.code,
 
         'collection_id': dbschema.Collection.id,
-        'collection':dbschema.Collection.code,
+        'collection': dbschema.Collection.code,
         'collection_code': dbschema.Collection.code,
 
         'sample_id': dbschema.Sample.id,
@@ -31,7 +31,7 @@ class MessyQueryConstructor(rhombus_handler.QueryConstructor):
         'accid': dbschema.Sequence.accid,
 
         'plate_id': dbschema.Plate.id,
-        'plate_code': dbchema.Plate.code,
+        'plate_code': dbschema.Plate.code,
 
         'run_id': dbschema.SequencingRun.id,
         'run_code': dbschema.SequencingRun.code,
