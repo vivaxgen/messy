@@ -62,6 +62,10 @@ class UploadViewer(object):
         eform, jscode = sample_upload_form(request)
         html.add(eform)
 
+        eform, jscode_ = plate_upload_form(request)
+        html.add(eform)
+        jscode = jscode + jscode_
+
         eform, jscode_ = institution_upload_form(request)
         html.add(eform)
         jscode = jscode + jscode_
@@ -264,6 +268,24 @@ def sample_upload_form(request):
     '''
 
     return html.add(sampleform), jscode
+
+
+def plate_upload_form(request):
+
+    dbh = get_dbhandler()
+
+    html = div(HR, h3('Plate Layouts'))
+    plateform = form(name='messy/plate', method=POST, enctype=FORM_MULTIPART)[
+        fieldset(
+            input_file('messy-plate/infile', 'CSV or JSON/YAML file',
+                offset=2, size=6,
+                info='Click <a href="/help/templates/index.rst" target="_blank">here</a>'
+                     ' to see templates.'),
+            custom_submit_bar(('Upload', 'upload_plates')).set_offset(1),
+        )
+    ]
+
+    return html.add(plateform), ''
 
 
 def institution_upload_form(request):
