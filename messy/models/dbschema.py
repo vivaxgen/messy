@@ -301,7 +301,6 @@ class Plate(Base, BaseMixIn):
 
     __tablename__ = 'plates'
 
-    id = Column(types.Integer, primary_key=True)
     user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
     user = relationship(User, uselist=False, foreign_keys = user_id)
 
@@ -322,9 +321,9 @@ class Plate(Base, BaseMixIn):
 
     __ek_fields__ = [ 'specimen_type', 'experiment_type' ]
 
-    has_layout = column_property(
-        exists().where(PlatePosition.plate_id == id)
-    )
+    @declared_attr
+    def has_layout(cls):
+        return column_property(exists().where(PlatePosition.plate_id == cls.id))
 
     def update(self, obj):
 
