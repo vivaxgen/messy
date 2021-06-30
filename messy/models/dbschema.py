@@ -1,11 +1,12 @@
-from rhombus.models.core import *
+from rhombus.models.core import Base, BaseMixIn, metadata, deferred
 from rhombus.models.ek import *
 from rhombus.models.user import *
 from messy.lib.roles import *
 import dateutil.parser
 from sqlalchemy.sql import func
-from sqlalchemy import exists
-import io
+from sqlalchemy import exists, Column, types, ForeignKey, UniqueConstraint
+
+__version__ = '20210101'
 
 # Design Consideration
 # ====================
@@ -22,12 +23,14 @@ import io
 # Sequence: managed by Sequence Manager (eg bioinformaticist, sequence analyst)
 #
 
+
 def dict_from_fields(obj, fields, exclude=None):
     d = {}
     for f in fields:
         if exclude and f in exclude: continue
         d[f] = str(getattr(obj, f))
     return d
+
 
 def convert_date(obj, field):
     if field in obj and isinstance(obj[field], str):
@@ -72,7 +75,7 @@ class Institution(Base, BaseMixIn):
         return f'{self.code} | {self.name}'
 
 
-collection_institution_table = Table('collection_institution', metadata,
+collection_institution_table = Table('collections_institutions', metadata,
     Column('id', types.Integer, Sequence('collection_instituion_seqid', optional=True),
         primary_key=True),
     Column('collection_id', types.Integer, ForeignKey('collections.id'), nullable=False),
@@ -416,19 +419,26 @@ class SequencingRun(Base, BaseMixIn):
 
 
 
-class SequencingRunPlate(Base, BaseMixIn):
-    """
-    """
+#class SequencingRunPlate(Base, BaseMixIn):
+#    """
+#    """
 
-    __tablename__ = 'sequencingruns_plates'
+#    __tablename__ = 'sequencingruns_plates'
 
-    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
-    plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
+#    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
+#    plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint('sequencingrun_id', 'plate_id'),
-    )
+#    __table_args__ = (
+#        UniqueConstraint('sequencingrun_id', 'plate_id'),
+#    )
 
+
+sequencingrun_plate_table = Table('sequencingruns_plates', metadata,
+    Column('id', types.Integer, Identity(), primary_key=True),
+    Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id'), nullable=False),
+    Column('plate_id', types.Integer, ForeignKey('plates.id'), nullable=False),
+    UniqueConstraint( 'sequencingrun_id', 'plate_id' )
+)
 
 class Sequence(Base, BaseMixIn):
     """
@@ -457,11 +467,11 @@ class Sequence(Base, BaseMixIn):
     length = Column(types.Integer, nullable=False, server_default='-1')
     gaps = Column(types.Integer, nullable=False, server_default='-1')
     base_N = Column(types.Integer, nullable=False, server_default='-1')
-    lineage_1 = Column(types.String(16), nullable=False, server_default='')
+    lineage_1 = Column(types.String(24), nullable=False, server_default='')
     prob_1 = Column(types.Float, nullable=False, server_default='-1')
-    lineage_2 = Column(types.String(16), nullable=False, server_default='')
+    lineage_2 = Column(types.String(24), nullable=False, server_default='')
     prob_2 = Column(types.Float, nullable=False, server_default='-1')
-    lineage_3 = Column(types.String(16), nullable=False, server_default='')
+    lineage_3 = Column(types.String(24), nullable=False, server_default='')
     prob_3 = Column(types.Float, nullable=False, server_default='-1')
 
     refid = Column(types.String(32), nullable=True)
