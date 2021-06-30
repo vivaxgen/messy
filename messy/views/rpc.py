@@ -26,7 +26,7 @@ def get_userinstance_by_token(request, token):
         payload = request.get_data(token, 12 * 3600)
     except KeyError:
         return None, "token does not exist or is already expired"
-    if (time.time() - payload['create_time'])/3600 > 12:
+    if (time.time() - payload['create_time']) / 3600 > 12:
         return None, "token is expired"
     return payload['userinstance'], ''
 
@@ -45,8 +45,8 @@ def pipeline_upload(request, token, lab_code, data):
 
     userinstance, errmsg = get_userinstance_by_token(request, token)
     if userinstance is None:
-        return { 'auth' : False, 'user':  None, 'errmsg': errmsg }
+        return {'auth': False, 'user': None, 'errmsg': errmsg}
 
-
-
-
+    # parse incoming request
+    # https://github.com/trmznt/ncov19-pipeline sends the following dictionary
+    #
