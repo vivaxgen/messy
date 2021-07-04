@@ -11,7 +11,7 @@ from sqlalchemy import or_, and_
 
 class MessyQueryConstructor(rhombus_handler.QueryConstructor):
 
-    field_specs = {
+    field_specs = rhombus_handler.QueryConstructor.field_specs | {
         'institution_id': dbschema.Institution.id,
         'institution': dbschema.Institution.code,
         'institution_code': dbschema.Institution.code,
