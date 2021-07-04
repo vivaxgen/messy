@@ -1,10 +1,16 @@
-from rhombus.models.core import Base, BaseMixIn, metadata, deferred
-from rhombus.models.ek import *
-from rhombus.models.user import *
-from messy.lib.roles import *
+
+from rhombus.models.core import (Base, BaseMixIn, metadata, deferred, relationship,
+                                 registered, backref, declared_attr, column_property)
+from rhombus.models.ek import EK
+from rhombus.models.user import Group, User
+from rhombus.models.filemgr import File
+import messy.lib.roles as r
 import dateutil.parser
 from sqlalchemy.sql import func
-from sqlalchemy import exists, Column, types, ForeignKey, UniqueConstraint
+from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
+                        Identity)
+
+import io
 
 __version__ = '20210101'
 
@@ -27,7 +33,8 @@ __version__ = '20210101'
 def dict_from_fields(obj, fields, exclude=None):
     d = {}
     for f in fields:
-        if exclude and f in exclude: continue
+        if exclude and f in exclude:
+            continue
         d[f] = str(getattr(obj, f))
     return d
 
@@ -48,11 +55,7 @@ class Institution(Base, BaseMixIn):
     contact = Column(types.String(64), nullable=False, server_default='')
     remark = deferred(Column(types.String(2048), nullable=False, server_default=''))
 
-    __searchable__ = [ 'code', 'name', 'address' ]
-
-    #__plain_fields__ = ['code', 'name', 'address', 'zipcode', 'contact', 'remark']
-    #__aux_fields__ = []
-
+    __searchable__ = ['code', 'name', 'address']
 
     def update(self, obj):
 
@@ -62,10 +65,9 @@ class Institution(Base, BaseMixIn):
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
-
     def as_dict(self):
         d = super().as_dict()
-        d.update( self.dict_from_fields() )
+        d.update(self.dict_from_fields())
         return d
 
     def __str__(self):
@@ -75,12 +77,12 @@ class Institution(Base, BaseMixIn):
         return f'{self.code} | {self.name}'
 
 
-collection_institution_table = Table('collections_institutions', metadata,
-    Column('id', types.Integer, Sequence('collection_instituion_seqid', optional=True),
-        primary_key=True),
+collection_institution_table = Table(
+    'collections_institutions', metadata,
+    Column('id', types.Integer, Identity(), primary_key=True),
     Column('collection_id', types.Integer, ForeignKey('collections.id'), nullable=False),
     Column('institution_id', types.Integer, ForeignKey('institutions.id'), nullable=False),
-    UniqueConstraint( 'collection_id', 'institution_id' )
+    UniqueConstraint('collection_id', 'institution_id')
 )
 
 
@@ -94,17 +96,12 @@ class Collection(Base, BaseMixIn):
     data = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
-    group = relationship(Group, uselist=False, foreign_keys = group_id)
+    group = relationship(Group, uselist=False, foreign_keys=group_id)
 
-    #institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     contact = deferred(Column(types.String(64), nullable=False, server_default=''))
 
     institutions = relationship(Institution, secondary=collection_institution_table,
-        order_by = collection_institution_table.c.id)
-
-    #plain_fields = [ 'code', 'group_id', 'description', 'remark', 'contact', 'data']
-    #__aux_fields__ = [ 'group', 'institutions' ]
-
+                                order_by=collection_institution_table.c.id)
 
     def update(self, obj):
 
@@ -117,7 +114,7 @@ class Collection(Base, BaseMixIn):
 
             institutions = []
             if 'institution_ids' in obj:
-                institutions = dbh.get_institutions_by_ids( obj['institution_ids'], None)
+                institutions = dbh.get_institutions_by_ids(obj['institution_ids'], None)
             elif 'institutions' in obj:
                 institutions = dbh.get_institutions_by_codes(obj['institutions'], None)
             if self.institutions != institutions:
@@ -128,21 +125,12 @@ class Collection(Base, BaseMixIn):
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
-
-    def as_dict(self):
-        d = super().as_dict()
-        d.update( d.update( dict_from_fields(self, self.plain_fields,
-            exclude=[ 'group_id' ]))  )
-        return d
-
-
     def can_upload(self, user):
-        if user.has_roles( SYSADM, DATAADM, COLLECTION_MODIFY):
+        if user.has_roles(r.SYSADM, r.DATAADM, r.COLLECTION_MODIFY):
             return True
         if user.in_group(self.group):
             return True
         return False
-
 
     def __str__(self):
         return self.code
@@ -153,9 +141,9 @@ class Sample(Base, BaseMixIn):
     __tablename__ = 'samples'
 
     collection_id = Column(types.Integer, ForeignKey('collections.id', ondelete='CASCADE'),
-                nullable=False, index=True)
+                           nullable=False, index=True)
     collection = relationship(Collection, uselist=False,
-                backref=backref('samples', lazy='dynamic', passive_deletes=True))
+                              backref=backref('samples', lazy='dynamic', passive_deletes=True))
 
     # various code
     code = Column(types.String(16), nullable=False, unique=True, server_default='')
@@ -210,14 +198,14 @@ class Sample(Base, BaseMixIn):
     originating_code = Column(types.String(32), nullable=True)
 
     originating_institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
-    originating_institution = relationship(Institution, uselist=False, foreign_keys = originating_institution_id)
+    originating_institution = relationship(Institution, uselist=False, foreign_keys=originating_institution_id)
 
     # sampling institution, where the samples were initially taken, usually hospital
     # or health facility.
     sampling_code = Column(types.String(32), nullable=True)
 
     sampling_institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
-    sampling_institution = relationship(Institution, uselist=False, foreign_keys = sampling_institution_id)
+    sampling_institution = relationship(Institution, uselist=False, foreign_keys=sampling_institution_id)
 
     related_sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=True)
 
@@ -237,9 +225,8 @@ class Sample(Base, BaseMixIn):
         UniqueConstraint('sampling_code', 'sampling_institution_id'),
     )
 
-    __ek_fields__ = [ 'species', 'passage', 'host', 'host_status', 'host_occupation',
-                        'specimen_type', 'ct_method', 'category' ]
-
+    __ek_fields__ = ['species', 'passage', 'host', 'host_status', 'host_occupation',
+                     'specimen_type', 'ct_method', 'category']
 
     def update(self, obj):
 
@@ -254,11 +241,11 @@ class Sample(Base, BaseMixIn):
 
             if 'originating_institution' in obj:
                 self.originating_institution_id = dbh.get_institutions_by_codes(
-                            obj['originating_institution'], None, raise_if_empty=True)[0].id
+                    obj['originating_institution'], None, raise_if_empty=True)[0].id
 
             if 'sampling_institution' in obj:
                 self.sampling_institution_id = dbh.get_institutions_by_codes(
-                            obj['sampling_institution'], None, raise_if_empty=True)[0].id
+                    obj['sampling_institution'], None, raise_if_empty=True)[0].id
 
             for f in ['collection_date', 'received_data', 'host_dob']:
                 convert_date(obj, f)
@@ -269,18 +256,17 @@ class Sample(Base, BaseMixIn):
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
-
-    def as_dict(self):
-        d = super().as_dict()
-        d.update( dict_from_fields(self, self.plain_fields,
-            exclude = [ 'collection_id', 'species_id', 'passage_id', 'host_id', 'host_status_id',
-                        'category_id', 'specimen_type_id', 'ct_method_id',
-                        'originating_institution_id' ]) )
-        return d
-
-
     def __str__(self):
         return self.code
+
+
+sample_file_table = Table(
+    'samples_files', metadata,
+    Column('id', types.Integer, Identity(), primary_key=True),
+    Column('sample_id', types.Integer, ForeignKey('samples.id'), nullable=False),
+    Column('file_id', types.Integer, ForeignKey('files.id'), nullable=False),
+    UniqueConstraint('sample_id', 'file_id')
+)
 
 
 class PlatePosition(Base, BaseMixIn):
@@ -305,7 +291,7 @@ class Plate(Base, BaseMixIn):
     __tablename__ = 'plates'
 
     user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
-    user = relationship(User, uselist=False, foreign_keys = user_id)
+    user = relationship(User, uselist=False, foreign_keys=user_id)
 
     # primary group of user
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
@@ -322,7 +308,7 @@ class Plate(Base, BaseMixIn):
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
-    __ek_fields__ = [ 'specimen_type', 'experiment_type' ]
+    __ek_fields__ = ['specimen_type', 'experiment_type']
 
     @declared_attr
     def has_layout(cls):
@@ -348,14 +334,6 @@ class Plate(Base, BaseMixIn):
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
-
-    def as_dict(self):
-        d = super().as_dict()
-        d.update( dict_from_fields(self, self.plain_fields,
-            exclude = [    'user_id', 'group_id', 'specimen_type_id', 'experiment_type_id' ]) )
-        return d
-
-
     def __str__(self):
         return self.code
 
@@ -372,7 +350,7 @@ class SequencingRun(Base, BaseMixIn):
     date = Column(types.Date, nullable=False, server_default=func.current_date())
 
     sequencing_provider_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
-    sequencing_provider = relationship(Institution, uselist=False, foreign_keys = sequencing_provider_id)
+    sequencing_provider = relationship(Institution, uselist=False, foreign_keys=sequencing_provider_id)
 
     sequencing_kit_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     sequencing_kit = EK.proxy('sequencing_kit_id', '@SEQUENCING_KIT')
@@ -384,8 +362,7 @@ class SequencingRun(Base, BaseMixIn):
     qcreport = deferred(Column(types.LargeBinary, nullable=False, server_default=''))
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
-    __ek_fields__ = [ 'sequencing_kit']
-
+    __ek_fields__ = ['sequencing_kit']
 
     def __str__(self):
         return self.code
@@ -398,7 +375,6 @@ class SequencingRun(Base, BaseMixIn):
             return None
         return io.BytesIO(self.depthplots)
 
-
     def update(self, obj):
 
         if isinstance(obj, dict):
@@ -407,7 +383,7 @@ class SequencingRun(Base, BaseMixIn):
 
             if 'sequencing_provider' in obj:
                 self.sequencing_provider_id = dbh.get_institutions_by_code(
-                        obj['collection'], None, raise_if_empty=True)[0].id
+                    obj['collection'], None, raise_if_empty=True)[0].id
 
             convert_date(obj, 'date')
 
@@ -418,27 +394,23 @@ class SequencingRun(Base, BaseMixIn):
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
 
-
-#class SequencingRunPlate(Base, BaseMixIn):
-#    """
-#    """
-
-#    __tablename__ = 'sequencingruns_plates'
-
-#    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
-#    plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
-
-#    __table_args__ = (
-#        UniqueConstraint('sequencingrun_id', 'plate_id'),
-#    )
-
-
-sequencingrun_plate_table = Table('sequencingruns_plates', metadata,
+sequencingrun_plate_table = Table(
+    'sequencingruns_plates', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
     Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id'), nullable=False),
     Column('plate_id', types.Integer, ForeignKey('plates.id'), nullable=False),
-    UniqueConstraint( 'sequencingrun_id', 'plate_id' )
+    UniqueConstraint('sequencingrun_id', 'plate_id')
 )
+
+
+sequencingrun_file_table = Table(
+    'sequencingrun_files', metadata,
+    Column('id', types.Integer, Identity(), primary_key=True),
+    Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id'), nullable=False),
+    Column('file_id', types.Integer, ForeignKey('files.id'), nullable=False),
+    UniqueConstraint('sequencingrun_id', 'file_id')
+)
+
 
 class Sequence(Base, BaseMixIn):
     """
@@ -453,7 +425,7 @@ class Sequence(Base, BaseMixIn):
                                  backref=backref('sequences', lazy='dynamic', passive_deletes=True))
     sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=False)
     sample = relationship(Sample, uselist=False,
-                backref=backref('sequence', lazy='dynamic', passive_deletes=True))
+                          backref=backref('sequence', lazy='dynamic', passive_deletes=True))
 
     method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     method = EK.proxy('method_id', '@METHOD')
@@ -516,8 +488,4 @@ class Sequence(Base, BaseMixIn):
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
-    def as_dict(self):
-        d = super().as_dict()
-        d.update(dict_from_fields(self, self.plain_fields,
-                 exclude=['sequencingrun_id', 'sample_id', 'method_id']))
-        return d
+# EOF
