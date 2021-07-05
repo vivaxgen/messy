@@ -42,6 +42,7 @@ class MessyQueryConstructor(rhombus_handler.QueryConstructor):
 class DBHandler(rhombus_handler.DBHandler):
 
     # add additional class references
+    FileAttachment = dbschema.FileAttachment
     Institution = dbschema.Institution
     Collection = dbschema.Collection
     Sample = dbschema.Sample
