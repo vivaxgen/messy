@@ -1,9 +1,10 @@
 
+from rhombus.lib.utils import cerr, cout, get_dbhandler
 from rhombus.models.core import (Base, BaseMixIn, metadata, deferred, relationship,
                                  registered, backref, declared_attr, column_property)
 from rhombus.models.ek import EK
 from rhombus.models.user import Group, User
-from rhombus.models.filemgr import File
+from rhombus.models.fileattach import FileAttachment
 import messy.lib.roles as r
 import dateutil.parser
 from sqlalchemy.sql import func
@@ -12,7 +13,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
 
 import io
 
-__version__ = '20210101'
+__version__ = '20210706'
 
 # Design Consideration
 # ====================
@@ -97,6 +98,10 @@ class Collection(Base, BaseMixIn):
 
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
     group = relationship(Group, uselist=False, foreign_keys=group_id)
+
+    attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
+    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
+    attachment = FileAttachment.proxy('attachment_file')
 
     contact = deferred(Column(types.String(64), nullable=False, server_default=''))
 
@@ -216,6 +221,11 @@ class Sample(Base, BaseMixIn):
     host_nar = Column(types.String(24), nullable=False, server_default='')
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
+    comment = deferred(Column(types.Text, nullable=False, server_default=''))
+
+    attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
+    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
+    attachment = FileAttachment.proxy('attachment_file')
 
     flag = Column(types.Integer, nullable=False, server_default='0')
     extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
@@ -264,7 +274,7 @@ sample_file_table = Table(
     'samples_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
     Column('sample_id', types.Integer, ForeignKey('samples.id'), nullable=False),
-    Column('file_id', types.Integer, ForeignKey('files.id'), nullable=False),
+    Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
     UniqueConstraint('sample_id', 'file_id')
 )
 
@@ -308,6 +318,10 @@ class Plate(Base, BaseMixIn):
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
+    attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
+    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
+    attachment = FileAttachment.proxy('attachment_file')
+
     __ek_fields__ = ['specimen_type', 'experiment_type']
 
     @declared_attr
@@ -337,6 +351,13 @@ class Plate(Base, BaseMixIn):
     def __str__(self):
         return self.code
 
+plate_file_table = Table(
+    'plates_files', metadata,
+    Column('id', types.Integer, Identity(), primary_key=True),
+    Column('plate_id', types.Integer, ForeignKey('plates.id'), nullable=False),
+    Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
+    UniqueConstraint('plate_id', 'file_id')
+)
 
 class SequencingRun(Base, BaseMixIn):
     """
@@ -355,11 +376,17 @@ class SequencingRun(Base, BaseMixIn):
     sequencing_kit_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     sequencing_kit = EK.proxy('sequencing_kit_id', '@SEQUENCING_KIT')
 
-    # pdf of depthplots, if avaialble
-    depthplots = deferred(Column(types.LargeBinary, nullable=False, server_default=''))
+    # pdf of depthplots, if available
+    # depthplots = deferred(Column(types.LargeBinary, nullable=False, server_default=''))
+    depthplots_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
+    depthplots_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplots_file_id)
+    depthplots = FileAttachment.proxy('depthplots_file')
 
     # gzip html from multiqc, if available
-    qcreport = deferred(Column(types.LargeBinary, nullable=False, server_default=''))
+    qcreport_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
+    qcreport_file = relationship(FileAttachment, uselist=False, foreign_keys=qcreport_file_id)
+    qcreport = FileAttachment.proxy('qcreport_file')
+
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
     __ek_fields__ = ['sequencing_kit']
@@ -387,6 +414,10 @@ class SequencingRun(Base, BaseMixIn):
 
             convert_date(obj, 'date')
 
+            # processing file field
+            if 'depthplots' in obj:
+                self.depthplots = obj['depthplots']
+
             self.update_fields_with_dict(obj)
             self.update_ek_with_dict(obj, dbh=dbh)
 
@@ -407,7 +438,7 @@ sequencingrun_file_table = Table(
     'sequencingrun_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
     Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id'), nullable=False),
-    Column('file_id', types.Integer, ForeignKey('files.id'), nullable=False),
+    Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
     UniqueConstraint('sequencingrun_id', 'file_id')
 )
 
@@ -435,7 +466,11 @@ class Sequence(Base, BaseMixIn):
 
     sequence = Column(types.Text, nullable=False, server_default='')
     avg_depth = Column(types.Integer, nullable=False, server_default='-1')
-    depth_plot = deferred(Column(types.LargeBinary, nullable=False, server_default=''))
+
+    depthplot_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
+    depthplot_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplot_file_id)
+    depthplot = FileAttachment.proxy('depthplot_file')
+
     length = Column(types.Integer, nullable=False, server_default='-1')
     gaps = Column(types.Integer, nullable=False, server_default='-1')
     base_N = Column(types.Integer, nullable=False, server_default='-1')
