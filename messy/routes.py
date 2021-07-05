@@ -98,7 +98,7 @@ def includeme( config ):
         ('/run/@@lookup', 'lookup', 'json'),
         '/run/{id}@@edit',
         '/run/{id}@@save',
-        '/run/{id}@@depthplots',
+        ('/run/{id}@@attachment/{fieldname}', 'attachment'),
         ('/run/{id}', 'view')
     )
 
