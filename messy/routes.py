@@ -42,6 +42,9 @@ def includeme( config ):
     config.add_route('upload-commit', '/upload/commit')
     config.add_view('messy.views.upload.UploadViewer', attr='commit', route_name='upload-commit')
 
+    config.add_route('tools', '/tools')
+    config.add_view('messy.views.tools.ToolsViewer', attr='index', route_name='tools')
+
     add_route_view_class( config, 'messy.views.institution.InstitutionViewer', 'messy.institution',
         '/institution',
         '/institution/@@action',
