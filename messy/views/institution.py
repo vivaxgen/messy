@@ -1,46 +1,46 @@
 
-from messy.views import *
+from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
+                         render_to_response, form_submit_bar, select2_lookup, or_, error_page)
+import rhombus.lib.tags_b46 as t
+import sqlalchemy.exc
 
 
 class InstitutionViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ INSTITUTION_MANAGE ]
-    modifying_roles = managing_roles + [ INSTITUTION_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [r.INSTITUTION_MANAGE]
+    modifying_roles = managing_roles + [r.INSTITUTION_MODIFY]
 
     object_class = get_dbhandler().Institution
     fetch_func = get_dbhandler().get_institutions_by_ids
     edit_route = 'messy.institution-edit'
     view_route = 'messy.institution-view'
 
-    form_fields = { 
-        'code':     ('messy-institution-code', ),
-        'name':     ('messy-institution-name', ),
-        'address':  ('messy-institution-address', ),
-        'zipcode':  ('messy-institution-zipcode', ),
-        'contact':  ('messy-institution-contact', ),
-        'remark':   ('messy-institution-remark', ),
+    form_fields = {
+        'code': ('messy-institution-code', ),
+        'name': ('messy-institution-name', ),
+        'address': ('messy-institution-address', ),
+        'zipcode': ('messy-institution-zipcode', ),
+        'contact': ('messy-institution-contact', ),
+        'remark': ('messy-institution-remark', ),
     }
 
     def __init__(self, request):
         super().__init__(request)
         self.institution = None
 
-
-    @m_roles( PUBLIC )
+    @m_roles(r.PUBLIC)
     def index(self):
 
         institutions = self.dbh.get_institutions()
 
         html, code = generate_institution_table(institutions, self.request)
 
-        html = div()[ h2('Institutions') ].add( html )
+        html = t.div()[t.h2('Institutions')].add(html)
 
-        return render_to_response("messy:templates/generic_page.mako",
-            {   'html': html,
-                'code': code,
-            },
-            request = self.request)
-
+        return render_to_response("messy:templates/generic_page.mako", {
+            'html': html,
+            'code': code,
+        }, request=self.request)
 
     def lookup_helper(self):
         q = self.request.params.get('q')
@@ -50,15 +50,14 @@ class InstitutionViewer(BaseViewer):
 
         dbh = get_dbhandler()
         institutions = dbh.Institution.query(dbh.session()).filter(
-            or_( dbh.Institution.code.ilike(q), dbh.Institution.name.ilike(q)))
+            or_(dbh.Institution.code.ilike(q), dbh.Institution.name.ilike(q)))
 
         result = [
-            { 'id': i.id, 'text': i.render() }
+            {'id': i.id, 'text': i.render()}
             for i in institutions
         ]
 
         return result
-
 
     def action_get(self):
         pass
@@ -71,7 +70,7 @@ class InstitutionViewer(BaseViewer):
         dbh = self.dbh
 
         try:
-            obj.update( d )
+            obj.update(d)
             if obj.id is None:
                 dbh.session().add(obj)
             dbh.session().flush([obj])
@@ -85,89 +84,90 @@ class InstitutionViewer(BaseViewer):
                 print(field)
                 if field == 'institutions.code':
                     raise ParseFormError('The institution code: %s is '
-                        'already being used. Please use other institution code!'
-                        % d['code'], 'messy-institution-code') from err
+                                         'already being used. Please use other institution code!'
+                                         % d['code'], 'messy-institution-code') from err
 
             raise RuntimeError('error updating object')
-
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
         obj = obj or self.institution
         dbh = self.dbh
 
-        eform = form( name='messy-institution', method=POST)
+        ff = self.ffn
+        eform = t.form(name='messy-institution', method=t.POST, readonly=readonly)
         eform.add(
             self.hidden_fields(obj),
-            fieldset(
-                input_text(self.form_fields['code'][0], 'Code', value=obj.code,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(self.form_fields['name'][0], 'Name', value=obj.name,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(self.form_fields['address'][0], 'Address', value=obj.address,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(self.form_fields['zipcode'][0], 'Zipcode', value=obj.zipcode,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(self.form_fields['contact'][0], 'Contact', value=obj.contact,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_textarea(self.form_fields['remark'][0], 'Remark', value=obj.remark,
-                    offset=2, static=readonly, update_dict=update_dict)
+            t.fieldset(
+                t.input_text(ff('code'), 'Code', value=obj.code,
+                             offset=2, update_dict=update_dict),
+                t.input_text(ff('name'), 'Name', value=obj.name,
+                             offset=2, update_dict=update_dict),
+                t.input_text(ff('address'), 'Address', value=obj.address,
+                             offset=2, update_dict=update_dict),
+                t.input_text(ff('zipcode'), 'Zipcode', value=obj.zipcode,
+                             offset=2, update_dict=update_dict),
+                t.input_text(ff('contact'), 'Contact', value=obj.contact,
+                             offset=2, update_dict=update_dict),
+                t.input_textarea(ff('remark'), 'Remark', value=obj.remark,
+                                 offset=2, update_dict=update_dict)
             ),
-            fieldset(
-                form_submit_bar(create) if not readonly else div(),
-                name = 'footer'
+            t.fieldset(
+                form_submit_bar(create) if not readonly else t.div(),
+                name='footer'
             ),
         )
 
         jscode = '''
         '''
 
-        return div()[ h2('Institution'), eform], jscode
+        return t.div()[t.h2('Institution'), eform], jscode
 
 
 def generate_institution_table(institutions, request):
 
-    table_body = tbody()
+    table_body = t.tbody()
 
-    not_guest = not request.user.has_roles( GUEST )
+    not_guest = not request.user.has_roles(r.GUEST)
 
     for institution in institutions:
         table_body.add(
-            tr(
-                td(literal('<input type="checkbox" name="institution-ids" value="%d" />' % institution.id)
-                    if not_guest else ''),
-                td( a(institution.code, href=request.route_url('messy.institution-view', id=institution.id)) ),
-                td( institution.name ),
-                td( institution.address),
-                td( institution.zipcode),
+            t.tr(
+                t.td(t.literal('<input type="checkbox" name="institution-ids" value="%d" />' % institution.id)
+                     if not_guest else ''),
+                t.td(t.a(institution.code, href=request.route_url('messy.institution-view', id=institution.id))),
+                t.td(institution.name),
+                t.td(institution.address),
+                t.td(institution.zipcode),
             )
         )
 
-    institution_table = table(class_='table table-condensed table-striped')[
-        thead(
-            tr(
-                th('', style="width: 2em"),
-                th('Code'),
-                th('Name'),
-                th('Address'),
-                th('Zipcode'),
+    institution_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('', style="width: 2em"),
+                t.th('Code'),
+                t.th('Name'),
+                t.th('Address'),
+                t.th('Zipcode'),
             )
         )
     ]
 
-    institution_table.add( table_body )
+    institution_table.add(table_body)
 
     if not_guest:
-        add_button = ( 'New institution',
-                        request.route_url('messy.institution-add')
-        )
+        add_button = ('New institution',
+                      request.route_url('messy.institution-add'))
 
-        bar = selection_bar('institution-ids', action=request.route_url('messy.institution-action'),
-                    add = add_button)
+        bar = t.selection_bar('institution-ids', action=request.route_url('messy.institution-action'),
+                              add=add_button)
         html, code = bar.render(institution_table)
 
     else:
-        html = div(institution_table)
+        html = t.div(institution_table)
         code = ''
 
     return html, code
+
+# EOF
