@@ -369,7 +369,7 @@ class SequencingRun(Base, BaseMixIn):
     __tablename__ = 'sequencingruns'
 
     code = Column(types.String(16), nullable=False, unique=True, server_default='')
-    serial = Column(types.String(32), nullable=False, unique=True, server_default='')
+    serial = Column(types.String(48), nullable=False, unique=True, server_default='')
     date = Column(types.Date, nullable=False, server_default=func.current_date())
 
     sequencing_provider_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
