@@ -101,14 +101,14 @@ class SampleViewer(BaseViewer):
             eform, jscode = self.edit_form(obj)
             if 'UNIQUE' in detail or 'UniqueViolation' in detail:
                 if 'samples.code' in detail or 'uq_samples_code' in detail:
-                    raise ParseFormError(f"The sample code: {d['code*']} is already being used.",
-                                         self.form_fields['code*'][0]) from err
+                    raise ParseFormError(f"The sample code: {d['code']} is already being used.",
+                                         self.ffn('code*')) from err
                 if 'samples.acc_code' in detail or 'uq_samples_acc_code' in detail:
                     raise ParseFormError(f"The accession code: {d['acc_code']} is already being used.",
-                                         self.form_fields['acc_code'][0]) from err
+                                         self.ffn('acc_code')) from err
                 if 'samples.sequence_name' in detail or 'uq_samples_sequence_name' in detail:
                     raise ParseFormError(f"The sequence name: {d['sequence_name']} is already being used.",
-                                         self.form_fields['sequence_name'][0]) from err
+                                         self.ffn('sequence_name')) from err
 
             raise RuntimeError('unhandled error updating Sample object')
 
@@ -209,7 +209,8 @@ class SampleViewer(BaseViewer):
                     t.input_select_ek(ff('host_occupation_id'), 'Occupation',
                                       value=obj.host_occupation_id or dbh.get_ekey('other').id,
                                       offset=1, size=4, parent_ek=dbh.get_ekey('@HOST_OCCUPATION')),
-                    t.input_text(ff('viral_load'), 'Viral Load', value=obj.viral_load, offset=1, size=1),
+                    t.input_text(ff('viral_load'), 'Viral Load',
+                                 value=-1 if obj.viral_load is None else obj.viral_load, offset=1, size=1),
 
 
                 ),
