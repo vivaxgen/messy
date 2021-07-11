@@ -4,6 +4,7 @@
 	rgba(255,250,245,1)
 	rgba(246,241,236,1)
 	rgba(236,232,227,1);
+	#f9f5ea #dcd7ca #2873bf
 
 */
 
@@ -37,3 +38,11 @@ body {
     color: rgba(255,255,255,.75);
 }
 
+.select2-container .select2-selection--single {
+	height: 38px !important;
+}
+
+.select2-container .select2-selection--single .select2-selection__rendered {
+	padding-top: 4px !important;
+	padding-bottom: 4px !important;
+}
