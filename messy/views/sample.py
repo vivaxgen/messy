@@ -1,17 +1,23 @@
 
-from messy.views import *
+from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
+                         render_to_response, form_submit_bar, select2_lookup, error_page,
+                         Response, modal_delete, modal_error, Response)
+import rhombus.lib.tags_b46 as t
+import sqlalchemy.exc
+#import rhombus.lib.tags as t
 import dateutil
 
 
 class SampleViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ SAMPLE_MANAGE ]
-    modifying_roles = managing_roles + [ SAMPLE_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [r.SAMPLE_MANAGE]
+    modifying_roles = managing_roles + [r.SAMPLE_MODIFY]
 
     object_class = get_dbhandler().Sample
     fetch_func = get_dbhandler().get_samples_by_ids
     edit_route = 'messy.sample-edit'
     view_route = 'messy.sample-view'
+    attachment_route = 'messy.sample-attachment'
 
     form_fields = {
         'collection_id': ('messy-sample-collection_id', ),
@@ -31,51 +37,61 @@ class SampleViewer(BaseViewer):
         'host_id': ('messy-sample-host_id', ),
         'host_info': ('messy-sample-host_info', ),
         'host_gender': ('messy-sample-host_gender', ),
-        'host_age': ('messy-sample-host_age', float),
+        'host_age?': ('messy-sample-host_age', float),
+        'host_occupation_id': ('messy-sample-host_occupation_id', ),
         'host_status_id': ('messy-sample-host_status_id', ),
         'host_severity': ('messy-sample-host_severity', int),
+        'viral_load': ('messy-sample-viral_load', float),
+        'treatment': ('messy-sample-treatment', ),
+        'last_vaccinated_date?': ('messy-sample-last_vaccinated_date', dateutil.parser.parse),
+        'last_vaccinated_info': ('messy-sample-last_vaccinated_info', ),
+        'outbreak': ('messy-sample-outbreak', ),
         'host_dob?': ('messy-sample-host_dob', dateutil.parser.parse),
         'host_nik': ('messy-sample-host_nik', ),
         'host_nar': ('messy-sample-host_nar', ),
-        'host_occupation_id': ('messy-sample-host_occupation_id', ),
         'originating_institution_id*': ('messy-sample-originating_institution_id', ),
         'originating_code': ('messy-sample-originating_code', ),
         'sampling_institution_id': ('messy-sample-sampling_institution_id', ),
         'sampling_code': ('messy-sample-sampling_code', ),
+        'attachment': ('messy-sample-attachment'),
     }
 
-    @m_roles( PUBLIC )
+    @m_roles(r.PUBLIC)
     def index(self):
 
         samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)
 
         html, code = generate_sample_table(samples, self.request)
 
-        html = div()[ h2('Samples'), html ]
+        html = t.div()[t.h2('Samples'), html]
 
         return render_to_response("messy:templates/generic_page.mako",
-            {
-                'html': html,
-                'code': code,
-            },
-            request = self.request)
-
+                                  {
+                                      'html': html,
+                                      'code': code,
+                                  },
+                                  request=self.request)
 
     def update_object(self, obj, d):
         rq = self.request
         dbh = self.dbh
 
         try:
+            # fill default value to all empty variable
+            if 'sampling_institution_id' not in d:
+                d['sampling_institution_id'] = d['originating_institution_id']
+                d['sampling_code'] = d['originating_code']
+
             obj.update(d)
             # check if obj is already registered
             if obj.id is None:
                 # check whether users is in sample collection group
-                if not self.request.user.has_roles( SYSADM, DATAADM, SAMPLE_MANAGE ):
+                if not self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE):
                     collection = dbh.get_collections_by_ids(obj.collection_id, self.request.user.groups)
                     if len(collection) == 0:
                         raise ParseFormError('Either the user is not in a member of collection group '
-                                            'or the collection does not exist.',
-                                            self.form_fields['collection_id'][0])
+                                             'or the collection does not exist.',
+                                             self.form_fields['collection_id'][0])
                 dbh.session().add(obj)
             dbh.session().flush([obj])
 
@@ -85,137 +101,179 @@ class SampleViewer(BaseViewer):
             eform, jscode = self.edit_form(obj)
             if 'UNIQUE' in detail or 'UniqueViolation' in detail:
                 if 'samples.code' in detail or 'uq_samples_code' in detail:
-                    raise ParseFormError('The sample code: %s is '
-                        'already being used.' % d['code'], self.form_fields['code*'][0]) from err
+                    raise ParseFormError(f"The sample code: {d['code*']} is already being used.",
+                                         self.form_fields['code*'][0]) from err
                 if 'samples.acc_code' in detail or 'uq_samples_acc_code' in detail:
-                    raise ParseFormError('The accession code: %s is '
-                        'already being used.' % d['acc_code'], self.form_fields['acc_code'][0]) from err
+                    raise ParseFormError(f"The accession code: {d['acc_code']} is already being used.",
+                                         self.form_fields['acc_code'][0]) from err
                 if 'samples.sequence_name' in detail or 'uq_samples_sequence_name' in detail:
-                    raise ParseFormError('The sequence name: %s is '
-                        'already being used.' % d['sequence_name'], self.form_fields['sequence_name'][0]) from err
+                    raise ParseFormError(f"The sequence name: {d['sequence_name']} is already being used.",
+                                         self.form_fields['sequence_name'][0]) from err
 
             raise RuntimeError('unhandled error updating Sample object')
 
-        except RuntimeError as err:
+        except RuntimeError:
             raise
-
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
         obj = obj or self.obj
         dbh = self.dbh
         req = self.request
-        ff = self.form_fields
+        ff = self.ffn
 
         orig_inst = obj.originating_institution
         samp_inst = obj.sampling_institution
         if update_dict:
-            if ff['originating_institution_id*'][0] in update_dict:
+            if ff('originating_institution_id*') in update_dict:
                 orig_inst = dbh.get_institutions_by_ids(
-                        [update_dict[ff['originating_institution_id*'][0]]], None)[0]
-            if ff['sampling_institution_id'][0] in update_dict:
+                    [update_dict[ff('originating_institution_id*')]], None)[0]
+            if ff('sampling_institution_id') in update_dict:
                 samp_inst = dbh.get_institutions_by_ids(
-                        [update_dict[ff['sampling_institution_id'][0]]], None)[0]
+                    [update_dict[ff('sampling_institution_id')]], None)[0]
 
-        eform = form( name='messy-sample', method=POST)[
+        eform = t.form(name='messy-sample', method=t.POST, enctype=t.FORM_MULTIPART, readonly=readonly,
+                       update_dict=update_dict)[
             self.hidden_fields(obj),
-            fieldset(
-                input_select('messy-sample-collection_id', 'Collection', value=obj.collection_id,
-                    offset=2, size=2,
-                    options = [ (c.id, c.code) for c in dbh.get_collections(
-                            groups = None if req.user.has_roles( SYSADM, DATAADM ) else req.user.groups
-                        ) ],
-                    static=readonly),
-                input_text(ff['code*'][0], 'Code', value=obj.code,
-                        offset=2, static=readonly, update_dict=update_dict),
-                input_text(ff['acc_code'][0], 'Accession Code', value=obj.acc_code,
-                        offset=2, static=readonly, update_dict=update_dict),
+            t.fieldset(
+                t.hr,
 
-                input_text(ff['received_date'][0], 'Received Date', value=obj.received_date,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_select_ek(ff['category_id'][0], 'Category',
-                    value = obj.category_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@CATEGORY'), update_dict=update_dict),
+                t.inline_inputs(
+                    t.input_select('messy-sample-collection_id', 'Collection', value=obj.collection_id,
+                                   offset=2, size=2,
+                                   options=[(c.id, c.code) for c in dbh.get_collections(
+                                       groups=None if req.user.has_roles(r.SYSADM, r.DATAADM)
+                                       else req.user.groups)]),
+                    t.input_text(ff('code*'), '* Code', value=obj.code, offset=1, size=3),
+                    t.input_text(ff('acc_code'), 'Acc Code', value=obj.acc_code, offset=1, size=3),
+                ),
 
-                input_select_ek(ff['species_id'][0], 'Species',
-                    value = obj.species_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@SPECIES'), update_dict=update_dict),
-                input_select_ek(ff['host_id'][0], 'Host',
-                    value = obj.host_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@HOST'), update_dict=update_dict),
-                input_select_ek(ff['specimen_type_id'][0], 'Specimen type',
-                    value = obj.specimen_type_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@SPECIMEN_TYPE'), update_dict=update_dict),
-                input_select_ek(ff['ct_method_id'][0], 'Ct method',
-                    value = obj.ct_method_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@CT_METHOD'), update_dict=update_dict),
-                input_text(ff['ct_value'][0], 'Ct value',
-                    value = -1 if obj.ct_value is None else obj.ct_value,
-                    offset=2, size=5, static=readonly, update_dict=update_dict),
-                input_text(ff['location'][0], 'Location', value=obj.location,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(ff['location_info'][0], 'Additional location', value=obj.location_info,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(ff['collection_date'][0], 'Collection date', value=obj.collection_date,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(ff['sequence_name'][0], 'Sequence name', value=obj.sequence_name,
-                    offset=2, static=readonly, update_dict=update_dict),
+                t.inline_inputs(
+                    t.input_text(ff('received_date'), '* Received Date', value=obj.received_date,
+                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
+                    t.input_select_ek(ff('category_id'), 'Category',
+                                      value=obj.category_id or dbh.get_ekey('S-SU').id,
+                                      offset=1, size=3, parent_ek=dbh.get_ekey('@CATEGORY')),
+                    t.input_select_ek(ff('species_id'), 'Species', value=obj.species_id,
+                                      offset=1, size=3, parent_ek=dbh.get_ekey('@SPECIES')),
+                ),
 
-                input_text(ff['host_age'][0], 'Host Age', value=obj.host_age,
-                    offset=2, static=readonly,  update_dict=update_dict),
-                input_select_ek(ff['host_status_id'][0], 'Host Status',
-                    value = obj.host_status_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@HOST_STATUS'), update_dict=update_dict),
-                input_text(ff['host_severity'][0], 'Host Severity',
-                    value= -1 if obj.host_severity is None else obj.host_severity,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_select_ek(ff['host_occupation_id'][0], 'Host Occupation',
-                    value = obj.host_occupation_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@HOST_OCCUPATION'), update_dict=update_dict),
-                input_text(ff['host_dob?'][0], 'Host Date of Birth', value=obj.host_dob,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(ff['host_nik'][0], 'Host NIK', value=obj.host_nik,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_text(ff['host_nar'][0], 'Host NAR Number', value=obj.host_nar,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_select_ek(ff['passage_id'][0], 'Passage',
-                    value = obj.passage_id, offset=2, size=5, static=readonly,
-                    parent_ek = dbh.get_ekey('@PASSAGE'), update_dict=update_dict),
+                t.inline_inputs(
+                    t.input_text(ff('collection_date'), '* Collection date', value=obj.collection_date,
+                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
+                    t.input_text(ff('location'), '* Location', value=obj.location, offset=1, size=7,
+                                 placeholder='Asia/Indonesia/'),
+                ),
 
-                input_select(ff['originating_institution_id*'][0], 'Originating Institution',
-                    value = orig_inst.id if orig_inst else None, offset=2, size=5, static=readonly,
-                    options = [ (orig_inst.id, f'{orig_inst.code} | {orig_inst.name}') ] if orig_inst else [],
-                    update_dict=update_dict ),
-                input_text(ff['originating_code'][0], 'Originating Code', value=obj.originating_code,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_select(ff['sampling_institution_id'][0], 'Sampling Institution',
-                    value = samp_inst.id if samp_inst else None, offset=2, size=5, static=readonly,
-                    options = [ (samp_inst.id, f'{samp_inst.code} | {samp_inst.name}')] if samp_inst else [],
-                    update_dict=update_dict ),
-                input_text(ff['sampling_code'][0], 'Sampling Code', value=obj.sampling_code,
-                    offset=2, static=readonly, update_dict=update_dict),
+                t.input_text(ff('location_info'), 'Additional location', value=obj.location_info,
+                             offset=2, size=10, placeholder='Any location info'),
+
+                t.inline_inputs(
+                    t.input_select(ff('originating_institution_id*'), 'Originating Institution',
+                                   value=orig_inst.id if orig_inst else None, offset=2, size=5,
+                                   options=[(orig_inst.id, f'{orig_inst.code} | {orig_inst.name}')] if orig_inst else []),
+                    t.input_text(ff('originating_code'), 'Originating Code', value=obj.originating_code,
+                                 offset=2, size=3),
+                ),
+
+                t.hr,
+
+                t.input_text(ff('sequence_name'), 'Sequence name', value=obj.sequence_name, readonly=True,
+                             offset=2, size=10, placeholder='Sequence name will be automatically-generated'),
+
+                t.inline_inputs(
+                    t.input_select_ek(ff('specimen_type_id'), 'Specimen type',
+                                      value=obj.specimen_type_id or dbh.get_ekey('np+op').id,
+                                      offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
+                    t.input_text(ff('ct_value'), 'Ct value',
+                                 value=-1 if obj.ct_value is None else obj.ct_value, offset=1, size=1),
+                    t.input_select_ek(ff('ct_method_id'), 'Ct method',
+                                      value=obj.ct_method_id or dbh.get_ekey('rtpcr').id,
+                                      offset=1, size=2, parent_ek=dbh.get_ekey('@CT_METHOD')),
+                    t.input_select_ek(ff('passage_id'), 'Passage',
+                                      value=obj.passage_id or dbh.get_ekey('original').id,
+                                      offset=1, size=2, parent_ek=dbh.get_ekey('@PASSAGE')),
+                ),
+
+                t.inline_inputs(
+
+                    t.input_select_ek(ff('host_id'), 'Host', value=obj.host_id,
+                                      offset=2, size=2, parent_ek=dbh.get_ekey('@HOST')),
+                    t.input_text(ff('host_info'), 'Host Info', value=obj.host_info, offset=2, size=6),
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('host_age?'), 'Host Age', value=obj.host_age, offset=2, size=1),
+                    t.input_text(ff('host_gender'), 'Gender', value=obj.host_gender, offset=1, size=1,
+                                 placeholder='M/F/U'),
+                    t.input_select_ek(ff('host_occupation_id'), 'Occupation',
+                                      value=obj.host_occupation_id or dbh.get_ekey('other').id,
+                                      offset=1, size=4, parent_ek=dbh.get_ekey('@HOST_OCCUPATION')),
+                    t.input_text(ff('viral_load'), 'Viral Load', value=obj.viral_load, offset=1, size=1),
+
+
+                ),
+
+                t.inline_inputs(
+                    t.input_select_ek(ff('host_status_id'), 'Host Status',
+                                      value=obj.host_status_id or dbh.get_ekey('unknown').id,
+                                      offset=2, size=2, parent_ek=dbh.get_ekey('@HOST_STATUS')),
+                    t.input_text(ff('host_severity'), 'Severity',
+                                 value=-1 if obj.host_severity is None else obj.host_severity,
+                                 offset=1, size=1),
+                    t.input_text(ff('treatment'), 'Treatment', value=obj.treatment,
+                                 offset=1, size=5),
+
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('last_vaccinated_date?'), 'Last Vaccination Date', value=obj.last_vaccinated_date,
+                                 offset=2, size=2),
+                    t.input_text(ff('last_vaccinated_info'), 'Last Vaccination Info', value=obj.last_vaccinated_info,
+                                 offset=2, size=6),
+                ),
+
+                t.input_text(ff('outbreak'), 'Outbreak info', value=obj.outbreak,
+                             offset=2, size=10),
+
+                t.inline_inputs(
+                    t.input_select(ff('sampling_institution_id'), 'Sampling Institution',
+                                   value=samp_inst.id if samp_inst else None, offset=2, size=5,
+                                   options=[(samp_inst.id, f'{samp_inst.code} | {samp_inst.name}')] if samp_inst else []),
+                    t.input_text(ff('sampling_code'), 'Sampling Code', value=obj.sampling_code,
+                                 offset=2, size=3),
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('host_dob?'), 'Host Date of Birth', value=obj.host_dob, offset=2, size=2),
+                    t.input_text(ff('host_nik'), 'NIK', value=obj.host_nik, offset=1, size=3),
+                    t.input_text(ff('host_nar'), 'NAR', value=obj.host_nar, offset=1, size=3),
+                ),
+
+                t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
+                .set_view_link(self.attachment_link(obj, 'attachment')),
+
                 name='messy-sample-fieldset'
             ),
-            fieldset(
-                form_submit_bar(create) if not readonly else div(),
-                name = 'footer'
+            t.fieldset(
+                form_submit_bar(create) if not readonly else t.div(),
+                name='footer'
             ),
         ]
 
         if not readonly:
             jscode = select2_lookup(tag='messy-sample-originating_institution_id', minlen=3,
-                            placeholder="Type an institution name",
-                            parenttag="messy-sample-fieldset", usetag=False,
-                            url=self.request.route_url('messy.institution-lookup')) +\
-                        select2_lookup(tag='messy-sample-sampling_institution_id', minlen=3,
-                            placeholder="Type an institution name",
-                            parenttag="messy-sample-fieldset", usetag=False,
-                            url=self.request.route_url('messy.institution-lookup'))
+                                    placeholder="Type an institution name",
+                                    parenttag="messy-sample-fieldset", usetag=False,
+                                    url=self.request.route_url('messy.institution-lookup')) +\
+                select2_lookup(tag='messy-sample-sampling_institution_id', minlen=3,
+                               placeholder="Type an institution name",
+                               parenttag="messy-sample-fieldset", usetag=False,
+                               url=self.request.route_url('messy.institution-lookup'))
         else:
             jscode = ''
 
-        return div()[ h2('Sample'), eform], jscode
-
+        return t.div()[t.h2('Sample'), eform], jscode
 
     def lookup_helper(self):
         q = self.request.params.get('q')
@@ -238,7 +296,7 @@ class SampleViewer(BaseViewer):
 
         if method == 'delete':
 
-            sample_ids = [ int(x) for x in request.params.getall('sample-ids')]
+            sample_ids = [int(x) for x in request.params.getall('sample-ids')]
             samples = dbh.get_samples_by_ids(sample_ids, groups=None, user=request.user)
 
             if len(samples) == 0:
@@ -246,22 +304,20 @@ class SampleViewer(BaseViewer):
 
             return Response(
                 modal_delete(
-                    title = 'Removing sample(s)',
-                    content = literal(
+                    title='Removing sample(s)',
+                    content=t.literal(
                         'You are going to remove the following sample(s): '
-                        '<ul>' +
-                        ''.join( '<li>%s</li>' % s.code for s in samples) +
-                        '</ul>'
-                    ),
-                    request = request,
+                        '<ul>'
+                        + ''.join('<li>%s</li>' % s.code for s in samples)
+                        + '</ul>'
+                    ), request=request,
 
-                ),
-                request = request
+                ), request=request
             )
 
         elif method == 'delete/confirm':
 
-            sample_ids = [ int(x) for x in request.params.getall('sample-ids')]
+            sample_ids = [int(x) for x in request.params.getall('sample-ids')]
             samples = dbh.get_samples_by_ids(sample_ids, groups=None, user=request.user)
 
             sess = dbh.session()
@@ -275,62 +331,63 @@ class SampleViewer(BaseViewer):
                 ('success', 'You have successfully removed %d sample(s).' % count)
             )
 
-            return HTTPFound( location = request.referer )
+            return HTTPFound(location=request.referer)
 
         return error_page(request, 'action post not implemented')
 
 
 def generate_sample_table(samples, request):
 
-    table_body = tbody()
+    table_body = t.tbody()
 
-    not_guest = not request.user.has_roles( GUEST )
+    not_guest = not request.user.has_roles(r.GUEST)
 
     for sample in samples:
         table_body.add(
-            tr(
-                td(literal('<input type="checkbox" name="sample-ids" value="%d" />' % sample.id)
-                    if not_guest else ''),
-                td( a(sample.code, href=request.route_url('messy.sample-view', id=sample.id)) ),
-                td( sample.collection.code),
-                td( sample.category ),
-                td( sample.acc_code ),
-                td( sample.sequence_name),
-                td( sample.location),
-                td( sample.collection_date),
-                td( f'{sample.host_age:4.1f}' ),
+            t.tr(
+                t.td(t.literal('<input type="checkbox" name="sample-ids" value="%d" />' % sample.id)
+                     if not_guest else ''),
+                t.td(t.a(sample.code, href=request.route_url('messy.sample-view', id=sample.id))),
+                t.td(sample.collection.code),
+                t.td(sample.category),
+                t.td(sample.acc_code),
+                t.td(sample.sequence_name),
+                t.td(sample.location),
+                t.td(sample.collection_date),
+                t.td(f'{sample.host_age:4.1f}'),
             )
         )
 
-    sample_table = table(class_='table table-condensed table-striped')[
-        thead(
-            tr(
-                th('', style="width: 2em"),
-                th('Code'),
-                th('Collection'),
-                th('Category'),
-                th('Acc Code'),
-                th('Name'),
-                th('Location'),
-                th('Collection Date'),
-                th('Age'),
+    sample_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('', style="width: 2em"),
+                t.th('Code'),
+                t.th('Collection'),
+                t.th('Category'),
+                t.th('Acc Code'),
+                t.th('Name'),
+                t.th('Location'),
+                t.th('Collection Date'),
+                t.th('Age'),
             )
         )
     ]
 
-    sample_table.add( table_body )
+    sample_table.add(table_body)
 
     if not_guest:
-        add_button = ( 'New sample',
-                        request.route_url('messy.sample-add')
-        )
+        add_button = ('New sample',
+                      request.route_url('messy.sample-add'))
 
-        bar = selection_bar('sample-ids', action=request.route_url('messy.sample-action'),
-                    add = add_button)
+        bar = t.selection_bar('sample-ids', action=request.route_url('messy.sample-action'),
+                              add=add_button)
         html, code = bar.render(sample_table)
 
     else:
-        html = div(sample_table)
+        html = t.div(sample_table)
         code = ''
 
     return html, code
+
+# EOF
