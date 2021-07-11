@@ -142,7 +142,7 @@ ek_initlist = [
         [
             ('rtpcr', 'generic realtime RT-PCR'),
             ('cobas', 'Cobas'),
-            ('berlin', 'Berlin method')
+            ('charite-berlin', 'Charite-Berlin method')
         ]
     ),
     (   '@EXPERIMENT_TYPE', 'Laboratory experiment type',
