@@ -13,7 +13,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
 
 import io
 
-__version__ = '20210706'
+__version__ = '20210711'
 
 # Design Consideration
 # ====================
@@ -125,7 +125,7 @@ class Collection(Base, BaseMixIn):
             if self.institutions != institutions:
                 self.institutions = institutions
 
-            self.update_fields_with_dict(obj)
+            self.update_fields_with_dict(obj, additional_fields=['attachment'])
 
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
@@ -260,7 +260,7 @@ class Sample(Base, BaseMixIn):
             for f in ['collection_date', 'received_data', 'host_dob']:
                 convert_date(obj, f)
 
-            self.update_fields_with_dict(obj)
+            self.update_fields_with_dict(obj, additional_fields=['attachment'])
             self.update_ek_with_dict(obj, dbh=dbh)
 
         else:
@@ -305,7 +305,7 @@ class Plate(Base, BaseMixIn):
 
     # primary group of user
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
-    group = relationship(Group, uselist=False, foreign_keys = group_id)
+    group = relationship(Group, uselist=False, foreign_keys=group_id)
 
     code = Column(types.String(32), nullable=False, unique=True, server_default='')
     date = Column(types.Date, nullable=False, server_default=func.current_date())
@@ -342,7 +342,7 @@ class Plate(Base, BaseMixIn):
 
             convert_date(obj, 'date')
 
-            self.update_fields_with_dict(obj)
+            self.update_fields_with_dict(obj, additional_fields=['attachment'])
             self.update_ek_with_dict(obj, dbh=dbh)
 
         else:
@@ -351,6 +351,7 @@ class Plate(Base, BaseMixIn):
     def __str__(self):
         return self.code
 
+
 plate_file_table = Table(
     'plates_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
@@ -358,6 +359,7 @@ plate_file_table = Table(
     Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
     UniqueConstraint('plate_id', 'file_id')
 )
+
 
 class SequencingRun(Base, BaseMixIn):
     """
@@ -387,6 +389,11 @@ class SequencingRun(Base, BaseMixIn):
     qcreport_file = relationship(FileAttachment, uselist=False, foreign_keys=qcreport_file_id)
     qcreport = FileAttachment.proxy('qcreport_file')
 
+    # screenshot from the instrument, if available
+    screenshot_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
+    screenshot_file = relationship(FileAttachment, uselist=False, foreign_keys=screenshot_file_id)
+    screenshot = FileAttachment.proxy('screenshot_file')
+
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
     __ek_fields__ = ['sequencing_kit']
@@ -396,11 +403,6 @@ class SequencingRun(Base, BaseMixIn):
 
     def __repr__(self):
         return f'<SequencingRun: {self.code}>'
-
-    def depthplots_fp(self):
-        if not self.depthplots or len(self.depthplots) == 0:
-            return None
-        return io.BytesIO(self.depthplots)
 
     def update(self, obj):
 
@@ -414,11 +416,7 @@ class SequencingRun(Base, BaseMixIn):
 
             convert_date(obj, 'date')
 
-            # processing file field
-            if 'depthplots' in obj:
-                self.depthplots = obj['depthplots']
-
-            self.update_fields_with_dict(obj)
+            self.update_fields_with_dict(obj, additional_fields=['depthplots', 'qcreport', 'screenshot'])
             self.update_ek_with_dict(obj, dbh=dbh)
 
         else:
