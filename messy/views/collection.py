@@ -65,14 +65,19 @@ class CollectionViewer(BaseViewer):
         except sqlalchemy.exc.IntegrityError as err:
             dbh.session().rollback()
             detail = err.args[0]
-            if 'UNIQUE' in detail:
-                field = detail.split()[-1]
-                if field == 'collections.code':
-                    raise ParseFormError('The collection code: %s is '
-                                         'already being used. Please use other collection code!'
-                                         % d['code'], 'messy-collection-code') from err
+            if 'UNIQUE' in detail or 'UniqueViolation' in detail:
+                if 'collections.code' in detail or 'uq_collections_code' in detail:
+                    raise ParseFormError(f'The collection code: {d["code"]}  is '
+                                         f'already being used. Please use other collection code!',
+                                         'messy-collection-code') from err
 
-            raise RuntimeError('error updating object')
+            raise RuntimeError(f'error updating object: {detail}')
+
+        except sqlalchemy.exc.DataError as err:
+            dbh.session().rollback()
+            detail = err.args[0]
+
+            raise RuntimeError(detail)
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
