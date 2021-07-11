@@ -1,61 +1,63 @@
 
-from messy.views import *
+from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
+                         render_to_response, form_submit_bar, select2_lookup, or_, error_page)
+import rhombus.lib.tags_b46 as t
+import sqlalchemy.exc
 import json
 
 
 class CollectionViewer(BaseViewer):
 
-    managing_roles = BaseViewer.managing_roles + [ COLLECTION_MANAGE ]
-    modifying_roles = [ COLLECTION_MODIFY ] + managing_roles
+    managing_roles = BaseViewer.managing_roles + [r.COLLECTION_MANAGE]
+    modifying_roles = [r.COLLECTION_MODIFY] + managing_roles
 
     object_class = get_dbhandler().Collection
     fetch_func = get_dbhandler().get_collections_by_ids
     edit_route = 'messy.collection-edit'
     view_route = 'messy.collection-view'
+    attachment_route = 'messy.collection-attachment'
 
     form_fields = {
-            'code':             ('messy-collection-code',),
-            'group_id':         ('messy-collection-group_id', int),
-            'description':      ('messy-collection-description',),
-            'institution_ids':  ('messy-collection-institution_ids', list, int),
-            'contact':          ('messy-collection-contact',),
-            'remark':           ('messy-collection-remark'),
-            'data':             ('messy-collection-data', json.loads),
+        'code*': ('messy-collection-code',),
+        'group_id': ('messy-collection-group_id', int),
+        'description': ('messy-collection-description', ),
+        'institution_ids': ('messy-collection-institution_ids', list, int),
+        'contact': ('messy-collection-contact', ),
+        'remark': ('messy-collection-remark', ),
+        'attachment': ('messy-collection-attachment', ),
+        'data': ('messy-collection-data', json.loads),
     }
 
-
-    @m_roles( PUBLIC )
+    @m_roles(r.PUBLIC)
     def index(self):
 
         group_id = int(self.request.params.get('group_id', 0))
         if group_id:
             if self.request.user.in_group(group_id):
-                collections = self.dbh.get_collections( groups = [(None, group_id)] )
+                collections = self.dbh.get_collections(groups=[(None, group_id)])
             else:
                 return error_page('You do not have access to view collections that belong to this group.')
           
-        elif self.request.user.has_roles( SYSADM, DATAADM, SYSVIEW, DATAVIEW ):
-            collections = self.dbh.get_collections( groups = None )
+        elif self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SYSVIEW, r.DATAVIEW):
+            collections = self.dbh.get_collections(groups=None)
         else:
-            collections = self.dbh.get_collections( groups = self.request.user.groups )
+            collections = self.dbh.get_collections(groups=self.request.user.groups)
 
         html, code = generate_collection_table(collections, self.request)
 
-        html = div()[ h2('Collections') ].add( html )
+        html = t.div()[t.h2('Collections')].add(html)
 
-        return render_to_response("messy:templates/generic_page.mako",
-            {    'html': html,
-                'code': code,
-            },
-            request = self.request)
-
+        return render_to_response("messy:templates/generic_page.mako", {
+            'html': html,
+            'code': code,
+        }, request=self.request)
 
     def update_object(self, obj, d):
         rq = self.request
         dbh = self.dbh
 
         try:
-            obj.update( d )
+            obj.update(d)
             if obj.id is None:
                 dbh.session().add(obj)
             dbh.session().flush([obj])
@@ -67,11 +69,10 @@ class CollectionViewer(BaseViewer):
                 field = detail.split()[-1]
                 if field == 'collections.code':
                     raise ParseFormError('The collection code: %s is '
-                        'already being used. Please use other collection code!'
-                        % d['code'], 'messy-collection-code') from err
+                                         'already being used. Please use other collection code!'
+                                         % d['code'], 'messy-collection-code') from err
 
             raise RuntimeError('error updating object')
-
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
@@ -79,97 +80,94 @@ class CollectionViewer(BaseViewer):
         dbh = self.dbh
 
         # dealing with messy-collection-institution_ids field
-        institution_options = [ (i.id, i.code) for i in obj.institutions ]
-        institution_ids = [ x[0] for x in institution_options ]
+        institution_options = [(i.id, i.code) for i in obj.institutions]
+        institution_ids = [x[0] for x in institution_options]
         if update_dict is not None:
             institution_ids = update_dict.getall('messy-collection-institution_ids')
-            institutions = [ dbh.get_institutions_by_ids([i], None)[0] for i in institution_ids ]
-            institution_options = [ (i.id, i.code) for i in institutions ]
+            institutions = [dbh.get_institutions_by_ids([i], None)[0] for i in institution_ids]
+            institution_options = [(i.id, i.code) for i in institutions]
 
-        eform = form( name='messy-collection', method=POST)
+        ff = self.ffn
+        eform = t.form(name='messy-collection', method=t.POST, enctype=t.FORM_MULTIPART, readonly=readonly,
+                       update_dict=update_dict)
         eform.add(
             self.hidden_fields(obj),
-            fieldset(
-                input_text('messy-collection-code', 'Code', value=obj.code,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_select('messy-collection-group_id', 'Group', value=obj.group_id,
-                    offset=2, size=2, options = [ (g.id, g.name) for g in dbh.get_group() ],
-                    static=readonly, update_dict=update_dict),
-                input_text('messy-collection-description', 'Description', value=obj.description,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_select('messy-collection-institution_ids', 'Institution',
-                    value = institution_ids, offset=2, size=3, static=readonly, multiple=True,
-                    options = institution_options),
-                input_text('messy-collection-contact', 'Contact', value=obj.contact,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_textarea('messy-collection-remark', 'Remark', value=obj.remark,
-                    offset=2, static=readonly, update_dict=update_dict),
-                input_textarea('messy-collection-data', 'Data', value=json.dumps(obj.data, indent=2),
-                    offset=2, static=readonly, update_dict=update_dict),
+            t.fieldset(
+                t.input_text(ff('code*'), 'Code', value=obj.code, offset=2),
+                t.input_select(ff('group_id'), 'Group', value=obj.group_id,
+                               offset=2, size=2, options=[(g.id, g.name) for g in dbh.get_group()]),
+                t.input_text(ff('description'), 'Description', value=obj.description,
+                             offset=2),
+                t.input_select(ff('institution_ids'), 'Institution', value=institution_ids, offset=2,
+                               size=3, multiple=True, options=institution_options),
+                t.input_text(ff('contact'), 'Contact', value=obj.contact, offset=2),
+                t.input_textarea(ff('remark'), 'Remark', value=obj.remark, offset=2),
+                t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
+                .set_view_link(self.attachment_link(obj, 'attachment')),
+                t.input_textarea(ff('data'), 'Data', value=json.dumps(obj.data, indent=2), offset=2),
                 name="messy-collection-fieldset"
             ),
-            fieldset(
-                form_submit_bar(create) if not readonly else div(),
-                name = 'footer'
+            t.fieldset(
+                form_submit_bar(create) if not readonly else t.div(),
+                name='footer'
             ),
         )
 
         if not readonly:
             jscode = select2_lookup(tag="messy-collection-institution_ids", minlen=3,
-                        placeholder="Type an institution name",
-                        parenttag="messy-collection-fieldset",
-                        url=self.request.route_url('messy.institution-lookup'))
+                                    placeholder="Type an institution name",
+                                    parenttag="messy-collection-fieldset",
+                                    url=self.request.route_url('messy.institution-lookup'))
         else:
             jscode = ''
 
-        return div()[ h2('Collection'), eform], jscode
+        return t.div()[t.h2('Collection'), eform], jscode
 
 
 def generate_collection_table(collections, request):
 
-    table_body = tbody()
+    table_body = t.tbody()
 
-    not_guest = not request.user.has_roles( GUEST )
+    not_guest = not request.user.has_roles(r.GUEST)
 
     for collection in collections:
         table_body.add(
-            tr(
-                td(literal('<input type="checkbox" name="collection-ids" value="%d" />' % collection.id)
-                    if not_guest else ''),
-                td( a(collection.code, href=request.route_url('messy.collection-view', id=collection.id)) ),
-                td( collection.description or '-' ),
-                td( a(collection.samples.count(),
-                        href=request.route_url('messy.sample', _query = {'q': '%d[collection_id]' % collection.id}))),
-                td( a(collection.group.name,
-                        href=request.route_url('messy.collection', _query = {'group_id': collection.group.id}))),
+            t.tr(
+                t.td(t.literal('<input type="checkbox" name="collection-ids" value="%d" />' % collection.id)
+                     if not_guest else ''),
+                t.td(t.a(collection.code, href=request.route_url('messy.collection-view', id=collection.id))),
+                t.td(collection.description or '-'),
+                t.td(t.a(collection.samples.count(),
+                         href=request.route_url('messy.sample', _query={'q': '%d[collection_id]' % collection.id}))),
+                t.td(t.a(collection.group.name,
+                         href=request.route_url('messy.collection', _query={'group_id': collection.group.id}))),
             )
         )
 
-    collection_table = table(class_='table table-condensed table-striped')[
-        thead(
-            tr(
-                th('', style="width: 2em"),
-                th('Collection code'),
-                th('Description'),
-                th('Sample size'),
-                th('Group'),
+    collection_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('', style="width: 2em"),
+                t.th('Collection code'),
+                t.th('Description'),
+                t.th('Sample size'),
+                t.th('Group'),
             )
         )
     ]
 
-    collection_table.add( table_body )
+    collection_table.add(table_body)
 
     if not_guest:
-        add_button = ( 'New collection',
-                        request.route_url('messy.collection-add')
-        )
+        add_button = ('New collection',
+                      request.route_url('messy.collection-add'))
 
-        bar = selection_bar('collection-ids', action=request.route_url('messy.collection-action'),
-                    add = add_button)
+        bar = t.selection_bar('collection-ids', action=request.route_url('messy.collection-action'),
+                              add=add_button)
         html, code = bar.render(collection_table)
 
     else:
-        html = div(collection_table)
+        html = t.div(collection_table)
         code = ''
 
     return html, code
