@@ -61,6 +61,7 @@ def includeme( config ):
         '/collection/@@add',
         '/collection/{id}@@edit',
         '/collection/{id}@@save',
+        ('/collection/{id}@@attachment/{fieldname}', 'attachment'),
         ('/collection/{id}', 'view')
     )
 
@@ -71,6 +72,7 @@ def includeme( config ):
         ('/sample/@@lookup', 'lookup', 'json'),
         '/sample/{id}@@edit',
         '/sample/{id}@@save',
+        ('/sample/{id}@@attachment/{fieldname}', 'attachment'),
         ('/sample/{id}', 'view')
     )
 
@@ -91,6 +93,7 @@ def includeme( config ):
         '/plate/{id}@@edit',
         '/plate/{id}@@save',
         ('/plate/{id}@@position', 'position', 'json'),
+        ('/plate/{id}@@attachment/{fieldname}', 'attachment'),
         ('/plate/{id}', 'view')
     )
 
