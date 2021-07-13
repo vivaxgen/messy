@@ -58,6 +58,9 @@ class Institution(Base, BaseMixIn):
 
     __searchable__ = ['code', 'name', 'address']
 
+    def __repr__(self):
+        return f"Institution('{self.code}', '{self.name}')"
+
     def update(self, obj):
 
         if isinstance(obj, dict):
@@ -107,6 +110,9 @@ class Collection(Base, BaseMixIn):
 
     institutions = relationship(Institution, secondary=collection_institution_table,
                                 order_by=collection_institution_table.c.id)
+
+    def __repr__(self):
+        return f"Collection('{self.code}')"
 
     def update(self, obj):
 
@@ -238,6 +244,9 @@ class Sample(Base, BaseMixIn):
     __ek_fields__ = ['species', 'passage', 'host', 'host_status', 'host_occupation',
                      'specimen_type', 'ct_method', 'category']
 
+    def __repr__(self):
+        return f"Sample('{self.code}')"
+
     def update(self, obj):
 
         if isinstance(obj, dict):
@@ -328,6 +337,9 @@ class Plate(Base, BaseMixIn):
     def has_layout(cls):
         return column_property(exists().where(PlatePosition.plate_id == cls.id))
 
+    def __repr__(self):
+        return f"Plate('{self.code}')"
+
     def update(self, obj):
 
         if isinstance(obj, dict):
@@ -402,7 +414,7 @@ class SequencingRun(Base, BaseMixIn):
         return self.code
 
     def __repr__(self):
-        return f'<SequencingRun: {self.code}>'
+        return f"SequencingRun('{self.code}')"
 
     def update(self, obj):
 
@@ -500,6 +512,9 @@ class Sequence(Base, BaseMixIn):
     remarks = deferred(Column(types.Text, nullable=False, server_default=''))
 
     __ek_fields__ = ['method']
+
+    def __repr__(self):
+        return f"Sequence(sample='{self.code}')"
 
     def update(self, obj):
 
