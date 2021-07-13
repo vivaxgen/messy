@@ -255,27 +255,19 @@ class SampleUploadJob(UploadJob):
         return inst
 
     def get_ekey(self, key, dbh):
-        ek_id = dbh.EK.getid(key, dbh.session())
-        if ek_id:
-            return key
+        try:
+            ek_id = dbh.EK.getid(key, dbh.session())
+            if ek_id:
+                return key
 
+        except KeyError:
+            pass
+
+        key = key.replace('-', ' ')
         eks = dbh.EK.search_text(key, dbh.session(), 1)
         if len(eks) == 0:
             raise KeyError(f'key "{key}"" not found')
         return eks[0].key
-
-
-
-
-
-        ek = dbh.get_ekey(key)
-        if ek:
-            return ek
-
-        eks = dbh.EK.search_text(key, dbh.session(), 1)
-        if len(eks) == 0:
-            raise KeyError(f'key "{key}"" not found')
-        return eks[0]
 
     def fix_ekey(self, d, field, dbh):
         key = d[field]
