@@ -12,20 +12,23 @@ from sqlalchemy import event
 
 import os
 
+
 class SearchScheme(SchemaClass):
 
     dbid = NUMERIC(stored=True, unique=True)
     mtime = STORED
     text = TEXT
 
+
 class Searchable(object):
 
-    __slots__ = [ 'dbid', 'mtime', 'text']
+    __slots__ = ['dbid', 'mtime', 'text']
 
     def __init__(self, dbid, mtime, text):
         self.dbid = dbid
         self.mtime = mtime
         self.text = text
+
 
 class ClassIndexer(object):
 
@@ -34,7 +37,7 @@ class ClassIndexer(object):
         self.fields = fields
 
     def text(self, obj):
-        return ' '.join( getattr(obj, f) for f in self.fields )
+        return ' '.join(getattr(obj, f) for f in self.fields)
 
 
 class Updater(object):
@@ -46,7 +49,6 @@ class Updater(object):
         self.created_objects = {}
         self.updated_objects = {}
         self.deleted_objects = {}
-
 
 
 class IndexService(object):
@@ -63,7 +65,6 @@ class IndexService(object):
         from messy.models import dbschema
         self.register_class(dbschema.EK, 'key', 'desc')
         self.register_class(dbschema.Institution)
-
 
     def register_class(self, class_, *fields):
 
@@ -84,8 +85,7 @@ class IndexService(object):
             search_fields = search_fields + list(fields)
 
         self.cis[class_] = ClassIndexer(ix, search_fields)
-        class_.search_text = TextSearcher( class_, self.cis[class_])
-
+        class_.search_text = TextSearcher(class_, self.cis[class_])
 
     def after_flush(self, session, context):
 
@@ -98,7 +98,7 @@ class IndexService(object):
                 try:
                     updater.created_objects[n.__class__][n.id] = s
                 except KeyError:
-                    updater.created_objects[n.__class__] = { n.id: s }
+                    updater.created_objects[n.__class__] = {n.id: s}
 
         for n in session.dirty:
             ci = self.cis.get(n.__class__, None)
@@ -107,7 +107,7 @@ class IndexService(object):
                 try:
                     updater.updated_objects[n.__class__][n.id] = s
                 except KeyError:
-                    updater.updated_objects[n.__class__] = { n.id: s }
+                    updater.updated_objects[n.__class__] = {n.id: s}
 
         for n in session.deleted:
             ci = self.cis.get(n.__class__, None)
@@ -115,8 +115,7 @@ class IndexService(object):
                 try:
                     updater.deleted_objects[n.__class__][n.id] = None
                 except KeyError:
-                    updater.deleted_objects[n.__class__] = { n.id: None }
-
+                    updater.deleted_objects[n.__class__] = {n.id: None}
 
     def after_commit(self, session):
 
@@ -140,12 +139,10 @@ class IndexService(object):
 
         updater.reset()
 
-
     def after_rollback(self, session):
 
         updater = self.get_updater(session)
         updater.reset()
-
 
     def get_updater(self, session):
 
@@ -160,6 +157,7 @@ class IndexService(object):
 
 _INDEX_SERVICE_ = None
 
+
 def set_index_service(index_service):
     global _INDEX_SERVICE_
     _INDEX_SERVICE_ = index_service
@@ -170,6 +168,7 @@ def get_index_service():
     if _INDEX_SERVICE_ is None:
         raise RuntimeError('FATAL ERR: call set_index_service() first!')
     return _INDEX_SERVICE_
+
 
 # utilities
 
@@ -187,6 +186,7 @@ def reindex():
                 writer.add_document(dbid=obj.id, mtime=obj.stamp, text=ci.text(obj))
                 cerr(f'reindex {class_.__name__}: {obj.id}')
 
+
 class CustomFuzzyTerm(FuzzyTerm):
     """
     Custom FuzzyTerm query parser to set a custom maxdist
@@ -194,6 +194,7 @@ class CustomFuzzyTerm(FuzzyTerm):
 
     def __init__(self, fieldname, text, boost=1.0, maxdist=2, prefixlength=1):
         FuzzyTerm.__init__(self, fieldname, text, boost, maxdist, prefixlength)
+
 
 class TextSearcher(object):
 
@@ -208,9 +209,9 @@ class TextSearcher(object):
         query = self.query_parser.parse(text)
         with self.ci.ix.searcher() as searcher:
             results = searcher.search(query, limit=limit)
-            dbids = [ r['dbid'] for r in results ]
+            dbids = [r['dbid'] for r in results]
         if id_only:
             return dbids
-        return [ self.class_.query(session).get(dbid) for dbid in dbids ]
+        return [self.class_.query(session).get(dbid) for dbid in dbids]
 
 # EOF
