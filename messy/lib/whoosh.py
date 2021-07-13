@@ -191,9 +191,9 @@ class CustomFuzzyTerm(FuzzyTerm):
     """
     Custom FuzzyTerm query parser to set a custom maxdist
     """
- 
-    def __init__(self, fieldname, text, boost=1.0, maxdist=2):
-        FuzzyTerm.__init__(self, fieldname, text, boost, maxdist)
+
+    def __init__(self, fieldname, text, boost=1.0, maxdist=2, prefixlength=1):
+        FuzzyTerm.__init__(self, fieldname, text, boost, maxdist, prefixlength)
 
 class TextSearcher(object):
 
@@ -204,6 +204,7 @@ class TextSearcher(object):
 
     def __call__(self, text, session, limit=None, id_only=False):
 
+        text = ' OR '.join(text.replace(' or ', ' ').replace(' and ', ' ').split())
         query = self.query_parser.parse(text)
         with self.ci.ix.searcher() as searcher:
             results = searcher.search(query, limit=limit)
@@ -211,3 +212,5 @@ class TextSearcher(object):
         if id_only:
             return dbids
         return [ self.class_.query(session).get(dbid) for dbid in dbids ]
+
+# EOF
