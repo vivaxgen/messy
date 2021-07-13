@@ -147,7 +147,6 @@ class SampleUploadJob(UploadJob):
         err_msgs = sorted( list( set(err_msgs) ) )
         return { 'samples': samples, 'err_msgs': err_msgs }
 
-
     def commit(self, method):
 
         dbh = get_dbhandler()
@@ -177,17 +176,17 @@ class SampleUploadJob(UploadJob):
         elif method == 'update':
 
             for code in existing_codes:
-                obj = dbh.Institution.query(dbh.session()).filter( dbh.Institution.code == code ).one()
-                obj.update( institutions[ code ])
+                obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
+                obj.update(samples[code])
                 updated += 1
 
             return added, updated
 
         elif method == 'add_update':
 
-            for d in institutions.values():
+            for d in samples.values():
                 if d['code'] in existing_codes:
-                    obj = dbh.Institution.query(dbh.session()).filter( dbh.Institution.code == d['code'] ).one()
+                    obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == d['code']).one()
                     obj.update(d)
                     updated += 1
                     continue
