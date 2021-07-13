@@ -7,16 +7,20 @@ import os
 
 _temp_directory_ = None
 
+
 def set_temp_directory(full_path):
     global _temp_directory_
     _temp_directory_ = full_path
+
 
 def get_temp_directory():
     global _temp_directory_
     return _temp_directory_
 
+
 def create_temp_file(prefix, username, extension, randkey):
     return f"{get_temp_directory()}/{prefix}-{username}-{randkey}.{extension}"
+
 
 def create_temp_directory(prefix, username, randkey):
     return f"{get_temp_directory()}/{prefix}-{username}-{randkey}/"
@@ -67,13 +71,13 @@ class InstitutionUploadJob(UploadJob):
 
     def confirm(self):
         err_msgs = []
-        code_list = [ d['code'] for d in self.dicts ]
+        code_list = [d['code'] for d in self.dicts]
         code_set = set(code_list)
         if len(code_set) < len(code_list):
             err_msgs.append(f'Duplicate code(s) found in the file, from {len(code_list)} to {len(code_set)} unique code(s)')
         dbh = get_dbhandler()
-        existing = dbh.Institution.query(dbh.session()).filter( dbh.Institution.code.in_( code_list) ).count()
-        return { 'existing': existing, 'new': len(code_set) - existing, 'err_msgs': err_msgs }
+        existing = dbh.Institution.query(dbh.session()).filter(dbh.Institution.code.in_(code_list)).count()
+        return {'existing': existing, 'new': len(code_set) - existing, 'err_msgs': err_msgs}
 
     def commit(self, method):
 
@@ -82,11 +86,11 @@ class InstitutionUploadJob(UploadJob):
 
         institutions = {}
         for d in self.dicts:
-            institutions[ d['code'] ] = d
+            institutions[d['code']] = d
         code_list = institutions.keys()
 
-        q = dbh.session().query(dbh.Institution.code).filter( dbh.Institution.code.in_( code_list ) )
-        existing_codes = set( [ t[0] for t in q])
+        q = dbh.session().query(dbh.Institution.code).filter(dbh.Institution.code.in_(code_list))
+        existing_codes = set([t[0] for t in q])
 
         if method == 'add':
 
@@ -102,8 +106,8 @@ class InstitutionUploadJob(UploadJob):
         elif method == 'update':
 
             for code in existing_codes:
-                obj = dbh.Institution.query(dbh.session()).filter( dbh.Institution.code == code ).one()
-                obj.update( institutions[ code ])
+                obj = dbh.Institution.query(dbh.session()).filter(dbh.Institution.code == code).one()
+                obj.update(institutions[code])
                 updated += 1
 
             return added, updated
@@ -112,7 +116,7 @@ class InstitutionUploadJob(UploadJob):
 
             for d in institutions.values():
                 if d['code'] in existing_codes:
-                    obj = dbh.Institution.query(dbh.session()).filter( dbh.Institution.code == d['code'] ).one()
+                    obj = dbh.Institution.query(dbh.session()).filter(dbh.Institution.code == d['code']).one()
                     obj.update(d)
                     updated += 1
                     continue
@@ -125,7 +129,6 @@ class InstitutionUploadJob(UploadJob):
         raise RuntimeError
 
 
-
 class SampleUploadJob(UploadJob):
 
     def __init__(self, user_id, filename, instream, collection_id):
@@ -134,18 +137,17 @@ class SampleUploadJob(UploadJob):
         self.filename = filename
         self.dicts = self.stream_to_dicts(instream)
 
-
     def confirm(self):
 
-        dbh  = get_dbhandler()
+        dbh = get_dbhandler()
         samples = len(self.dicts)
         err_msgs = self.check_duplicate_codes()
 
         for d in self.dicts:
-            err_msgs.extend( self.fix_fields(d, dbh) )
+            err_msgs.extend(self.fix_fields(d, dbh))
 
-        err_msgs = sorted( list( set(err_msgs) ) )
-        return { 'samples': samples, 'err_msgs': err_msgs }
+        err_msgs = sorted(list(set(err_msgs)))
+        return {'samples': samples, 'err_msgs': err_msgs}
 
     def commit(self, method):
 
@@ -155,11 +157,11 @@ class SampleUploadJob(UploadJob):
         samples = {}
         for d in self.dicts:
             self.fix_fields(d, dbh)
-            samples[ d['code'] ] = d
+            samples[d['code']] = d
         code_list = samples.keys()
 
-        q = dbh.session().query(dbh.Sample.code).filter( dbh.Sample.code.in_( code_list ) )
-        existing_codes = set( [ t[0] for t in q])
+        q = dbh.session().query(dbh.Sample.code).filter(dbh.Sample.code.in_(code_list))
+        existing_codes = set([t[0] for t in q])
 
         if method == 'add':
 
@@ -198,30 +200,28 @@ class SampleUploadJob(UploadJob):
 
         raise RuntimeError
 
-
     def check_duplicate_codes(self):
         """ check for duplicate sample codes & acc_codes """
 
-        composite_codes = [ (r['code'], r['acc_code']) for r in self.dicts ]
+        composite_codes = [(r['code'], r['acc_code']) for r in self.dicts]
         codes = {}
         acc_codes = {}
         err_msgs = []
         for (c, ac) in composite_codes:
             if c in codes:
-                err_msgs.append( f'Duplicate code: {c}' )
+                err_msgs.append(f'Duplicate code: {c}')
             else:
                 codes[c] = True
             if ac in acc_codes:
-                err_msgs.append( f'Duplicate acccode: {ac}' )
+                err_msgs.append(f'Duplicate acccode: {ac}')
             else:
                 acc_codes[ac] = True
         return err_msgs
 
-
     def check_institution_codes(self):
         """ check for institution codes """
-        institution_codes = [ r.get('originating_institution', '') for r in self.dicts ]
-        institution_codes += [ r.get('sampling_institution', '') for r in self.dicts ]
+        institution_codes = [r.get('originating_institution', '') for r in self.dicts]
+        institution_codes += [r.get('sampling_institution', '') for r in self.dicts]
         institution_codes = set(institution_codes)
         institution_codes.discard('')
 
@@ -238,11 +238,10 @@ class SampleUploadJob(UploadJob):
 
         return err_msgs
 
-        q = dbh.session().query(dbh.Institution.code).filter( dbh.Institution.code.in_( institution_codes ) )
-        existing_codes = set( [ t[0] for t in q])
+        q = dbh.session().query(dbh.Institution.code).filter(dbh.Institution.code.in_(institution_codes))
+        existing_codes = set([t[0] for t in q])
         non_existing_codes = institution_codes - existing_codes
-        return [ f'Non-existing institution: {code}' for code in sorted(list(non_existing_codes)) ]
-
+        return [f'Non-existing institution: {code}' for code in sorted(list(non_existing_codes))]
 
     def get_institution(self, inst_code, dbh):
         if len(inst_code.split()) == 1:
@@ -275,23 +274,22 @@ class SampleUploadJob(UploadJob):
             ekey = self.get_ekey(key, dbh)
             d[field] = ekey
             if ekey.lower() != key.lower():
-                return [ f'{field}: "{key}" => {ekey}' ]
+                return [f'{field}: "{key}" => {ekey}']
         except KeyError as err:
-            return [ f'{field} error: {str(err)}']
+            return [f'{field} error: {str(err)}']
         return []
-
 
     def fix_fields(self, d, dbh):
 
         err_msgs = []
-        
+
         code = d['originating_institution']
         try:
             inst = self.get_institution(code, dbh)
             if inst.code != code:
                 del d['originating_institution']
                 d['originating_institution_id'] = inst.id
-                err_msgs.append( f'WARN: Institution code "{code}" => {inst.code} | {inst.name}' )
+                err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
         except IndexError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
@@ -301,12 +299,12 @@ class SampleUploadJob(UploadJob):
             if inst.code != code:
                 del d['sampling_institution']
                 d['sampling_institution_id'] = inst.id
-                err_msgs.append( f'WARN: Institution code "{code}" => {inst.code} | {inst.name}' )
+                err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
         except IndexError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
         for f in dbh.Sample.__ek_fields__:
-            err_msgs.extend( self.fix_ekey(d, f, dbh) )
+            err_msgs.extend(self.fix_ekey(d, f, dbh))
 
         return err_msgs
 
@@ -315,3 +313,5 @@ class SampleGISAIDUploadJob(SampleUploadJob):
 
     def stream_to_dicts(self, instream):
         return converter.import_gisaid_csv(instream)
+
+# EOF
