@@ -142,6 +142,7 @@ def generate_run_table(runs, request):
                 t.td(t.literal('<input type="checkbox" name="run-ids" value="%d" />' % run.id)
                      if not_guest else ''),
                 t.td(t.a(run.code, href=request.route_url('messy.run-view', id=run.id))),
+                t.td(run.date),
                 t.td(run.serial),
                 t.td(run.sequencing_kit),
                 t.td(run.remark[:60] + ('...' if len(run.remark) > 60 else '')),
@@ -153,6 +154,7 @@ def generate_run_table(runs, request):
             t.tr(
                 t.th('', style="width: 2em"),
                 t.th('Code'),
+                t.th('Date'),
                 t.th('Serial'),
                 t.th('Sequencing Kit'),
                 t.th('Remark'),
