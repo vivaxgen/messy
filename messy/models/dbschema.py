@@ -8,6 +8,7 @@ from rhombus.models.fileattach import FileAttachment
 import messy.lib.roles as r
 import dateutil.parser
 from sqlalchemy.sql import func
+from sqlalchemy.orm import object_session
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
                         Identity)
 
@@ -294,11 +295,15 @@ class PlatePosition(Base, BaseMixIn):
 
     plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
     sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=False)
+    sample = relationship(Sample, uselist=False, foreign_keys=sample_id)
 
     # position will be 384:A01 -> P24, 96: A01 -> H12
     position = Column(types.String(3), nullable=False, server_default='')
     value = Column(types.Float, nullable=False, server_default='-1')
     volume = Column(types.Float, nullable=False, server_default='-1')
+
+    plate = relationship("Plate", uselist=False, foreign_keys=plate_id,
+                         backref=backref("positions", order_by='platepositions.c.id'))
 
     __table_args__ = (
         UniqueConstraint('plate_id', 'position'),
@@ -362,6 +367,16 @@ class Plate(Base, BaseMixIn):
 
     def __str__(self):
         return self.code
+
+    def add_positions(self, positions):
+        session = object_session(self)
+        empty = Sample.query(object_session(self)).filter(Sample.code == 'empty').one()
+        platepositions = []
+        for pos in positions:
+            platepos = PlatePosition(plate_id=self.id, sample_id=empty.id, position=pos)
+            session.add(platepos)
+            platepositions.append(platepos)
+        return platepos
 
 
 plate_file_table = Table(

@@ -1,15 +1,19 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
-                         Response, modal_delete, modal_error, Response)
+                         Response, modal_delete, modal_error, Response, HTTPFound)
 import rhombus.lib.tags_b46 as t
+from messy.lib import plate_utils
 
+from more_itertools import chunked, unzip
 import sqlalchemy.exc
 import dateutil
 import json
 
 
 class PlateViewer(BaseViewer):
+
+    template_edit = 'messy:templates/gridbase.mako'
 
     managing_roles = BaseViewer.managing_roles + [r.PLATE_MANAGE]
     modifying_roles = [r.PLATE_MODIFY] + managing_roles
@@ -112,25 +116,154 @@ class PlateViewer(BaseViewer):
 
         if not self.obj.has_layout:
             plate_html.add(t.p('No layout defined.'))
-        else:
-            plate_html.add(t.p('View layout'))
+            plate_html[
+                t.form(name='messy-platelayout', action=self.request.route_url('messy.plate-action', id=self.obj.id),
+                       method=t.POST)[
+                    t.input_select('messy-plate-layout', 'Layout',
+                                   value=None, offset=1, size=1,
+                                   options=[(str(x), str(x)) for x in plate_utils.plate_layouts]),
+                    t.input_hidden('id', self.obj.id),
+                    t.custom_submit_bar(('Create', 'create_layout')).set_offset(1),
+                ]
+            ]
+            layout_js = ''
 
-        return self.render_edit_form(plate_html, plate_jscode)
+        elif not self.request.GET.get('tabular', False):
+
+            plate_html.add(t.p(t.a('View in tabular form', href=self.request.route_url(self.view_route, id=self.obj.id,
+                                                                                       _query={'tabular': 1}))))
+
+            layout = len(self.obj.positions)
+            r, c = plate_utils.plate_layouts[layout]
+
+            plate_html.add(t.h5('Sample Codes'))
+            plate_html.add(t.div(id='layout_index'))
+            layout_js = template_grid_js.format(name='layout_index', plate_id=self.obj.id, plate_layout='true',
+                                                column=c, row=r, additional_options='')
+
+            plate_html.add(t.h5('Sample Value'))
+            plate_html.add(t.div(id='layout_value'))
+            layout_js += template_grid_js.format(name='layout_value', plate_id=self.obj.id, plate_layout='true',
+                                                 column=c, row=r, additional_options='')
+            plate_html.add(t.h5('Sample Volume'))
+            plate_html.add(t.div(id='layout_volume'))
+            layout_js += template_grid_js.format(name='layout_volume', plate_id=self.obj.id, plate_layout='true',
+                                                 column=c, row=r, additional_options='')
+
+        else:
+            n = len(self.obj.positions)
+            plate_html.add(t.p(t.a('View in plate form', href=self.request.route_url(self.view_route, id=self.obj.id))))
+            plate_html.add(t.div(id='tabular'))
+            layout_js = template_grid_js.format(name='tabular', plate_id=self.obj.id, plate_layout='false',
+                                                column=4, row=n, additional_options=template_additional_options_js)
+
+        return self.render_edit_form(plate_html, plate_jscode + layout_js)
 
     @m_roles(r.PUBLIC)
     def position(self):
         """ well REST interface """
+        _m = self.request.method
+        rq = self.request
+        dbh = get_dbhandler()
+        plate = self.get_object(int(rq.matchdict.get('id')), self.fetch_func)
+        N = len(plate.positions)
+        r, c = layout = plate_utils.plate_layouts[N]
 
-        if self.request.GET:
+        if _m == t.GET:
+            name = rq.GET.get('name', 'layout_index')
+
+            positions = list(plate.positions)
+
+            if name == 'layout_index':
+                codes = list(chunked([p.sample.code for p in positions], r))
+                # transpose and return
+                return list(zip(*codes))
+
+            elif name == 'layout_value':
+                values = list(chunked([p.value for p in positions], r))
+                return list(zip(*values))
+
+            elif name == 'layout_volume':
+                volumes = list(chunked([p.volume for p in positions], r))
+                return list(zip(*volumes))
+
+            elif name == 'tabular':
+                return list([[p.position, p.sample.code, p.value, p.volume]
+                            for idx, p in enumerate(plate.positions, 1)])
+
+            return []
+
+        elif _m == t.POST:
+            """
+            request.POST is MultiDict([('data', '[{"row":"3","data":{"3":"def"}}]'), ('name', '')])
+            """
+            updates = json.loads(rq.POST.get('data'))
+            name = rq.POST.get('name')
+
+            update_list = convert_data_to_indexes(updates, layout)
+            indexes, values = zip(*update_list)
+            if max(indexes) > N:
+                return {'success': False}
+
+            if name == 'layout_index':
+
+                # check every samples in indexes, return error if any sample is invalid
+                values = list(set(values))
+                if len(values) != dbh.get_samples_by_codes(values, groups=None, fetch=False, override_security=True).count():
+                    return {'success': False}
+
+                for (idx, val) in update_list:
+                    print(idx, val)
+                    plate.positions[idx].sample_id = dbh.get_samples_by_codes(val, groups=None, override_security=True)[0].id
+
+                return {'success': True}
+
+            elif name == 'layout_value':
+                for (idx, val) in update_list:
+                    plate.positions[idx].value = float(val)
+                return {'success': True}
+
+            elif name == 'layout_volume':
+                for (idx, val) in update_list:
+                    plate.positions[idx].volume = float(val)
+                return {'success': True}
+
+            elif name == 'tabular':
+                for row in updates:
+                    idx = int(row['row'])
+                    for _c, value in row['data'].items():
+                        if _c == '1':
+                            if len(r := dbh.get_samples_by_codes(value, groups=None, override_security=True)) == 1:
+                                plate.positions[idx].sample_id = r[0].id
+                            else:
+                                return {'success': False}
+                        elif _c == '2':
+                            plate.positions[idx].value = float(value)
+                        elif _c == '3':
+                            plate.positions[idx].volume = float(value)
+                return {'success': True}
+
+        elif _m == t.PUT:
             pass
-        elif self.request.POST:
-            pass
-        elif self.request.PUT:
-            pass
-        elif self.request.DELETE:
+
+        elif _m == t.DELETE:
             pass
 
         return {'success': False}
+
+    def action_post(self):
+
+        rq = self.request
+        _method = rq.POST.get('_method')
+
+        if _method == 'create_layout':
+            plate = self.get_object(int(rq.POST.get('id')), self.fetch_func)
+            layout = int(rq.POST.get('messy-plate-layout'))
+            plate_utils.create_positions(plate, layout)
+            rq.session.flash(('success', f'Plate layout {layout}-well has been created'))
+            return HTTPFound(location=self.request.route_url(self.view_route, id=plate.id))
+
+        raise RuntimeError('No defined action')
 
 
 def generate_plate_table(plates, request):
@@ -181,5 +314,54 @@ def generate_plate_table(plates, request):
         code = ''
 
     return html, code
+
+
+def convert_data_to_indexes(a_list, plate_layout):
+    """convert data from jspreadsheet to [ (index, value), ...]
+
+    plate layout is:
+            1   2   3   4   5   6
+        A   1   5   9   13  17  21
+        B   2   6   10  14  18  22
+        C   3   7   11  15  19  23
+        D   4   8   12  16  20  24
+    """
+    indexes = []
+    r, c = plate_layout
+    for row in a_list:
+        _r = int(row['row'])
+        for _c, value in row['data'].items():
+            indexes.append((_r + r * int(_c), value))
+    return indexes
+
+
+# template_grid_js requires name, plate_layout, column, row, plate_id
+template_grid_js = """
+{name} = jspreadsheet(document.getElementById('{name}'), {{
+    plate_layout:{plate_layout},
+    allowInsertRow:false,
+    allowInsertColumn:false,
+    allowDeleteRow:false,
+    allowDeleteColumn:false,
+    allowRenameColumn:false,
+    allowComments:false,
+    columnSorting:false,
+    minDimensions:[{column},{row}],
+    name:'{name}',
+    url:'/plate/{plate_id}@@position?name={name}',
+    persistance:'/plate/{plate_id}@@position',
+{additional_options}
+}});
+"""
+
+# additional options
+template_additional_options_js = """
+    columns: [
+        { title: 'Position', width: 75, readOnly: true },
+        { title: 'Sample Code', width:100 },
+        { title: 'Value', width: 75},
+        { title: 'Volume', width: 75 }
+    ],
+"""
 
 # EOF
