@@ -147,11 +147,11 @@ class IndexService(object):
     def get_updater(self, session):
 
         if hasattr(session, 'ix_updater'):
-            cerr('initialize Whoosh updater')
             return getattr(session, 'ix_updater')
 
         updater = Updater()
         setattr(session, 'ix_updater', updater)
+        cerr('initialize Whoosh updater')
         return updater
 
 
