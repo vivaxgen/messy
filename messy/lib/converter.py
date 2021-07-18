@@ -20,7 +20,7 @@ def import_gisaid_csv(filename):
             sequence_name=r['covv_virus_name'],
             species=r['covv_type'],
             passage=r['covv_passage'],
-            collection_date = r['covv_collection_date'],
+            collection_date=r['covv_collection_date'],
             location=r['covv_location'],
             add_location=r['covv_add_location'],
             received_date='1970-01-01',    # add Unix epoch time to indicate NA
@@ -87,3 +87,5 @@ def import_fasta(filename, label='lab_code'):
 def export_institution(filename):
 
     pass
+
+# EOF
