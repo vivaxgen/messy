@@ -4,6 +4,8 @@ from rhombus.lib.utils import cerr, cout, cexit, get_dbhandler
 from rhombus.models.core import set_func_userid
 
 import transaction
+import yaml
+
 
 def init_argparser(parser=None):
 
@@ -18,8 +20,17 @@ def init_argparser(parser=None):
     p.add_argument('--load', default=False, action='store_true',
                    help='load data source directory')
 
+    p.add_argument('--export_institutions', action='store_true',
+                   help='export institutions')
+
+    p.add_argument('--export_runs', action='store_true',
+                   help='export sequencing runs')
+
     p.add_argument('--srcdir')
     p.add_argument('--dstdir')
+
+    p.add_argument('-o', '--outfile')
+    p.add_argument('-i', '--infile')
 
     p.add_argument('--login', default='')
     p.add_argument('--commit', default=False, action='store_true')
@@ -46,5 +57,23 @@ def do_mgr(args, settings, dbh=None):
         dbh = get_dbhandler(settings)
 
     # perform function here
+
+    if args.export_institutions:
+        do_export_institution(args, dbh)
+
+    elif args.export_runs:
+        do_export_runs(args, dbh)
+
+    else:
+        cerr('Please provide correct operation')
+
+
+def do_export_runs(args, dbh):
+
+    institutions = [inst.as_dict() f or inst in dbh.Institution.query(dbh.session())]
+    with open(args.outfile, 'w') as outstream:
+        yaml.dump_all(institutions, stream, default_flow_style=False)
+
+    cerr(f'[Exporint institutions to {args.outfile}]')
 
 # EOF
