@@ -59,7 +59,7 @@ def do_mgr(args, settings, dbh=None):
     # perform function here
 
     if args.export_institutions:
-        do_export_institution(args, dbh)
+        do_export_institutions(args, dbh)
 
     elif args.export_runs:
         do_export_runs(args, dbh)
@@ -68,12 +68,23 @@ def do_mgr(args, settings, dbh=None):
         cerr('Please provide correct operation')
 
 
-def do_export_runs(args, dbh):
+def do_export_institutions(args, dbh):
 
-    institutions = [inst.as_dict() f or inst in dbh.Institution.query(dbh.session())]
+    institutions = [inst.as_dict() for inst in dbh.Institution.query(dbh.session())]
     with open(args.outfile, 'w') as outstream:
-        yaml.dump_all(institutions, stream, default_flow_style=False)
+        yaml.dump_all(institutions, outstream, default_flow_style=False)
 
     cerr(f'[Exporint institutions to {args.outfile}]')
+
+
+def do_export_runs(args, dbh):
+    yaml_write(args, [seqrun.as_dict() for seqrun in dbh.SequencingRun.query(dbh.session())],
+               'SequencingRun')
+
+
+def yaml_write(args, data, msg):
+    with open(args.outfile, 'w') as outstream:
+        yaml.dump_all(data, outstream, default_flow_style=False)
+    cerr(f'[Exported {msg} to {args.outfile}]')
 
 # EOF

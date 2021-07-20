@@ -62,6 +62,9 @@ class Institution(Base, BaseMixIn):
     def __repr__(self):
         return f"Institution('{self.code}', '{self.name}')"
 
+    def serialized_code(self):
+        return self.code
+
     def update(self, obj):
 
         if isinstance(obj, dict):
@@ -72,7 +75,7 @@ class Institution(Base, BaseMixIn):
 
     def as_dict(self):
         d = super().as_dict()
-        d.update(self.dict_from_fields())
+        d.update(self.create_dict_from_fields())
         return d
 
     def __str__(self):
@@ -448,6 +451,10 @@ class SequencingRun(Base, BaseMixIn):
 
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
+
+    def as_dict(self, exclude=None):
+        d = super().as_dict(exclude={'sequences'})
+        return d
 
 
 sequencingrun_plate_table = Table(
