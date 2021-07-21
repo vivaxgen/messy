@@ -152,7 +152,7 @@ class SampleViewer(BaseViewer):
                     t.input_text(ff('received_date'), '* Received Date', value=obj.received_date,
                                  offset=2, size=2, placeholder='YYYY/MM/DD'),
                     t.input_select_ek(ff('category_id'), 'Category',
-                                      value=obj.category_id or dbh.get_ekey('S-SU').id,
+                                      value=obj.category_id or dbh.get_ekey('R-RA').id,
                                       offset=1, size=3, parent_ek=dbh.get_ekey('@CATEGORY')),
                     t.input_select_ek(ff('species_id'), 'Species', value=obj.species_id,
                                       offset=1, size=3, parent_ek=dbh.get_ekey('@SPECIES')),
