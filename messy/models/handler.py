@@ -106,7 +106,12 @@ class DBHandler(rhombus_handler.DBHandler):
         return self.fix_result(q, fetch, raise_if_empty)
 
     def get_collections_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_collections(groups, [ {'collection_id': ids} ], user=user, fetch=fetch, raise_if_empty=False)
+        return self.get_collections(groups, [{'collection_id': ids}], user=user, fetch=fetch,
+                                    raise_if_empty=raise_if)
+
+    def get_collections_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_collections(groups, [{'collection_code': codes}], user=user, fetch=fetch,
+                                    raise_if_empty=raise_if_empty)
 
     #
     # Samples
@@ -115,7 +120,7 @@ class DBHandler(rhombus_handler.DBHandler):
 
         q = self.construct_query(self.Sample, specs)
 
-        # if groups is not None, we need to join sample with collection to get 
+        # if groups is not None, we need to join sample with collection to get
         # all samples under collections owned by certain groups to enforce security
 
         if not override_security and groups is None and user is None:
