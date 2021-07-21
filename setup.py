@@ -22,6 +22,7 @@ requires = [
     'docutils',
     'pyramid_rpc',
     'joblib',
+    'more_itertools',
     ]
 
 setup(name='MESSy',
