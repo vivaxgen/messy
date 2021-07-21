@@ -331,7 +331,7 @@ class Plate(Base, BaseMixIn):
     specimen_type = EK.proxy('specimen_type_id', '@SPECIMEN_TYPE')
 
     experiment_type_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    experiment_type = EK.proxy('experiment_type_id', '@TREATMENT_TYPE')
+    experiment_type = EK.proxy('experiment_type_id', '@EXPERIMENT_TYPE')
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
