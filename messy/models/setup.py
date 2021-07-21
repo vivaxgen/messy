@@ -2,10 +2,123 @@
 from messy.models import *
 from messy.lib.roles import *
 
+from dateutil import parser
+
 def setup( dbh ):
 
     dbh.EK.bulk_update( ek_initlist, dbsession=dbh.session() )
     dbh.Group.bulk_insert( messy_groups, dbsession = dbh.session() )
+
+    # add controls
+
+    dbh.session().add(
+        dbh.Institution(
+            code='NOT-AVAILABLE',
+            name='Not Available'
+            )
+    )
+    dbh.session().flush()
+
+    dbh.session().add(
+        dbh.Collection(
+            code='CONTROL',
+            group=dbh.get_group('CollectionMgr'),
+            institutions = [ dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0] ],
+            )
+    )
+    dbh.session().flush()
+
+    dbh.session().add(
+        dbh.Plate(
+            code='CONTROL',
+            group=dbh.get_group('PlateMgr'),
+            specimen_type='water',
+            experiment_type='sample-container',
+            user=dbh.get_user('system/_SYSTEM_'),
+            )
+    )
+    dbh.session().flush()
+
+    samples = [
+        dbh.Sample(
+            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            code='empty',
+            received_date=parser.parse('1970'),
+            collection_date=parser.parse('1970'),
+            species='no-species',
+            host='no-host',
+            host_occupation='other',
+            host_status='unknown',
+            category='R-RA',
+            specimen_type='water',
+            ct_method='rtpcr',
+            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            ),
+        dbh.Sample(
+            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            code='NTC1',
+            received_date=parser.parse('1970'),
+            collection_date=parser.parse('1970'),
+            species='no-species',
+            host='no-host',
+            host_occupation='other',
+            host_status='unknown',
+            category='R-RA',
+            specimen_type='water',
+            ct_method='rtpcr',
+            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            ),
+        dbh.Sample(
+            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            code='NTC2',
+            received_date=parser.parse('1970'),
+            collection_date=parser.parse('1970'),
+            species='no-species',
+            host='no-host',
+            host_occupation='other',
+            host_status='unknown',
+            category='R-RA',
+            specimen_type='water',
+            ct_method='rtpcr',
+            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            ),
+        dbh.Sample(
+            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            code='NTC3',
+            received_date=parser.parse('1970'),
+            collection_date=parser.parse('1970'),
+            species='no-species',
+            host='no-host',
+            host_occupation='other',
+            host_status='unknown',
+            category='R-RA',
+            specimen_type='water',
+            ct_method='rtpcr',
+            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            ),
+        dbh.Sample(
+            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            code='NTC4',
+            received_date=parser.parse('1970'),
+            collection_date=parser.parse('1970'),
+            species='no-species',
+            host='no-host',
+            host_occupation='other',
+            host_status='unknown',
+            category='R-RA',
+            specimen_type='water',
+            ct_method='rtpcr',
+            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            ),
+    ]
+    for s in samples:
+        dbh.session().add(s)
+    dbh.session().flush()
 
 
 # add additional initial data here
@@ -14,11 +127,14 @@ messy_groups = [
             ( 'InstitutionMgr', [ INSTITUTION_MODIFY ] ),
             ( 'CollectionMgr', [COLLECTION_MODIFY, COLLECTION_VIEW] ),
             ( 'CollectionViewer', [COLLECTION_VIEW]),
-            ( 'SampleMgr', [SAMPLE_MODIFY, SAMPLE_VIEW]),
+            ( 'SampleMgr', [SAMPLE_MANAGE]),
+            ( 'SampleModifier', [SAMPLE_MODIFY, SAMPLE_VIEW]),
             ( 'SampleViewer', [SAMPLE_VIEW]),
-            ( 'PlateMgr', [PLATE_MODIFY, PLATE_VIEW]),
+            ( 'PlateMgr', [PLATE_MANAGE]),
+            ( 'PlateModifier', [PLATE_MODIFY, PLATE_VIEW]),
             ( 'PlateViewer', [PLATE_VIEW]),
-            ( 'SequencingRunMgr', [SEQUENCINGRUN_MODIFY, SEQUENCINGRUN_VIEW]),
+            ( 'SequencingRunMgr', [SEQUENCINGRUN_MANAGE]),
+            ( 'SequencingRunModifier', [SEQUENCINGRUN_MODIFY, SEQUENCINGRUN_VIEW]),
             ( 'SequencingRunViewer', [SEQUENCINGRUN_VIEW]),
             ( 'SequenceMgr', [SEQUENCE_MODIFY, SEQUENCE_VIEW]),
             ( 'SequenceViewer', [SEQUENCE_VIEW]),
@@ -58,6 +174,8 @@ ek_initlist = [
     (   '@SPECIES', "Species",
         [
             ('betacoronavirus', 'betacoronavirus'),
+            ('human', 'human'),
+            ('no-species', 'no-species'),
         ]
     ),
     (   '@PASSAGE', 'Passage',
@@ -72,6 +190,7 @@ ek_initlist = [
     (   '@HOST', 'Host',
         [
             ('human', 'Human'),
+            ('no-host', 'no-host'),
         ]
     ),
     (   '@HOST_STATUS', 'Host status',
@@ -110,9 +229,10 @@ ek_initlist = [
     ),
     (   '@CATEGORY', 'Sample category',
         [
-            ('S-SU', 'S - Surveillance and tracking'),
-            ('A-NE', 'A - COVID19 clinical, negative test'),
-            ('B-SE', 'B - COVID19 severe clinical manifestation'),
+            ('R-RA', 'R - Random surveillance and tracking'),
+            ('S-SE', 'S - Sentinel surveillance'),
+            ('A-NE', 'A - COVID19 clinically (-) test'),
+            ('B-CL', 'B - COVID19 severe clinically'),
             ('C-TR', 'C - travel history'),
             ('D-LO', 'D - long COVID19'),
             ('E-RE', 'E - reinfection'),
@@ -123,9 +243,9 @@ ek_initlist = [
     ),
     (   '@SPECIMEN_TYPE', 'Specimen type',
         [
-            ('np+op', 'NP+OP swab'),
-            ('np', 'NP swab'),
-            ('op', 'OP swab'),
+            ('np+op', 'Nasopharyngeal and oropharyngeal swab'),
+            ('np', 'Nasopharyngeal swab'),
+            ('op', 'Oropharyngeal swab swab'),
             ('sputum', 'Sputum'),
             ('blood', 'Blood'),
             ('serum', 'Serum'),
@@ -136,6 +256,7 @@ ek_initlist = [
             ('cdna', 'cDNA'),
             ('dna', 'double-strand DNA'),
             ('ssdna', 'single-strand DNA'),
+            ('water', 'empty sample'),
         ]
     ),
     (   '@CT_METHOD',   'Ct Methodology',
@@ -147,6 +268,7 @@ ek_initlist = [
     ),
     (   '@EXPERIMENT_TYPE', 'Laboratory experiment type',
         [
+            ('sample-container', 'container for sample storage'),
             ('qc-qubit', 'QC with qubit'),
             ('qc-accuclear', 'QC with AccuClear'),
             ('cdna-ssiv', 'cDNA with Superscript IV'),
