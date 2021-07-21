@@ -339,6 +339,7 @@ def convert_data_to_indexes(a_list, plate_layout):
 template_grid_js = """
 {name} = jspreadsheet(document.getElementById('{name}'), {{
     plate_layout:{plate_layout},
+    defaultColWidth:100,
     allowInsertRow:false,
     allowInsertColumn:false,
     allowDeleteRow:false,
