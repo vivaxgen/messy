@@ -21,10 +21,10 @@ class RunViewer(BaseViewer):
     attachment_route = 'messy.run-attachment'
 
     form_fields = {
-        'code': ('messy-run-code', ),
-        'serial': ('messy-run-serial', ),
+        'code*': ('messy-run-code', ),
+        'serial*': ('messy-run-serial', ),
         'date?': ('messy-run-date', dateutil.parser.parse),
-        'sequencing_provider_id': ('messy-run-sequencing_provider_id', ),
+        'sequencing_provider_id*': ('messy-run-sequencing_provider_id', int),
         'sequencing_kit_id': ('messy-run-sequencing_kit_id', ),
         'depthplots?': ('messy-run-depthplots', ),  # lambda x: x.file.read() if x != b'' else None),
         'qcreport?': ('messy-run-qcreport', ),
@@ -56,6 +56,21 @@ class RunViewer(BaseViewer):
                 dbh.session().add(obj)
             dbh.session().flush([obj])
 
+        except sqlalchemy.exc.IntegrityError as err:
+            dbh.session().rollback()
+            detail = err.args[0]
+            if 'UNIQUE' in detail or 'UniqueViolation' in detail:
+                if 'sequencingruns.code' in detail or 'uq_sequencingruns_code' in detail:
+                    raise ParseFormError(f'The run code: {d["code"]}  is '
+                                         f'already being used. Please use other run code!',
+                                         self.ffn('code*')) from err
+                if 'sequencingruns.serial' in detail or 'uq_sequencingruns_serial' in detail:
+                    raise ParseFormError(f'The run serial: {d["code"]}  is '
+                                         f'already being used. Please use other run serial!',
+                                         self.ffn('serial*')) from err
+
+            raise RuntimeError(f'error updating object: {detail}')
+
         except RuntimeError:
             raise
 
@@ -68,17 +83,17 @@ class RunViewer(BaseViewer):
         # processing sequencing_provider_id
         prov_inst = obj.sequencing_provider
         if update_dict:
-            prov_inst = dbh.get_institutions_by_ids(
-                update_dict[ff('sequencing_provider_id')], None)[0]
+            if (prov_inst_id := update_dict.get(ff('sequencing_provider_id*'), 0)):
+                prov_inst = dbh.get_institutions_by_ids(prov_inst_id, None)[0]
 
         eform = t.form(name='messy-run', method=t.POST, enctype=t.FORM_MULTIPART, readonly=readonly,
                        update_dict=update_dict)[
             self.hidden_fields(obj),
             t.fieldset(
-                t.input_text(ff('code'), 'Code', value=obj.code, offset=2),
-                t.input_text(ff('serial'), 'Serial', value=obj.serial, offset=2),
+                t.input_text(ff('code*'), 'Code', value=obj.code, offset=2),
+                t.input_text(ff('serial*'), 'Serial', value=obj.serial, offset=2),
                 t.input_text(ff('date?'), 'Running date', value=obj.date, offset=2, size=2),
-                t.input_select(ff('sequencing_provider_id'), 'Sequencing Provider',
+                t.input_select(ff('sequencing_provider_id*'), 'Sequencing Provider',
                                value=prov_inst.id if prov_inst else '', offset=2, size=5,
                                options=[(prov_inst.id, f'{prov_inst.code} | {prov_inst.name}')] if prov_inst else []),
                 t.input_select_ek(ff('sequencing_kit_id'), 'Sequencing Kit',
@@ -106,7 +121,7 @@ class RunViewer(BaseViewer):
         ]
 
         if not readonly:
-            jscode = select2_lookup(tag=self.form_fields['sequencing_provider_id'][0], minlen=3,
+            jscode = select2_lookup(tag=ff('sequencing_provider_id*'), minlen=3,
                                     placeholder="Type an institution name",
                                     parenttag="messy-run-fieldset", usetag=False,
                                     url=self.request.route_url('messy.institution-lookup'))
