@@ -26,6 +26,13 @@ def init_argparser(parser=None):
     p.add_argument('--export_runs', action='store_true',
                    help='export sequencing runs')
 
+    p.add_argument('--export_collections', action='store_true',
+                   help='export collections (including their samples')
+
+    # options
+    p.add_argument('--with_samples', default=False, action='store_true',
+                   help='export samples as well when exporting collections')
+
     p.add_argument('--srcdir')
     p.add_argument('--dstdir')
 
@@ -64,6 +71,9 @@ def do_mgr(args, settings, dbh=None):
     elif args.export_runs:
         do_export_runs(args, dbh)
 
+    elif args.export_collections:
+        do_export_collections(args, dbh)
+
     else:
         cerr('Please provide correct operation')
 
@@ -80,6 +90,13 @@ def do_export_institutions(args, dbh):
 def do_export_runs(args, dbh):
     yaml_write(args, [seqrun.as_dict() for seqrun in dbh.SequencingRun.query(dbh.session())],
                'SequencingRun')
+
+
+def do_export_collections(args, dbh):
+    sess = dbh.session()
+    yaml_write(args, [collection.as_dict(export_samples=args.with_samples)
+                      for collection in dbh.Collection.query(sess)],
+               'Collection')
 
 
 def yaml_write(args, data, msg):
