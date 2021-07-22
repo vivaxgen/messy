@@ -150,6 +150,13 @@ class Collection(Base, BaseMixIn):
     def __str__(self):
         return self.code
 
+    def as_dict(self, export_samples=False):
+        d = super().as_dict(exclude=['institutions', 'samples'])
+        d['institutions'] = [inst.code for inst in self.institutions]
+        if export_samples:
+            d['samples'] = [samp.as_dict() for samp in self.samples]
+        return d
+
 
 class Sample(Base, BaseMixIn):
 
@@ -281,6 +288,9 @@ class Sample(Base, BaseMixIn):
 
     def __str__(self):
         return self.code
+
+    def as_dict(self):
+        return super().as_dict(exclude=['sequence'])
 
 
 sample_file_table = Table(
