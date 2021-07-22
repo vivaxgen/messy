@@ -343,7 +343,7 @@ class SampleViewer(BaseViewer):
         obj_id = rq.matchdict.get('id')
         if obj_id.startswith('code='):
             func = dbh.get_samples_by_codes
-            obj_id = obj_id[5:]
+            obj_id = obj_id.removeprefix('code=')
         else:
             func = dbh.get_samples_by_ids
             obj_id = int(obj_id)
