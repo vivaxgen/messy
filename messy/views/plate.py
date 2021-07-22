@@ -257,7 +257,7 @@ class PlateViewer(BaseViewer):
         _method = rq.POST.get('_method')
 
         if _method == 'create_layout':
-            plate = self.get_object()
+            plate = self.get_object(obj_id=rq.params.get('id'))
             layout = int(rq.POST.get('messy-plate-layout'))
             plate_utils.create_positions(plate, layout)
             rq.session.flash(('success', f'Plate layout {layout}-well has been created'))
@@ -339,7 +339,7 @@ def convert_data_to_indexes(a_list, plate_layout):
 template_grid_js = """
 {name} = jspreadsheet(document.getElementById('{name}'), {{
     plate_layout:{plate_layout},
-    defaultColWidth:100,
+    defaultColWidth:80,
     allowInsertRow:false,
     allowInsertColumn:false,
     allowDeleteRow:false,
