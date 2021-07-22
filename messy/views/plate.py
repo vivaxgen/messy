@@ -139,7 +139,7 @@ class PlateViewer(BaseViewer):
             plate_html.add(t.h5('Sample Codes'))
             plate_html.add(t.div(id='layout_index'))
             layout_js = template_grid_js.format(name='layout_index', plate_id=self.obj.id, plate_layout='true',
-                                                column=c, row=r, additional_options='')
+                                                column=c, row=r, additional_options=template_sample_link_js)
 
             plate_html.add(t.h5('Sample Value'))
             plate_html.add(t.div(id='layout_value'))
@@ -165,7 +165,7 @@ class PlateViewer(BaseViewer):
         _m = self.request.method
         rq = self.request
         dbh = get_dbhandler()
-        plate = self.get_object(int(rq.matchdict.get('id')), self.fetch_func)
+        plate = self.get_object()
         N = len(plate.positions)
         r, c = layout = plate_utils.plate_layouts[N]
 
@@ -257,7 +257,7 @@ class PlateViewer(BaseViewer):
         _method = rq.POST.get('_method')
 
         if _method == 'create_layout':
-            plate = self.get_object(int(rq.POST.get('id')), self.fetch_func)
+            plate = self.get_object()
             layout = int(rq.POST.get('messy-plate-layout'))
             plate_utils.create_positions(plate, layout)
             rq.session.flash(('success', f'Plate layout {layout}-well has been created'))
@@ -356,6 +356,8 @@ template_grid_js = """
 """
 
 # additional options
+
+# change header for tabular form
 template_additional_options_js = """
     columns: [
         { title: 'Position', width: 75, readOnly: true },
@@ -363,6 +365,18 @@ template_additional_options_js = """
         { title: 'Value', width: 75},
         { title: 'Volume', width: 75 }
     ],
+    updateTable: function (instance, cell, col, row, val, id) {
+        if (col == 1) {
+            cell.innerHTML = '<a href="/sample/code=' + val + '" style="text-decoration:none;">' + val + '</a>';
+        }
+    }
+"""
+
+# set text to hyperlink for index layout
+template_sample_link_js = """
+    updateTable: function (instance, cell, col, row, val, id) {
+        cell.innerHTML = '<a href="/sample/code=' + val + '" style="text-decoration:none;">' + val + '</a>';
+    }
 """
 
 # EOF
