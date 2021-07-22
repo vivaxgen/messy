@@ -1,13 +1,13 @@
 
-from messy.models import *
-from messy.lib.roles import *
+from messy.lib import roles as r
 
 from dateutil import parser
 
-def setup( dbh ):
 
-    dbh.EK.bulk_update( ek_initlist, dbsession=dbh.session() )
-    dbh.Group.bulk_insert( messy_groups, dbsession = dbh.session() )
+def setup(dbh):
+
+    dbh.EK.bulk_update(ek_initlist, dbsession=dbh.session())
+    dbh.Group.bulk_insert(messy_groups, dbsession=dbh.session())
 
     # add controls
 
@@ -15,7 +15,7 @@ def setup( dbh ):
         dbh.Institution(
             code='NOT-AVAILABLE',
             name='Not Available'
-            )
+        )
     )
     dbh.session().flush()
 
@@ -23,8 +23,8 @@ def setup( dbh ):
         dbh.Collection(
             code='CONTROL',
             group=dbh.get_group('CollectionMgr'),
-            institutions = [ dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0] ],
-            )
+            institutions=[dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0]],
+        )
     )
     dbh.session().flush()
 
@@ -35,14 +35,14 @@ def setup( dbh ):
             specimen_type='water',
             experiment_type='sample-container',
             user=dbh.get_user('system/_SYSTEM_'),
-            )
+        )
     )
     dbh.session().flush()
 
     samples = [
         dbh.Sample(
-            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
-            code='empty',
+            collection=dbh.get_collections_by_codes('CONTROL', None)[0],
+            code='none',
             received_date=parser.parse('1970'),
             collection_date=parser.parse('1970'),
             species='no-species',
@@ -50,13 +50,13 @@ def setup( dbh ):
             host_occupation='other',
             host_status='unknown',
             category='R-RA',
-            specimen_type='water',
-            ct_method='rtpcr',
+            specimen_type='no-specimen',
+            ct_method='no-ct',
             originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
             sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            ),
+        ),
         dbh.Sample(
-            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            collection=dbh.get_collections_by_codes('CONTROL', None)[0],
             code='NTC1',
             received_date=parser.parse('1970'),
             collection_date=parser.parse('1970'),
@@ -66,12 +66,12 @@ def setup( dbh ):
             host_status='unknown',
             category='R-RA',
             specimen_type='water',
-            ct_method='rtpcr',
+            ct_method='no-ct',
             originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
             sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            ),
+        ),
         dbh.Sample(
-            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            collection=dbh.get_collections_by_codes('CONTROL', None)[0],
             code='NTC2',
             received_date=parser.parse('1970'),
             collection_date=parser.parse('1970'),
@@ -81,12 +81,12 @@ def setup( dbh ):
             host_status='unknown',
             category='R-RA',
             specimen_type='water',
-            ct_method='rtpcr',
+            ct_method='no-ct',
             originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
             sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            ),
+        ),
         dbh.Sample(
-            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            collection=dbh.get_collections_by_codes('CONTROL', None)[0],
             code='NTC3',
             received_date=parser.parse('1970'),
             collection_date=parser.parse('1970'),
@@ -96,12 +96,12 @@ def setup( dbh ):
             host_status='unknown',
             category='R-RA',
             specimen_type='water',
-            ct_method='rtpcr',
+            ct_method='no-ct',
             originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
             sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            ),
+        ),
         dbh.Sample(
-            collection = dbh.get_collections_by_codes('CONTROL', None)[0],
+            collection=dbh.get_collections_by_codes('CONTROL', None)[0],
             code='NTC4',
             received_date=parser.parse('1970'),
             collection_date=parser.parse('1970'),
@@ -111,10 +111,10 @@ def setup( dbh ):
             host_status='unknown',
             category='R-RA',
             specimen_type='water',
-            ct_method='rtpcr',
+            ct_method='no-ct',
             originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
             sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            ),
+        ),
     ]
     for s in samples:
         dbh.session().add(s)
@@ -124,61 +124,61 @@ def setup( dbh ):
 # add additional initial data here
 
 messy_groups = [
-            ( 'InstitutionMgr', [ INSTITUTION_MODIFY ] ),
-            ( 'CollectionMgr', [COLLECTION_MODIFY, COLLECTION_VIEW] ),
-            ( 'CollectionViewer', [COLLECTION_VIEW]),
-            ( 'SampleMgr', [SAMPLE_MANAGE]),
-            ( 'SampleModifier', [SAMPLE_MODIFY, SAMPLE_VIEW]),
-            ( 'SampleViewer', [SAMPLE_VIEW]),
-            ( 'PlateMgr', [PLATE_MANAGE]),
-            ( 'PlateModifier', [PLATE_MODIFY, PLATE_VIEW]),
-            ( 'PlateViewer', [PLATE_VIEW]),
-            ( 'SequencingRunMgr', [SEQUENCINGRUN_MANAGE]),
-            ( 'SequencingRunModifier', [SEQUENCINGRUN_MODIFY, SEQUENCINGRUN_VIEW]),
-            ( 'SequencingRunViewer', [SEQUENCINGRUN_VIEW]),
-            ( 'SequenceMgr', [SEQUENCE_MODIFY, SEQUENCE_VIEW]),
-            ( 'SequenceViewer', [SEQUENCE_VIEW]),
-            ( 'ProjectMgr', [SAMPLE_MODIFY, PLATE_MODIFY, SEQUENCINGRUN_MODIFY, SEQUENCE_MODIFY]),
-            ( 'ProjectViewer', [SAMPLE_VIEW, PLATE_VIEW, SEQUENCINGRUN_VIEW, SEQUENCE_VIEW]),
-            ( 'Collaborator', [SAMPLE_MODIFY, SEQUENCE_VIEW]),
+    ('InstitutionMgr', [r.INSTITUTION_MODIFY]),
+    ('CollectionMgr', [r.COLLECTION_MODIFY, r.COLLECTION_VIEW]),
+    ('CollectionViewer', [r.COLLECTION_VIEW]),
+    ('SampleMgr', [r.SAMPLE_MANAGE]),
+    ('SampleModifier', [r.SAMPLE_MODIFY, r.SAMPLE_VIEW]),
+    ('SampleViewer', [r.SAMPLE_VIEW]),
+    ('PlateMgr', [r.PLATE_MANAGE]),
+    ('PlateModifier', [r.PLATE_MODIFY, r.PLATE_VIEW]),
+    ('PlateViewer', [r.PLATE_VIEW]),
+    ('SequencingRunMgr', [r.SEQUENCINGRUN_MANAGE]),
+    ('SequencingRunModifier', [r.SEQUENCINGRUN_MODIFY, r.SEQUENCINGRUN_VIEW]),
+    ('SequencingRunViewer', [r.SEQUENCINGRUN_VIEW]),
+    ('SequenceMgr', [r.SEQUENCE_MODIFY, r.SEQUENCE_VIEW]),
+    ('SequenceViewer', [r.SEQUENCE_VIEW]),
+    ('ProjectMgr', [r.SAMPLE_MODIFY, r.PLATE_MODIFY, r.SEQUENCINGRUN_MODIFY, r.SEQUENCE_MODIFY]),
+    ('ProjectViewer', [r.SAMPLE_VIEW, r.PLATE_VIEW, r.SEQUENCINGRUN_VIEW, r.SEQUENCE_VIEW]),
+    ('Collaborator', [r.SAMPLE_MODIFY, r.SEQUENCE_VIEW]),
 ]
 
 
 ek_initlist = [
-    (   '@SYSNAME', 'System names',
+    ('@SYSNAME', 'System names',
         [
-            ( 'messy'.upper(), 'messy' ),
+            ('messy'.upper(), 'messy'),
         ]
-    ),
-    (   '@ROLES', None,
+     ),
+    ('@ROLES', None,
         [
-            (INSTITUTION_MANAGE, 'manage institution'),
-            (INSTITUTION_MODIFY, 'modify institution'),
-            (COLLECTION_MANAGE, 'manage collection'),
-            (COLLECTION_MODIFY, 'modify collection'),
-            (COLLECTION_VIEW, 'view collection'),
-            (SAMPLE_MANAGE, 'manage sample'),
-            (SAMPLE_MODIFY, 'modify sample'),
-            (SAMPLE_VIEW, 'view sample'),
-            (PLATE_MANAGE, 'plate manager'),
-            (PLATE_MODIFY, 'modify plate'),
-            (PLATE_VIEW, 'view plate'),
-            (SEQUENCINGRUN_MANAGE, 'manage sequencing run'),
-            (SEQUENCINGRUN_MODIFY, 'modify sequencing run'),
-            (SEQUENCINGRUN_VIEW, 'view sequencing run'),
-            (SEQUENCE_MANAGE, 'manage sequence'),
-            (SEQUENCE_MODIFY, 'modify sequence'),
-            (SEQUENCE_VIEW, 'view sequence'),
+            (r.INSTITUTION_MANAGE, 'manage institution'),
+            (r.INSTITUTION_MODIFY, 'modify institution'),
+            (r.COLLECTION_MANAGE, 'manage collection'),
+            (r.COLLECTION_MODIFY, 'modify collection'),
+            (r.COLLECTION_VIEW, 'view collection'),
+            (r.SAMPLE_MANAGE, 'manage sample'),
+            (r.SAMPLE_MODIFY, 'modify sample'),
+            (r.SAMPLE_VIEW, 'view sample'),
+            (r.PLATE_MANAGE, 'plate manager'),
+            (r.PLATE_MODIFY, 'modify plate'),
+            (r.PLATE_VIEW, 'view plate'),
+            (r.SEQUENCINGRUN_MANAGE, 'manage sequencing run'),
+            (r.SEQUENCINGRUN_MODIFY, 'modify sequencing run'),
+            (r.SEQUENCINGRUN_VIEW, 'view sequencing run'),
+            (r.SEQUENCE_MANAGE, 'manage sequence'),
+            (r.SEQUENCE_MODIFY, 'modify sequence'),
+            (r.SEQUENCE_VIEW, 'view sequence'),
         ]
-    ),
-    (   '@SPECIES', "Species",
+     ),
+    ('@SPECIES', "Species",
         [
             ('betacoronavirus', 'betacoronavirus'),
             ('human', 'human'),
             ('no-species', 'no-species'),
         ]
-    ),
-    (   '@PASSAGE', 'Passage',
+     ),
+    ('@PASSAGE', 'Passage',
         [
             ('original', 'Original'),
             ('vero', 'Vero cell 1st passage'),
@@ -186,14 +186,14 @@ ek_initlist = [
             ('hek293', 'HEK293 cell 1st passage'),
             ('hek293+2', 'HEK293 cell 2nd passage')
         ]
-    ),
-    (   '@HOST', 'Host',
+     ),
+    ('@HOST', 'Host',
         [
             ('human', 'Human'),
             ('no-host', 'no-host'),
         ]
-    ),
-    (   '@HOST_STATUS', 'Host status',
+     ),
+    ('@HOST_STATUS', 'Host status',
         [
             ('unknown', 'Unknown'),
             ('hospitalized', 'Hospitalized'),
@@ -201,8 +201,8 @@ ek_initlist = [
             ('deceased', 'Deceased'),
             ('released', 'Released')
         ]
-    ),
-    (    '@HOST_OCCUPATION', 'Host occupation',
+     ),
+    ('@HOST_OCCUPATION', 'Host occupation',
         [
             ('irrelevant', 'Irrelevant'),
             ('other', 'Other occupation'),
@@ -226,8 +226,8 @@ ek_initlist = [
             ('mining', 'Mining sector'),
             ('foresty', 'Forestry sector'),
         ]
-    ),
-    (   '@CATEGORY', 'Sample category',
+     ),
+    ('@CATEGORY', 'Sample category',
         [
             ('R-RA', 'R - Random surveillance and tracking'),
             ('S-SE', 'S - Sentinel surveillance'),
@@ -240,8 +240,8 @@ ek_initlist = [
             ('G-CH', 'G - child case'),
             ('H-CO', 'H - comorbid case')
         ]
-    ),
-    (   '@SPECIMEN_TYPE', 'Specimen type',
+     ),
+    ('@SPECIMEN_TYPE', 'Specimen type',
         [
             ('np+op', 'Nasopharyngeal and oropharyngeal swab'),
             ('np', 'Nasopharyngeal swab'),
@@ -257,16 +257,18 @@ ek_initlist = [
             ('dna', 'double-strand DNA'),
             ('ssdna', 'single-strand DNA'),
             ('water', 'empty sample'),
+            ('no-specimen', 'no specimen'),
         ]
-    ),
-    (   '@CT_METHOD',   'Ct Methodology',
+     ),
+    ('@CT_METHOD', 'Ct Methodology',
         [
             ('rtpcr', 'generic realtime RT-PCR'),
             ('cobas', 'Cobas'),
-            ('charite-berlin', 'Charite-Berlin method')
+            ('charite-berlin', 'Charite-Berlin method'),
+            ('no-ct', 'No Ct'),
         ]
-    ),
-    (   '@EXPERIMENT_TYPE', 'Laboratory experiment type',
+     ),
+    ('@EXPERIMENT_TYPE', 'Laboratory experiment type',
         [
             ('sample-container', 'container for sample storage'),
             ('qc-qubit', 'QC with qubit'),
@@ -286,8 +288,8 @@ ek_initlist = [
             ('libprep-artic-ultraii', 'library prep with NEB Artic UltraII kit'),
             ('libprep-artic-ultraiifs', 'library prep with NEB Artic UltraIIFS kit'),
         ]
-    ),
-    (   '@SEQUENCING_KIT', 'Sequencing kit',
+     ),
+    ('@SEQUENCING_KIT', 'Sequencing kit',
         [
             ('merged-data', 'Merged data from more than one run'),
             ('MiSeqV3-600', 'MiSeq 600-cycle v3'),
@@ -306,8 +308,8 @@ ek_initlist = [
             ('NovaSeqSPv1.5-100', 'NovaSeq 6000 SP v1.5 100-cycle'),
             ('data-container', 'Container for imported data')
         ]
-    ),
-    (   '@METHOD', 'Upstream analysis method',
+     ),
+    ('@METHOD', 'Upstream analysis method',
         [
             ('ncov19-pipeline/artic', 'ncov19-pipeline ARTIC mode'),
             ('ncov19-pipeline/mapping', 'ncov19-pipeline generic mapping (minimap2) mode'),
@@ -315,5 +317,7 @@ ek_initlist = [
             ('gisaid', 'direct GISAID import'),
             ('other', 'other analysis method'),
         ]
-    ),
+     ),
 ]
+
+# EOF
