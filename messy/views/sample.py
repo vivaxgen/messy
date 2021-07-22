@@ -336,6 +336,27 @@ class SampleViewer(BaseViewer):
 
         return error_page(request, 'action post not implemented')
 
+    def get_object(self):
+        """obj_id either integer or 'code=?'"""
+        rq = self.request
+        dbh = self.dbh
+        obj_id = rq.matchdict.get('id')
+        if obj_id.startswith('code='):
+            func = dbh.get_samples_by_codes
+            obj_id = obj_id[5:]
+        else:
+            func = dbh.get_samples_by_ids
+            obj_id = int(obj_id)
+        res = func([obj_id],
+                   groups=None if rq.user.has_roles(* self.viewing_roles)
+                   else rq.user.groups,
+                   user=rq.user)
+        if len(res) == 0:
+            raise RuntimeError('Cannot find object! Please check object id!')
+
+        self.obj = res[0]
+        return self.obj
+
 
 def generate_sample_table(samples, request):
 
