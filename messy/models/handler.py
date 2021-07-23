@@ -2,7 +2,7 @@
 from rhombus.models import handler as rhombus_handler
 from rhombus.lib.utils import cerr, cout
 
-from .setup import setup
+# from .setup import setup
 
 from messy.models import dbschema
 from messy.lib.roles import *
@@ -53,7 +53,6 @@ class DBHandler(rhombus_handler.DBHandler):
 
     query_constructor_class = MessyQueryConstructor
 
-
     def initdb(self, create_table=True, init_data=True, rootpasswd=None):
         """ initialize database """
         super().initdb(create_table, init_data, rootpasswd)
@@ -62,9 +61,7 @@ class DBHandler(rhombus_handler.DBHandler):
             setup(self)
             cerr('[messy-rbmgr] Database has been initialized')
 
-
     # add additional methods here
-
 
     def fix_result(self, query, fetch, raise_if_empty):
         if not fetch:
@@ -75,23 +72,21 @@ class DBHandler(rhombus_handler.DBHandler):
             raise rhombus_handler.exc.NoResultFound()
         return res
 
-
     # Institutions
 
     def get_institutions(self, groups=None, specs=None, user=None, fetch=True, raise_if_empty=False):
 
-        q = self.construct_query(self.Institution, specs).order_by( self.Institution.code )
+        q = self.construct_query(self.Institution, specs)
+        if fetch:
+            q = q.order_by(self.Institution.code)
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-
     def get_institutions_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_institutions(groups, [ {'institution_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
-
+        return self.get_institutions(groups, [{'institution_id': ids}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
     def get_institutions_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_institutions(groups, [ {'institution_code': codes} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
-
+        return self.get_institutions(groups, [{'institution_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
     # Collections
 
@@ -100,14 +95,15 @@ class DBHandler(rhombus_handler.DBHandler):
         q = self.construct_query(self.Collection, specs)
         if groups is not None:
             # enforce security
-            q = q.filter( self.Collection.group_id.in_( [ x[1] for x in groups ] ))
-        q = q.order_by( self.Collection.code )
+            q = q.filter(self.Collection.group_id.in_([x[1] for x in groups]))
+        if fetch:
+            q = q.order_by(self.Collection.code)
 
         return self.fix_result(q, fetch, raise_if_empty)
 
     def get_collections_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_collections(groups, [{'collection_id': ids}], user=user, fetch=fetch,
-                                    raise_if_empty=raise_if)
+                                    raise_if_empty=raise_if_empty)
 
     def get_collections_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_collections(groups, [{'collection_code': codes}], user=user, fetch=fetch,
@@ -131,14 +127,15 @@ class DBHandler(rhombus_handler.DBHandler):
                 groups = user.groups
 
         if groups is not None:
-            q = q.join( self.Collection ).filter( self.Collection.group_id.in_( [ x[1] for x in groups ] ))
+            q = q.join(self.Collection).filter(self.Collection.group_id.in_([x[1] for x in groups]))
 
-        q = q.order_by( self.Sample.code.desc() )
+        if fetch:
+            q = q.order_by(self.Sample.code.desc())
 
         return self.fix_result(q, fetch, raise_if_empty)
 
     def get_samples_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_samples(groups, [ {'sample_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+        return self.get_samples(groups, [{'sample_id': ids}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
     def get_samples_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False, override_security=False):
         return self.get_samples(groups, [{'sample_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty,
@@ -149,28 +146,30 @@ class DBHandler(rhombus_handler.DBHandler):
 
     def get_sequences(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
-        q = self.construct_query(self.Sequence, specs).order_by( self.Sequence.id.desc() )
+        q = self.construct_query(self.Sequence, specs)
+        if fetch:
+            q = q.order_by(self.Sequence.id.desc())
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-
     def get_sequences_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-        return get_sequences(groups, [ {'sequence_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
-
+        return self.get_sequences(groups, [{'sequence_id': ids}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
     # Plates
 
     def get_plates(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
-        q = self.construct_query(self.Plate, specs).order_by( self.Plate.id.desc() )
+        q = self.construct_query(self.Plate, specs)
+        if fetch:
+            q = q.order_by(self.Plate.id.desc())
 
         if groups is not None:
-            q = q.filter( self.Plate.group_id.in_ ( [ x[1] for x in groups ] ))
+            q = q.filter(self.Plate.group_id.in_([x[1] for x in groups]))
 
         return self.fix_result(q, fetch, raise_if_empty)
 
     def get_plates_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_plates(groups, [ {'plate_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+        return self.get_plates(groups, [{'plate_id': ids}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
     def get_plates_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_plates(groups, [{'plate_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
@@ -179,12 +178,16 @@ class DBHandler(rhombus_handler.DBHandler):
 
     def get_sequencingruns(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
-        q = self.construct_query(self.SequencingRun, specs).order_by( self.SequencingRun.id.desc() )
+        q = self.construct_query(self.SequencingRun, specs)
+        if fetch:
+            q = q.order_by(self.SequencingRun.date.desc())
 
         return self.fix_result(q, fetch, raise_if_empty)
 
     def get_sequencingruns_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_sequencingruns(groups, [ {'run_id': ids} ], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+        return self.get_sequencingruns(groups, [{'run_id': ids}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
 
     def get_sequencingruns_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_sequencingruns(groups, [{'run_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+
+# EOF
