@@ -35,6 +35,9 @@ def init_argparser(parser=None):
     p.add_argument('--import_runs', action='store_true',
                    help='import sequencing runs')
 
+    p.add_argument('--import_collections', action='store_true',
+                   help='import collections')
+
     # options
     p.add_argument('--with_samples', default=False, action='store_true',
                    help='export samples as well when exporting collections')
@@ -86,6 +89,9 @@ def do_mgr(args, settings, dbh=None):
     elif args.export_collections:
         do_export_collections(args, dbh)
 
+    elif args.import_collections:
+        do_import_collections(args, dbh)
+
     else:
         cerr('Please provide correct operation')
 
@@ -125,6 +131,16 @@ def do_export_collections(args, dbh):
     yaml_write(args, [collection.as_dict(export_samples=args.with_samples)
                       for collection in dbh.Collection.query(sess)],
                'Collection')
+
+
+def do_import_collections(args, dbh):
+    c = 0
+    with open(args.infile) as instream:
+        for coll_dict in yaml.safe_load_all(instream):
+            coll = dbh.Collection.from_dict(coll_dict, dbh)
+            cerr(f'[I - uploaded collection: {coll.code}]')
+            c += 1
+    cerr(f'[I - collection uploaded: {c}]')
 
 
 def yaml_write(args, data, msg):
