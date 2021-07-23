@@ -37,7 +37,8 @@ class RunViewer(BaseViewer):
 
         group_id = int(self.request.params.get('group_id', 0))
 
-        runs = self.dbh.get_sequencingruns(groups=None)
+        runs = self.dbh.get_sequencingruns(groups=None, fetch=False).order_by(self.dbh.SequencingRun.date.desc())
+        #raise
 
         html, code = generate_run_table(runs, self.request)
         html = t.div()[t.h2('Runs'), html]
