@@ -451,8 +451,8 @@ class SequencingRun(Base, BaseMixIn):
             dbh = get_dbhandler()
 
             if 'sequencing_provider' in obj:
-                self.sequencing_provider_id = dbh.get_institutions_by_code(
-                    obj['collection'], None, raise_if_empty=True)[0].id
+                self.sequencing_provider_id = dbh.get_institutions_by_codes(
+                    obj['sequencing_provider'], None, raise_if_empty=True)[0].id
 
             convert_date(obj, 'date')
 
