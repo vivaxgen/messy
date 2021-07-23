@@ -29,6 +29,12 @@ def init_argparser(parser=None):
     p.add_argument('--export_collections', action='store_true',
                    help='export collections (including their samples')
 
+    p.add_argument('--import_institutions', action='store_true',
+                   help='import instituions')
+
+    p.add_argument('--import_runs', action='store_true',
+                   help='import sequencing runs')
+
     # options
     p.add_argument('--with_samples', default=False, action='store_true',
                    help='export samples as well when exporting collections')
@@ -68,8 +74,14 @@ def do_mgr(args, settings, dbh=None):
     if args.export_institutions:
         do_export_institutions(args, dbh)
 
+    elif args.import_institutions:
+        do_import_institutions(args, dbh)
+
     elif args.export_runs:
         do_export_runs(args, dbh)
+
+    elif args.import_runs:
+        do_import_runs(args, dbh)
 
     elif args.export_collections:
         do_export_collections(args, dbh)
@@ -79,17 +91,33 @@ def do_mgr(args, settings, dbh=None):
 
 
 def do_export_institutions(args, dbh):
+    yaml_write(args, [inst.as_dict() for inst in dbh.Institution.query(dbh.session())],
+               'Institution')
 
-    institutions = [inst.as_dict() for inst in dbh.Institution.query(dbh.session())]
-    with open(args.outfile, 'w') as outstream:
-        yaml.dump_all(institutions, outstream, default_flow_style=False)
 
-    cerr(f'[Exporint institutions to {args.outfile}]')
+def do_import_institutions(args, dbh):
+    c = 0
+    with open(args.infile) as instream:
+        for inst_dict in yaml.safe_load_all(instream):
+            inst = dbh.Institution.from_dict(inst_dict, dbh)
+            cerr(f'[I - uploaded institution: {inst.code}]')
+            c += 1
+    cerr(f'[I - institution uploaded: {c}]')
 
 
 def do_export_runs(args, dbh):
     yaml_write(args, [seqrun.as_dict() for seqrun in dbh.SequencingRun.query(dbh.session())],
                'SequencingRun')
+
+
+def do_import_runs(args, dbh):
+    c = 0
+    with open(args.infile) as instream:
+        for run_dict in yaml.safe_load_all(instream):
+            run = dbh.SequencingRun.from_dict(run_dict, dbh)
+            cerr(f'[I - uploaded sequencing run: {run.code}]')
+            c += 1
+    cerr(f'[I - sequencing run uploaded: {c}]')
 
 
 def do_export_collections(args, dbh):
