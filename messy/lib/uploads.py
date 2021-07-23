@@ -1,6 +1,8 @@
 
 from rhombus.lib.utils import random_string, get_dbhandler
 from messy.lib import converter
+import json
+import yaml
 import pandas as pd
 import os
 
@@ -48,14 +50,16 @@ class UploadJob(object):
             df = pd.read_table(instream, sep='\t')
         elif ext == '.csv':
             df = pd.read_table(instream, sep=',')
-        elif ext == '.json':
-            pass
+        elif ext == '.jsonl':
+            dicts = []
+            for line in instream:
+                dicts.append(json.loads(line))
         elif ext == '.yaml':
-            pass
+            dicts = list(yaml.safe_load_all(instream))
         else:
-            raise
+            raise RuntimeError('Invalid input file format')
 
-        if dicts == None:
+        if dicts is None:
             dicts = df.to_dict(orient='records')
 
         return dicts
@@ -313,5 +317,20 @@ class SampleGISAIDUploadJob(SampleUploadJob):
 
     def stream_to_dicts(self, instream):
         return converter.import_gisaid_csv(instream)
+
+
+class CollectionUploadJob(UploadJob):
+
+    def __init__(self, user_id, filename, instream):
+        super().__init__(user_id)
+        # save to memory
+        self.filename = filename
+        self.dicts = self.stream_to_dicts(instream)
+
+    def confirm(self):
+        pass
+
+    def commit(self):
+        pass
 
 # EOF
