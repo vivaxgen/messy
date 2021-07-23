@@ -125,7 +125,7 @@ class Collection(Base, BaseMixIn):
             dbh = get_dbhandler()
 
             if 'group' in obj:
-                self.group_id = dbh.get_group_by_code(obj['group']).id
+                self.group_id = dbh.get_group(obj['group']).id
 
             institutions = []
             if 'institution_ids' in obj:
@@ -157,6 +157,17 @@ class Collection(Base, BaseMixIn):
             d['samples'] = [samp.as_dict() for samp in self.samples]
         return d
 
+    @classmethod
+    def from_dict(cls, a_dict, dbh):
+        # import IPython; IPython.embed()
+        coll = super().from_dict(a_dict, dbh)
+        dbh.session.flush([coll])
+        if 'samples' in a_dict:
+            samples = a_dict['samples']
+            for samp in samples:
+                dbh.Sample.from_dict(samp, dbh)
+        return coll
+
 
 class Sample(Base, BaseMixIn):
 
@@ -185,7 +196,7 @@ class Sample(Base, BaseMixIn):
     location_info = Column(types.String(128), nullable=False, server_default='')
 
     host_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    host = EK.proxy('host_id', '@HOST')
+    host = EK.proxy('host_id', '@SPECIES')
 
     host_info = Column(types.String(64), nullable=False, server_default='')
     host_gender = Column(types.String(1), nullable=False, server_default='X')
@@ -211,7 +222,8 @@ class Sample(Base, BaseMixIn):
     treatment = Column(types.String(64), nullable=False, server_default='')
 
     viral_load = Column(types.Float, nullable=False, server_default='-1')
-    ct_value = Column(types.Float, nullable=False, server_default='-1')
+    ct_value1 = Column(types.Float, nullable=False, server_default='-1')
+    ct_value2 = Column(types.Float, nullable=False, server_default='-1')
 
     ct_method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     ct_method = EK.proxy('ct_method_id', '@CT_METHOD')
@@ -267,7 +279,7 @@ class Sample(Base, BaseMixIn):
             dbh = get_dbhandler()
 
             if 'collection' in obj:
-                self.collection_id = dbh.get_collections_by_code(obj['collection']).id
+                self.collection_id = dbh.get_collections_by_codes(obj['collection'], groups=None)[0].id
 
             if 'originating_institution' in obj:
                 self.originating_institution_id = dbh.get_institutions_by_codes(
