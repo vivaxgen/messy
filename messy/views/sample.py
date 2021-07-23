@@ -32,7 +32,8 @@ class SampleViewer(BaseViewer):
         'specimen_type_id': ('messy-sample-specimen_type_id', ),
         'passage_id': ('messy-sample-passage_id', ),
         'ct_method_id': ('messy-sample-ct_method_id', ),
-        'ct_value': ('messy-sample-ct_value', float),
+        'ct_value1': ('messy-sample-ct_value1', float),
+        'ct_value2': ('messy-sample-ct_value2', float),
         'species_id': ('messy-sample-species_id', ),
         'host_id': ('messy-sample-host_id', ),
         'host_info': ('messy-sample-host_info', ),
@@ -185,9 +186,11 @@ class SampleViewer(BaseViewer):
                     t.input_select_ek(ff('specimen_type_id'), 'Specimen type',
                                       value=obj.specimen_type_id or dbh.get_ekey('np+op').id,
                                       offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
-                    t.input_text(ff('ct_value'), 'Ct value',
-                                 value=-1 if obj.ct_value is None else obj.ct_value, offset=1, size=1),
-                    t.input_select_ek(ff('ct_method_id'), 'Ct method',
+                    t.input_text(ff('ct_value1'), 'Ct 1|2',
+                                 value=-1 if obj.ct_value1 is None else obj.ct_value1, offset=1, size=1),
+                    t.input_text(ff('ct_value2'), None,
+                                 value=-1 if obj.ct_value2 is None else obj.ct_value2, offset=1, size=1),
+                    t.input_select_ek(ff('ct_method_id'), None,
                                       value=obj.ct_method_id or dbh.get_ekey('rtpcr').id,
                                       offset=1, size=2, parent_ek=dbh.get_ekey('@CT_METHOD')),
                     t.input_select_ek(ff('passage_id'), 'Passage',
@@ -197,8 +200,9 @@ class SampleViewer(BaseViewer):
 
                 t.inline_inputs(
 
-                    t.input_select_ek(ff('host_id'), 'Host', value=obj.host_id,
-                                      offset=2, size=2, parent_ek=dbh.get_ekey('@HOST')),
+                    t.input_select_ek(ff('host_id'), 'Host',
+                                      value=obj.host_id or dbh.get_ek_id('human', '@SPECIES'),
+                                      offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIES')),
                     t.input_text(ff('host_info'), 'Host Info', value=obj.host_info, offset=2, size=6),
                 ),
 
