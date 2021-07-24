@@ -3,7 +3,8 @@ from messy.lib.whoosh import IndexService, set_index_service
 from rhombus import add_route_view, add_route_view_class
 from rhombus.lib.utils import cerr, cout
 
-def includeme( config ):
+
+def includeme(config):
     """ this configuration must be included as the last order
     """
 
@@ -29,8 +30,8 @@ def includeme( config ):
     # below are example for route for class-based viewer
     # the same thing can be achieved using add_view_route_class()
 
-    #config.add_route('rpc', '/rpc')
-    #config.add_view('messy.views.rpc.do_rpc', route_name='rpc')
+    # config.add_route('rpc', '/rpc')
+    # config.add_view('messy.views.rpc.do_rpc', route_name='rpc')
     config.include("pyramid_rpc.jsonrpc")
     config.add_jsonrpc_endpoint('rpc', '/rpc')
     config.add_jsonrpc_method('messy.views.rpc.check_auth', endpoint='rpc', method='check_auth')
@@ -45,7 +46,8 @@ def includeme( config ):
     config.add_route('tools', '/tools')
     config.add_view('messy.views.tools.ToolsViewer', attr='index', route_name='tools')
 
-    add_route_view_class( config, 'messy.views.institution.InstitutionViewer', 'messy.institution',
+    add_route_view_class(
+        config, 'messy.views.institution.InstitutionViewer', 'messy.institution',
         '/institution',
         '/institution/@@action',
         '/institution/@@add',
@@ -55,7 +57,8 @@ def includeme( config ):
         ('/institution/{id}', 'view')
     )
 
-    add_route_view_class( config, 'messy.views.collection.CollectionViewer', 'messy.collection',
+    add_route_view_class(
+        config, 'messy.views.collection.CollectionViewer', 'messy.collection',
         '/collection',
         '/collection/@@action',
         '/collection/@@add',
@@ -65,7 +68,8 @@ def includeme( config ):
         ('/collection/{id}', 'view')
     )
 
-    add_route_view_class( config, 'messy.views.sample.SampleViewer', 'messy.sample',
+    add_route_view_class(
+        config, 'messy.views.sample.SampleViewer', 'messy.sample',
         '/sample',
         '/sample/@@action',
         '/sample/@@add',
@@ -76,7 +80,8 @@ def includeme( config ):
         ('/sample/{id}', 'view')
     )
 
-    add_route_view_class( config, 'messy.views.sequence.SequenceViewer', 'messy.sequence',
+    add_route_view_class(
+        config, 'messy.views.sequence.SequenceViewer', 'messy.sequence',
         '/sequence',
         '/sequence/@@action',
         '/sequence/@@add',
@@ -85,7 +90,8 @@ def includeme( config ):
         ('/sequence/{id}', 'view')
     )
 
-    add_route_view_class( config, 'messy.views.plate.PlateViewer', 'messy.plate',
+    add_route_view_class(
+        config, 'messy.views.plate.PlateViewer', 'messy.plate',
         '/plate',
         '/plate/@@action',
         '/plate/@@add',
@@ -97,7 +103,8 @@ def includeme( config ):
         ('/plate/{id}', 'view')
     )
 
-    add_route_view_class( config, 'messy.views.run.RunViewer', 'messy.run',
+    add_route_view_class(
+        config, 'messy.views.run.RunViewer', 'messy.run',
         '/run',
         '/run/@@action',
         '/run/@@add',
@@ -108,18 +115,21 @@ def includeme( config ):
         ('/run/{id}', 'view')
     )
 
-    #config.add_route('post-add', '/add')
-    #config.add_view('messy.views.post.PostViewer', attr='add', route_name='post-add')
+    # config.add_route('post-add', '/add')
+    # config.add_view('messy.views.post.PostViewer', attr='add', route_name='post-add')
 
-    #config.add_route('post-edit', '/posts/{id}@@edit')
-    #config.add_view('messy.views.post.PostViewer', attr='edit', route_name='post-edit')
+    # config.add_route('post-edit', '/posts/{id}@@edit')
+    # config.add_view('messy.views.post.PostViewer', attr='edit', route_name='post-edit')
 
-    #config.add_route('post-view', '/posts/{id}')
-    #config.add_view('messy.views.post.PostViewer', attr='index', route_name='post-view')
-
+    # config.add_route('post-view', '/posts/{id}')
+    # config.add_view('messy.views.post.PostViewer', attr='index', route_name='post-view')
 
     # add additional routes and views here
 
     # whoosh
 
-    set_index_service( IndexService(config.registry.settings['messy.whoosh.path']))
+    set_index_service(IndexService(config.registry.settings['messy.whoosh.path']))
+
+    # add addtional setup here
+
+# EOF
