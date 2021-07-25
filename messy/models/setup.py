@@ -174,6 +174,7 @@ ek_initlist = [
     ('@SPECIES', "Species",
         [
             ('betacoronavirus', 'betacoronavirus'),
+            ('betacoronavirus-ncov19', 'betacoronavirus nCoV-19'),
             ('human', 'human'),
             ('no-species', 'no-species'),
         ]
