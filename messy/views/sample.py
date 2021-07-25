@@ -83,6 +83,11 @@ class SampleViewer(BaseViewer):
                 d['sampling_institution_id'] = d['originating_institution_id']
                 d['sampling_code'] = d['originating_code']
 
+            if obj.any_modified(d, {'acc_code', 'location', 'collection_date', 'species', 'host'}):
+                update_sequence_name = True
+            else:
+                update_sequence_name = False
+
             obj.update(d)
             # check if obj is already registered
             if obj.id is None:
@@ -94,6 +99,11 @@ class SampleViewer(BaseViewer):
                                              'or the collection does not exist.',
                                              self.form_fields['collection_id'][0])
                 dbh.session().add(obj)
+
+            # fill other values based on existing data
+            if update_sequence_name:
+                obj.update_sequence_name()
+
             dbh.session().flush([obj])
 
         except sqlalchemy.exc.IntegrityError as err:
