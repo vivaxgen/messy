@@ -8,6 +8,7 @@ from rhombus.models.fileattach import FileAttachment
 import messy.lib.roles as r
 from messy.lib import nomenclature
 import dateutil.parser
+import datetime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import object_session
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
@@ -42,9 +43,12 @@ def dict_from_fields(obj, fields, exclude=None):
     return d
 
 
-def convert_date(obj, field):
+def convert_date(obj, field, now=None):
     if field in obj and isinstance(obj[field], str):
-        obj[field] = dateutil.parser.parse(obj[field])
+        date_value = dateutil.parser.parse(obj[field])
+        if now and date_value > now:
+            raise RuntimeError(f'Invalid date in the future: {date_value}')
+        obj[field] = date_value
 
 
 class Institution(Base, BaseMixIn):
@@ -290,8 +294,9 @@ class Sample(Base, BaseMixIn):
                 self.sampling_institution_id = dbh.get_institutions_by_codes(
                     obj['sampling_institution'], None, raise_if_empty=True)[0].id
 
+            now = datetime.datetime.now()
             for f in ['collection_date', 'received_data', 'host_dob']:
-                convert_date(obj, f)
+                convert_date(obj, f, now)
 
             self.update_fields_with_dict(obj, additional_fields=['attachment'])
             self.update_ek_with_dict(obj, dbh=dbh)
