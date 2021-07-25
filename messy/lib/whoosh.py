@@ -126,7 +126,7 @@ class IndexService(object):
                 for dbid in updater.deleted_objects[class_]:
                     writer.delete_by_term('dbid', dbid)
 
-        for class_ in updater.deleted_objects:
+        for class_ in updater.created_objects:
             with self.cis[class_].ix.writer() as writer:
                 for obj in updater.created_objects[class_].values():
                     writer.add_document(dbid=obj.dbid, mtime=obj.mtime, text=obj.text)
