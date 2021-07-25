@@ -256,9 +256,9 @@ class SampleUploadJob(UploadJob):
         inst = dbh.Institution.search_text(inst_code, dbh.session(), 1)[0]
         return inst
 
-    def get_ekey(self, key, dbh):
+    def get_ekey(self, key, group, dbh):
         try:
-            ek_id = dbh.EK.getid(key, dbh.session())
+            ek_id = dbh.EK.getid(key, group, dbh.session())
             if ek_id:
                 return key
 
@@ -275,7 +275,7 @@ class SampleUploadJob(UploadJob):
         key = d[field]
         print(f'>>> fix_ekey(): {key} >>>')
         try:
-            ekey = self.get_ekey(key, dbh)
+            ekey = self.get_ekey(key, dbh.Sample.__ek_metainfo__[field][1], dbh)
             d[field] = ekey
             if ekey.lower() != key.lower():
                 return [f'{field}: "{key}" => {ekey}']
