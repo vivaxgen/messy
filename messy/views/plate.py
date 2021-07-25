@@ -30,6 +30,7 @@ class PlateViewer(BaseViewer):
         'date': ('messy-plate-date', dateutil.parser.parse),
         'specimen_type_id': ('messy-plate-sequencing_kit_id', ),
         'experiment_type_id': ('messy-plate-experiment_type_id', ),
+        'storage': ('messy-plate-storage'),
         'attachment': ('messy-plate-attachment', ),
         'remark': ('messy-plate-remark', ),
     }
@@ -84,7 +85,7 @@ class PlateViewer(BaseViewer):
                        update_dict=update_dict)[
             self.hidden_fields(obj),
             t.fieldset(
-                t.input_text(ff('code*'), 'Code', value=obj.code, offset=2),
+                t.input_text(ff('code*'), 'Code', value=obj.code, offset=2, size=4),
                 t.input_text(ff('date'), 'Date', value=obj.date, offset=2, size=2),
                 t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=3,
                                options=[(g.id, g.name) for g in dbh.get_group()]),
@@ -92,6 +93,7 @@ class PlateViewer(BaseViewer):
                                   value=obj.specimen_type_id, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
                 t.input_select_ek(ff('experiment_type_id'), 'Experiment Type', offset=2, size=3,
                                   value=obj.experiment_type_id, parent_ek=dbh.get_ekey('@EXPERIMENT_TYPE')),
+                t.input_text(ff('storage'), 'Storage', value=obj.storage, offset=2, size=4),
                 t.input_textarea(ff('remark'), 'Remark', value=obj.remark, offset=2),
                 t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'attachment')),
