@@ -217,9 +217,9 @@ class Sample(Base, BaseMixIn):
     specimen_type_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     specimen_type = EK.proxy('specimen_type_id', '@SPECIMEN_TYPE')
 
-    outbreak = Column(types.String, nullable=False, server_default='')
+    outbreak = Column(types.String(64), nullable=False, server_default='')
     last_vaccinated_date = Column(types.Date, nullable=True)
-    last_vaccinated_info = Column(types.String, nullable=False, server_default='')
+    last_vaccinated_info = Column(types.String(64), nullable=False, server_default='')
     treatment = Column(types.String(64), nullable=False, server_default='')
 
     viral_load = Column(types.Float, nullable=False, server_default='-1')
