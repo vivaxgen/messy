@@ -4,7 +4,6 @@ from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, 
                          Response, modal_delete, modal_error, Response, HTTPFound)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
-#import rhombus.lib.tags as t
 import dateutil
 
 
