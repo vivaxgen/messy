@@ -79,13 +79,11 @@ class InstitutionViewer(BaseViewer):
             dbh.session().rollback()
             detail = err.args[0]
             eform, jscode = self.edit_form(obj)
-            if 'UNIQUE' in detail:
-                field = detail.split()[-1]
-                print(field)
-                if field == 'institutions.code':
-                    raise ParseFormError('The institution code: %s is '
-                                         'already being used. Please use other institution code!'
-                                         % d['code'], 'messy-institution-code') from err
+            if 'UNIQUE' in detail or 'UniqueViolation' in detail:
+                if 'institutions.code' in detail or 'uq_institutions_code' in detail:
+                    raise ParseFormError(f'The institution code: {d["code"]} is '
+                                         f'already being used. Please use other institution code!',
+                                         self.ffn('code')) from err
 
             raise RuntimeError('error updating object')
 
@@ -121,7 +119,25 @@ class InstitutionViewer(BaseViewer):
         jscode = '''
         '''
 
-        return t.div()[t.h2('Institution'), eform], jscode
+        div = t.div()[t.h2('Institution'), eform]
+
+        # if in editing mode, show lookup field to help filling in
+        if not readonly:
+            lookup_form = t.form(name='messy-institution-lookup')[
+                t.fieldset(
+                    t.input_select('institution-lookup-ids', 'Check institution',
+                                   offset=2, size=6),
+                    name='messy-institution-lookup-fieldset'
+                )
+            ]
+
+            div[t.br, t.br, lookup_form]
+            jscode += select2_lookup(tag='institution-lookup-ids', minlen=3,
+                                     placeholder="Type any word",
+                                     parenttag='messy-institution-lookup-fieldset',
+                                     url=self.request.route_url('messy.institution-lookup'))
+
+        return div, jscode
 
 
 def generate_institution_table(institutions, request):
