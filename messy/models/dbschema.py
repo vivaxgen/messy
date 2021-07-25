@@ -15,7 +15,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
 
 import io
 
-__version__ = '20210711'
+__version__ = '20210725'
 
 # Design Consideration
 # ====================
@@ -367,6 +367,7 @@ class Plate(Base, BaseMixIn):
     experiment_type_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     experiment_type = EK.proxy('experiment_type_id', '@EXPERIMENT_TYPE')
 
+    storage = deferred(Column(types.String(64), nullable=False, server_default=''))
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
     attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
