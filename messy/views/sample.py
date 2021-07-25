@@ -1,7 +1,7 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
-                         Response, modal_delete, modal_error, Response)
+                         Response, modal_delete, modal_error, Response, HTTPFound)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 #import rhombus.lib.tags as t
@@ -92,8 +92,8 @@ class SampleViewer(BaseViewer):
             # check if obj is already registered
             if obj.id is None:
                 # check whether users is in sample collection group
-                if not self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE):
-                    collection = dbh.get_collections_by_ids(obj.collection_id, self.request.user.groups)
+                if not rq.user.has_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE):
+                    collection = dbh.get_collections_by_ids(obj.collection_id, rq.user.groups)
                     if len(collection) == 0:
                         raise ParseFormError('Either the user is not in a member of collection group '
                                              'or the collection does not exist.',
@@ -225,8 +225,6 @@ class SampleViewer(BaseViewer):
                                       offset=1, size=4, parent_ek=dbh.get_ekey('@HOST_OCCUPATION')),
                     t.input_text(ff('viral_load'), 'Viral Load',
                                  value=-1 if obj.viral_load is None else obj.viral_load, offset=1, size=1),
-
-
                 ),
 
                 t.inline_inputs(
@@ -238,7 +236,6 @@ class SampleViewer(BaseViewer):
                                  offset=1, size=1),
                     t.input_text(ff('treatment'), 'Treatment', value=obj.treatment,
                                  offset=1, size=5),
-
                 ),
 
                 t.inline_inputs(
