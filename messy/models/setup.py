@@ -1,5 +1,6 @@
 
 from messy.lib import roles as r
+from messy.lib import plate_utils
 
 from dateutil import parser
 
@@ -28,16 +29,25 @@ def setup(dbh):
     )
     dbh.session().flush()
 
-    dbh.session().add(
+    plates = [
         dbh.Plate(
-            code='CONTROL',
+            code='TEMPLATE-96',
+            group=dbh.get_group('PlateMgr'),
+            specimen_type='water',
+            experiment_type='sample-container',
+            user=dbh.get_user('system/_SYSTEM_'),
+        ),
+        dbh.Plate(
+            code='TEMPLATE-384',
             group=dbh.get_group('PlateMgr'),
             specimen_type='water',
             experiment_type='sample-container',
             user=dbh.get_user('system/_SYSTEM_'),
         )
-    )
-    dbh.session().flush()
+    ]
+    for p in plates:
+        dbh.session().add(p)
+    dbh.session().flush(plates)
 
     samples = [
         dbh.Sample(
@@ -118,6 +128,10 @@ def setup(dbh):
     ]
     for s in samples:
         dbh.session().add(s)
+    dbh.session().flush(samples)
+
+    plate_utils.create_positions(plates[0], 96)
+    plate_utils.create_positions(plates[1], 384)
     dbh.session().flush()
 
 
