@@ -327,6 +327,18 @@ ek_initlist = [
             ('other', 'other analysis method'),
         ]
      ),
+    ('@ADAPTERINDEX', 'Adapter-index for sequencing',
+        [
+            ('covidseq-set-1', 'CovidSeq UDI Set 1 1-96'),
+            ('covidseq-set-2', 'CovidSeq UDI Set 2 97-192'),
+            ('covidseq-set-3', 'CovidSeq UDI Set 3 193-288'),
+            ('covidseq-set-4', 'CovidSeq UDI Set 4 289-384'),
+            ('nebnext-udi-set-1', 'NebNext Multiplex Oligo UDI Set 1'),
+            ('nebnext-udi-set-2', 'NebNext Multiplex Oligo UDI Set 2'),
+            ('nebnext-udi-set-3', 'NebNext Multiplex Oligo UDI Set 3'),
+            ('nebnext-udi-set-4', 'NebNext Multiplex Oligo UDI Set 4'),
+        ]
+     ),
 ]
 
 # EOF

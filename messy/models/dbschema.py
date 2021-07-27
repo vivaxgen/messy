@@ -16,7 +16,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
 
 import io
 
-__version__ = '20210725'
+__version__ = '20210727'
 
 # Design Consideration
 # ====================
@@ -343,6 +343,7 @@ class PlatePosition(Base, BaseMixIn):
     position = Column(types.String(3), nullable=False, server_default='')
     value = Column(types.Float, nullable=False, server_default='-1')
     volume = Column(types.Float, nullable=False, server_default='-1')
+    note = Column(types.String(31), nullable=True)
 
     plate = relationship("Plate", uselist=False, foreign_keys=plate_id,
                          backref=backref("positions", order_by='platepositions.c.id'))
@@ -497,15 +498,6 @@ class SequencingRun(Base, BaseMixIn):
         return d
 
 
-sequencingrun_plate_table = Table(
-    'sequencingruns_plates', metadata,
-    Column('id', types.Integer, Identity(), primary_key=True),
-    Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id'), nullable=False),
-    Column('plate_id', types.Integer, ForeignKey('plates.id'), nullable=False),
-    UniqueConstraint('sequencingrun_id', 'plate_id')
-)
-
-
 sequencingrun_file_table = Table(
     'sequencingrun_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
@@ -513,6 +505,21 @@ sequencingrun_file_table = Table(
     Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
     UniqueConstraint('sequencingrun_id', 'file_id')
 )
+
+
+class SequencingRunPlate(Base, BaseMixIn):
+
+    __tablename__ = 'sequencingrunplates'
+
+    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
+    plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
+    adapterindex_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
+    note = Column(types.Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('sequencingrun_id', 'plate_id'),
+        UniqueConstraint('sequencingrun_id', 'adapterindex_id'),
+    )
 
 
 class Sequence(Base, BaseMixIn):
