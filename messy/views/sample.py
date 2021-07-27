@@ -154,8 +154,10 @@ class SampleViewer(BaseViewer):
                                    options=[(c.id, c.code) for c in dbh.get_collections(
                                        groups=None if req.user.has_roles(r.SYSADM, r.DATAADM)
                                        else req.user.groups)]),
-                    t.input_text(ff('code*'), '* Code', value=obj.code, offset=1, size=3),
-                    t.input_text(ff('acc_code'), 'Acc Code', value=obj.acc_code, offset=1, size=3),
+                    t.input_text(ff('code*'), '* Code', value=obj.code, offset=1, size=3,
+                                 popover='Code|Unique code to be used in lab'),
+                    t.input_text(ff('acc_code'), 'Acc Code', value=obj.acc_code, offset=1, size=3,
+                                 popover='Accession Code|Unique code to be used in sequence name'),
                 ),
 
                 t.inline_inputs(
@@ -164,7 +166,8 @@ class SampleViewer(BaseViewer):
                     t.input_select_ek(ff('category_id'), 'Category',
                                       value=obj.category_id or dbh.get_ekey('R-RA').id,
                                       offset=1, size=3, parent_ek=dbh.get_ekey('@CATEGORY')),
-                    t.input_select_ek(ff('species_id'), 'Species', value=obj.species_id,
+                    t.input_select_ek(ff('species_id'), 'Species',
+                                      value=obj.species_id or dbh.get_ekey('betacoronavirus-ncov19').id,
                                       offset=1, size=3, parent_ek=dbh.get_ekey('@SPECIES')),
                 ),
 
@@ -179,9 +182,10 @@ class SampleViewer(BaseViewer):
                              offset=2, size=10, placeholder='Any location info'),
 
                 t.inline_inputs(
-                    t.input_select(ff('originating_institution_id*'), 'Originating Institution',
+                    t.input_select(ff('originating_institution_id*'), '* Originating Institution',
                                    value=orig_inst.id if orig_inst else None, offset=2, size=5,
-                                   options=[(orig_inst.id, f'{orig_inst.code} | {orig_inst.name}')] if orig_inst else []),
+                                   options=[(orig_inst.id, f'{orig_inst.code} | {orig_inst.name}')] if orig_inst else [],
+                                   popover='Originating institution|Institution that sent the sample'),
                     t.input_text(ff('originating_code'), 'Originating Code', value=obj.originating_code,
                                  offset=2, size=3),
                 ),
@@ -195,8 +199,10 @@ class SampleViewer(BaseViewer):
                     t.input_select_ek(ff('specimen_type_id'), 'Specimen type',
                                       value=obj.specimen_type_id or dbh.get_ekey('np+op').id,
                                       offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
-                    t.input_text(ff('ct_value1'), 'Ct 1|2',
-                                 value=-1 if obj.ct_value1 is None else obj.ct_value1, offset=1, size=1),
+                    t.input_text(ff('ct_value1'), 'Ct val 1&2',
+                                 value=-1 if obj.ct_value1 is None else obj.ct_value1, offset=1, size=1,
+                                 popover='Ct value target 1 & target 2|Ct value for target 1 (usually RdRp/ORF1) '
+                                         'and target 2 (usually E)'),
                     t.input_text(ff('ct_value2'), None,
                                  value=-1 if obj.ct_value2 is None else obj.ct_value2, offset=1, size=1),
                     t.input_select_ek(ff('ct_method_id'), None,
@@ -250,7 +256,9 @@ class SampleViewer(BaseViewer):
                 t.inline_inputs(
                     t.input_select(ff('sampling_institution_id'), 'Sampling Institution',
                                    value=samp_inst.id if samp_inst else None, offset=2, size=5,
-                                   options=[(samp_inst.id, f'{samp_inst.code} | {samp_inst.name}')] if samp_inst else []),
+                                   options=[(samp_inst.id, f'{samp_inst.code} | {samp_inst.name}')] if samp_inst else [],
+                                   popover='Sampling institution|Institution that collected the sample, leave empty for '
+                                           'the same as originating institution'),
                     t.input_text(ff('sampling_code'), 'Sampling Code', value=obj.sampling_code,
                                  offset=2, size=3),
                 ),
@@ -272,17 +280,17 @@ class SampleViewer(BaseViewer):
             ),
         ]
 
+        jscode = """$(function () {$('[data-toggle="popover"]').popover()});"""
+
         if not readonly:
-            jscode = select2_lookup(tag='messy-sample-originating_institution_id', minlen=3,
-                                    placeholder="Type an institution name",
-                                    parenttag="messy-sample-fieldset", usetag=False,
-                                    url=self.request.route_url('messy.institution-lookup')) +\
+            jscode += select2_lookup(tag='messy-sample-originating_institution_id', minlen=3,
+                                     placeholder="Type an institution name",
+                                     parenttag="messy-sample-fieldset", usetag=False,
+                                     url=self.request.route_url('messy.institution-lookup')) +\
                 select2_lookup(tag='messy-sample-sampling_institution_id', minlen=3,
                                placeholder="Type an institution name",
                                parenttag="messy-sample-fieldset", usetag=False,
                                url=self.request.route_url('messy.institution-lookup'))
-        else:
-            jscode = ''
 
         return t.div()[t.h2('Sample'), eform], jscode
 
