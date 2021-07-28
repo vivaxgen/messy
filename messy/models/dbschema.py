@@ -16,7 +16,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
 
 import io
 
-__version__ = '20210727'
+__version__ = '20210728'
 
 # Design Consideration
 # ====================
@@ -256,6 +256,7 @@ class Sample(Base, BaseMixIn):
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     comment = deferred(Column(types.Text, nullable=False, server_default=''))
+    authorship = deferred(Column(types.Text, nullable=False, server_default=''))
 
     attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
     attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
