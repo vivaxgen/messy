@@ -59,7 +59,8 @@ class SampleViewer(BaseViewer):
     @m_roles(r.PUBLIC)
     def index(self):
 
-        samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)
+        samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)\
+            .order_by(self.dbh.Sample.id.desc())
 
         html, code = generate_sample_table(samples, self.request)
 
