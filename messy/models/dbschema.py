@@ -273,6 +273,9 @@ class Sample(Base, BaseMixIn):
     __ek_fields__ = ['species', 'passage', 'host', 'host_status', 'host_occupation',
                      'specimen_type', 'ct_method', 'category']
 
+    __managing_roles__ = BaseMixIn.__managing_roles__ | {r.SAMPLE_MANAGE}
+    __modifying_roles__ = __managing_roles__ | {r.SAMPLE_MODIFY}
+
     def __repr__(self):
         return f"Sample('{self.code}')"
 
@@ -321,6 +324,15 @@ class Sample(Base, BaseMixIn):
             else:
                 self.sequence_name = None
         return self.sequence_name
+
+    # access control
+
+    def can_modify(self, user):
+        if user.has_roles(* self.__managing_roles__):
+            return True
+        if user.has_roles(* self.__modifying_roles__) and user.in_group(self.collection.group):
+            return True
+        return False
 
 
 sample_file_table = Table(

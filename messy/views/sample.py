@@ -376,6 +376,9 @@ class SampleViewer(BaseViewer):
         self.obj = res[0]
         return self.obj
 
+    def can_modify(self, obj):
+        return obj.can_modify(self.request.user)
+
 
 def generate_sample_table(samples, request):
 
