@@ -123,7 +123,7 @@ class DBHandler(rhombus_handler.DBHandler):
             raise RuntimeError('ERR: either groups or user needs to be provided!')
 
         if not override_security and groups is None:
-            if not user.has_roles(SYSADM, DATAADM, SAMPLE_MANAGE, SAMPLE_MODIFY, SAMPLE_VIEW):
+            if not user.has_roles(SYSADM, DATAADM, SAMPLE_MANAGE):
                 groups = user.groups
 
         if groups is not None:
