@@ -33,8 +33,16 @@ Sequence - represents results of data analysis of each sample from the sequencin
 Data Processing
 ---------------
 
+Preparation
+~~~~~~~~~~~
+
 Data can either be entered to the system using form-based web interface or uploaded to system using csv (comma
 separated value) or tsv (tab-separated value) files.
 The csv/tsv files can be prepared using software environments that have user-friendly ways to work with column-based text files (such as R or Python with Pandas) or a spreadsheet software (such as Microsoft Excel, Libreoffice Calc or Google Sheet).
-Please be careful that if you are using spreadsheet software, some of the software perform automatic formatting of the date value (or values that look like dates).
-To avoid confusion, all date are represented as YYYY-MM-DD format. It is best to recheck the content of the csv/tsv file saved by spreadsheet software using plain text editors (Notepad, Wordpad, ConTEXT) or using R or Python.
+
+Date Format
+~~~~~~~~~~~
+
+Please be careful that if you are using spreadsheet software, some of the software perform automatic formatting of the date values (or values that look like dates).
+To avoid confusion, all dates are represented as YYYY-MM-DD format.
+It is best to recheck the content of the csv/tsv file saved by spreadsheet software using plain text editors (Notepad, Wordpad, ConTEXT) or using R or Python before uploading just to make sure that dates are formatted properly.
