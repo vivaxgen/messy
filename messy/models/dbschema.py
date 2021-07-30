@@ -299,8 +299,10 @@ class Sample(Base, BaseMixIn):
                     obj['sampling_institution'], None, raise_if_empty=True)[0].id
 
             now = datetime.datetime.now()
-            for f in ['collection_date', 'received_data', 'host_dob']:
+            for f in ['collection_date', 'received_date', 'host_dob']:
                 convert_date(obj, f, now)
+
+            print(obj)
 
             self.update_fields_with_dict(obj, additional_fields=['attachment'])
             self.update_ek_with_dict(obj, dbh=dbh)
