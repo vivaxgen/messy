@@ -48,9 +48,6 @@ class UploadJob(object):
         name, ext = os.path.splitext(self.filename)
         if ext == '.tsv':
             df = pd.read_table(instream, sep='\t', dtype=str, na_filter=False)
-                               #converters={'host_age': float, 'host_severity': int,
-                               #            'viral_load': float, 'ct_value1': float,
-                               #            'ct_value2': float})
         elif ext == '.csv':
             df = pd.read_table(instream, sep=',', dtype=str)
         elif ext == '.jsonl':
@@ -269,7 +266,7 @@ class SampleUploadJob(UploadJob):
 
     def get_ekey(self, key, group, dbh):
         try:
-            ek_id = dbh.EK.getid(key, group, dbh.session())
+            ek_id = dbh.EK.getid(key, grp=group, dbsession=dbh.session())
             if ek_id:
                 return key
 
@@ -284,13 +281,12 @@ class SampleUploadJob(UploadJob):
 
     def fix_ekey(self, d, field, dbh):
         key = d[field]
-        print(f'>>> fix_ekey(): {key} >>>')
         try:
-            ekey = self.get_ekey(key, dbh.Sample.__ek_metainfo__[field][1], dbh)
+            ekey = self.get_ekey(key, dbh.Sample.get_ek_metainfo()[field][1], dbh)
             d[field] = ekey
             if ekey.lower() != key.lower():
                 return [f'{field}: "{key}" => {ekey}']
-        except KeyError as err:
+        except RuntimeError as err:
             return [f'{field} error: {str(err)}']
         return []
 
@@ -323,17 +319,14 @@ class SampleUploadJob(UploadJob):
             if f in d:
                 err_msgs.extend(self.fix_ekey(d, f, dbh))
 
-        # fill-in default values
-        defaults = {
-            'host': 'no-species',
-            'host_occupation': 'other',
-            'host_status': 'unknown',
-            'category': 'r-ra',
-            'specimen_type': 'np+op',
-            'ct_method': 'no-ct',
-        }
+        for f, c in sample_converters.items():
+            if f in d:
+                try:
+                    d[f] = c[0](d[f])
+                except Exception:
+                    d[f] = c[1]
 
-        for f, v in defaults.items():
+        for f, v in sample_defaults.items():
             if f not in d:
                 d[f] = v
 
@@ -344,6 +337,27 @@ class SampleGISAIDUploadJob(SampleUploadJob):
 
     def stream_to_dicts(self, instream):
         return converter.import_gisaid_csv(instream)
+
+
+# convert values to their proper format
+sample_converters = {
+    'host_age': (float, -1),
+    'host_severity': (int, -1),
+    'viral_load': (float, -1),
+    'ct_value1': (float, -1),
+    'ct_value2': (float, -1),
+}
+
+
+# fill-in default values
+sample_defaults = {
+    'host': 'no-species',
+    'host_occupation': 'other',
+    'host_status': 'unknown',
+    'category': 'r-ra',
+    'specimen_type': 'np+op',
+    'ct_method': 'no-ct',
+}
 
 
 class CollectionUploadJob(UploadJob):
