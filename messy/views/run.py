@@ -145,6 +145,9 @@ class RunViewer(BaseViewer):
 
         return result
 
+    def can_modify(self, obj):
+        return obj.can_modify(self.request.user)
+
 
 def generate_run_table(runs, request):
 

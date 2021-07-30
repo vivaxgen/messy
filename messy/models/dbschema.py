@@ -456,6 +456,10 @@ class SequencingRun(Base, BaseMixIn):
     serial = Column(types.String(48), nullable=False, unique=True, server_default='')
     date = Column(types.Date, nullable=False, server_default=func.current_date())
 
+    # primary group of user
+    # group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
+    # group = relationship(Group, uselist=False, foreign_keys=group_id)
+
     sequencing_provider_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     sequencing_provider = relationship(Institution, uselist=False, foreign_keys=sequencing_provider_id)
 
@@ -481,6 +485,9 @@ class SequencingRun(Base, BaseMixIn):
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
     __ek_fields__ = ['sequencing_kit']
+
+    __managing_roles__ = BaseMixIn.__managing_roles__ | {r.SEQUENCINGRUN_MANAGE}
+    __modifying_roles__ = __managing_roles__ | {r.SEQUENCINGRUN_MODIFY}
 
     def __str__(self):
         return self.code
@@ -509,6 +516,13 @@ class SequencingRun(Base, BaseMixIn):
     def as_dict(self, exclude=None):
         d = super().as_dict(exclude={'sequences'})
         return d
+
+    def can_modify(self, user):
+        if user.has_roles(* self.__managing_roles__):
+            return True
+        if user.has_roles(* self.__modifying_roles__):  # and user.in_group(self.group):
+            return True
+        return False
 
 
 sequencingrun_file_table = Table(
