@@ -47,9 +47,12 @@ class UploadJob(object):
         df = dicts = None
         name, ext = os.path.splitext(self.filename)
         if ext == '.tsv':
-            df = pd.read_table(instream, sep='\t')
+            df = pd.read_table(instream, sep='\t', dtype=str, na_filter=False)
+                               #converters={'host_age': float, 'host_severity': int,
+                               #            'viral_load': float, 'ct_value1': float,
+                               #            'ct_value2': float})
         elif ext == '.csv':
-            df = pd.read_table(instream, sep=',')
+            df = pd.read_table(instream, sep=',', dtype=str)
         elif ext == '.jsonl':
             dicts = []
             for line in instream:
@@ -61,6 +64,14 @@ class UploadJob(object):
 
         if dicts is None:
             dicts = df.to_dict(orient='records')
+
+        # clear off empty string or None
+        for d in dicts:
+            for f, v in list(d.items()):
+                if v == '' or v is None:
+                    del d[f]
+
+        import pprint; pprint.pprint(dicts)
 
         return dicts
 
@@ -207,7 +218,7 @@ class SampleUploadJob(UploadJob):
     def check_duplicate_codes(self):
         """ check for duplicate sample codes & acc_codes """
 
-        composite_codes = [(r['code'], r['acc_code']) for r in self.dicts]
+        composite_codes = [(r['code'], r.get('acc_code', '')) for r in self.dicts]
         codes = {}
         acc_codes = {}
         err_msgs = []
@@ -216,8 +227,8 @@ class SampleUploadJob(UploadJob):
                 err_msgs.append(f'Duplicate code: {c}')
             else:
                 codes[c] = True
-            if ac in acc_codes:
-                err_msgs.append(f'Duplicate acccode: {ac}')
+            if ac and ac in acc_codes:
+                err_msgs.append(f'Duplicate acc_code: {ac}')
             else:
                 acc_codes[ac] = True
         return err_msgs
@@ -297,7 +308,8 @@ class SampleUploadJob(UploadJob):
         except IndexError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
-        code = d['sampling_institution']
+        code = d.get('sampling_institution', None) or d['originating_institution']
+        d['sampling_institution'] = code
         try:
             inst = self.get_institution(code, dbh)
             if inst.code != code:
@@ -308,7 +320,22 @@ class SampleUploadJob(UploadJob):
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
         for f in dbh.Sample.__ek_fields__:
-            err_msgs.extend(self.fix_ekey(d, f, dbh))
+            if f in d:
+                err_msgs.extend(self.fix_ekey(d, f, dbh))
+
+        # fill-in default values
+        defaults = {
+            'host': 'no-species',
+            'host_occupation': 'other',
+            'host_status': 'unknown',
+            'category': 'r-ra',
+            'specimen_type': 'np+op',
+            'ct_method': 'no-ct',
+        }
+
+        for f, v in defaults.items():
+            if f not in d:
+                d[f] = v
 
         return err_msgs
 
