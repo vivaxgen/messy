@@ -93,7 +93,7 @@ class PlateViewer(BaseViewer):
                                   value=obj.specimen_type_id, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
                 t.input_select_ek(ff('experiment_type_id'), 'Experiment Type', offset=2, size=3,
                                   value=obj.experiment_type_id, parent_ek=dbh.get_ekey('@EXPERIMENT_TYPE')),
-                t.input_text(ff('storage'), 'Storage', value=obj.storage, offset=2, size=4),
+                t.input_text(ff('storage'), 'Storage location', value=obj.storage, offset=2, size=4),
                 t.input_textarea(ff('remark'), 'Remark', value=obj.remark, offset=2),
                 t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'attachment')),
