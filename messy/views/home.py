@@ -1,6 +1,8 @@
 
-from messy.views import *
+from messy.views import roles, render_to_response, literal, get_dbhandler
+from messy.lib import roles as r
 
+from rhombus.lib import tags_b46 as t
 from rhombus.views.home import login as rb_login, logout as rb_logout
 from rhombus.views import fso
 from pyramid.response import FileResponse
@@ -8,34 +10,57 @@ from pyramid.response import FileResponse
 import docutils.core
 import os
 
-@roles(PUBLIC)
+
+@roles(r.PUBLIC)
 def index(request):
 
-    return render_to_response('messy:templates/generic_page.mako',
+    dbh = get_dbhandler()
+    dbsession = dbh.session()
+
+    html = t.div()[
+        t.h2('MESSy: Molecular Epidemiology and Surveillance System'),
+        t.div(class_='row')[
+            t.div('Total collection:', class_='col-2 offset-2'),
+            t.div(str(dbh.Collection.query(dbsession).count()), class_='col'),
+        ],
+        t.div(class_='row')[
+            t.div('Total samples:', class_='col-2 offset-2'),
+            t.div(str(dbh.Sample.query(dbsession).count()), class_='col'),
+        ],
+        t.div(class_='row')[
+            t.div('Total sequences:', class_='col-2 offset-2'),
+            t.div(str(dbh.Sequence.query(dbsession).count()), class_='col'),
+        ]
+    ]
+
+    return render_to_response(
+        'messy:templates/generic_page.mako',
         {
-            'html': literal('<h2>MESSy: Molecular Epidemiology and Surveillance System</h2>'),
-        }, request = request
+            'html': html,
+        }, request=request
     )
+
 
 def login(request):
     return rb_login(request)
+
 
 def logout(request):
     return rb_logout(request)
 
 
-@roles(PUBLIC)
+@roles(r.PUBLIC)
 def docs(request):
 
     path = os.path.normpath(request.matchdict.get('path', '') or '/index.rst')
     path = '/' + path if not path.startswith('/') else path
     return fso.serve_file(path, mount_point=('/', "messy:../docs/help"),
-                    formatter = lambda abspath: formatter(abspath, request))
+                          formatter=lambda abspath: formatter(abspath, request))
 
 
-def formatter( abspath, request ):
+def formatter(abspath, request):
 
-    basepath, ext = os.path.splitext( abspath )
+    basepath, ext = os.path.splitext(abspath)
 
     if ext == '.rst':
         # restructuredtext
@@ -43,23 +68,25 @@ def formatter( abspath, request ):
             text = f.read()
             content = literal(render_rst(text))
 
-        return render_to_response('messy:templates/generic_page.mako',
+        return render_to_response(
+            'messy:templates/generic_page.mako',
             {
                 'html': content,
-            }, request = request )
-
+            }, request=request)
 
     elif ext == '.md':
         raise NotImplementedError
 
     else:
-        return FileResponse( abspath )
+        return FileResponse(abspath)
 
 
 def render_rst(text, format='html'):
 
-    parts = docutils.core.publish_parts( text, writer_name=format,
-        settings_overrides={'initial_header_level': 2} )
+    parts = docutils.core.publish_parts(text, writer_name=format,
+                                        settings_overrides={'initial_header_level': 2})
     if format == 'html':
         return parts['html_body']
     return None
+
+# EOF
