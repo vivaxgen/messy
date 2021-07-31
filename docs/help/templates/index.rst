@@ -6,7 +6,7 @@ Institutions
 ------------
 
 For adding new institutions, all fields are necessary.
-For updating data, the TSV file need to contain the *code* and the necessary fields to be updated.
+For updating data, the TSV file needs to contain the *code* and the necessary fields to be updated.
 
 `<institutions.tsv>`_
 
@@ -32,7 +32,7 @@ For updating data, the TSV file needs to contain the **code** and the necessary 
 Plate Layouts
 -------------
 
-Plate layout can added using built-in editor in the web interface which has copy/paste functionality. Put the unit measurements in remarks.
+Plate layout can be added using built-in editor in the web interface which has copy/paste functionality. Put the unit measurements in remarks.
  
 For adding new plates, including their layouts, the following templates can be used.
 For 12, 24 or 48-well, use builtin editor in the web interface.
