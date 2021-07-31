@@ -541,13 +541,24 @@ class SequencingRunPlate(Base, BaseMixIn):
     __tablename__ = 'sequencingrunplates'
 
     sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
+    sequencingrun = relationship(SequencingRun, uselist=False, foreign_keys=sequencingrun_id,
+                                 backref=backref("plates", order_by='sequencingrunplates.c.plate_id'))
+
     plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
+    plate = relationship(Plate, uselist=False, foreign_keys=plate_id,
+                         backref=backref("sequencingruns"), order_by='sequencingrunplates.c.plate_id')
+
     adapterindex_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
+    adapterindex = EK.proxy('adapterindex_id', '@ADAPTERINDEX')
+
+    #lane = Column(type.Integer, nullable=False, server_default='1')
+
     note = Column(types.Text, nullable=True)
 
     __table_args__ = (
         UniqueConstraint('sequencingrun_id', 'plate_id'),
         UniqueConstraint('sequencingrun_id', 'adapterindex_id'),
+        #UniqueConstraint('sequencingrun_id', 'adapterindex_id', 'lane'),
     )
 
 
