@@ -20,15 +20,15 @@ def index(request):
     html = t.div()[
         t.h2('MESSy: Molecular Epidemiology and Surveillance System'),
         t.div(class_='row')[
-            t.div('Total collection:', class_='col-2 offset-2'),
+            t.div('Total collection:', class_='col-3 offset-1'),
             t.div(str(dbh.Collection.query(dbsession).count()), class_='col'),
         ],
         t.div(class_='row')[
-            t.div('Total samples:', class_='col-2 offset-2'),
+            t.div('Total samples:', class_='col-3 offset-1'),
             t.div(str(dbh.Sample.query(dbsession).count()), class_='col'),
         ],
         t.div(class_='row')[
-            t.div('Total sequences:', class_='col-2 offset-2'),
+            t.div('Total sequences:', class_='col-3 offset-1'),
             t.div(str(dbh.Sequence.query(dbsession).count()), class_='col'),
         ]
     ]
