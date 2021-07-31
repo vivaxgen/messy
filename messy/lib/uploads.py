@@ -355,7 +355,7 @@ sample_defaults = {
     'host_occupation': 'other',
     'host_status': 'unknown',
     'category': 'r-ra',
-    'specimen_type': 'np+op',
+    'specimen_type': 'no-specimen',
     'ct_method': 'no-ct',
 }
 
