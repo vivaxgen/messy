@@ -397,6 +397,9 @@ class Plate(Base, BaseMixIn):
 
     __ek_fields__ = ['specimen_type', 'experiment_type']
 
+    __managing_roles__ = BaseMixIn.__managing_roles__ | {r.PLATE_MANAGE}
+    __modifying_roles__ = __managing_roles__ | {r.PLATE_MODIFY}
+
     @declared_attr
     def has_layout(cls):
         return column_property(exists().where(PlatePosition.plate_id == cls.id))
@@ -426,6 +429,13 @@ class Plate(Base, BaseMixIn):
 
     def __str__(self):
         return self.code
+
+    def can_modify(self, user):
+        if user.has_roles(* self.__managing_roles__):
+            return True
+        if user.has_roles(* self.__modifying_roles__) and user.in_group(self.group):
+            return True
+        return False
 
     def add_positions(self, positions):
         session = object_session(self)
