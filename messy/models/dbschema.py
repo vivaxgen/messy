@@ -64,6 +64,9 @@ class Institution(Base, BaseMixIn):
 
     __searchable__ = ['code', 'name', 'address']
 
+    __managing_roles__ = BaseMixIn.__managing_roles__ | {r.INSTITUTION_MANAGE}
+    __modifying_roles__ = __managing_roles__ | {r.INSTITUTION_MODIFY}
+
     def __repr__(self):
         return f"Institution('{self.code}', '{self.name}')"
 
@@ -77,6 +80,11 @@ class Institution(Base, BaseMixIn):
 
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
+
+    def can_modify(self, user):
+        if user.has_roles(* self.__managing_roles__):
+            return True
+        return False
 
     def as_dict(self):
         d = super().as_dict()
@@ -120,6 +128,10 @@ class Collection(Base, BaseMixIn):
     institutions = relationship(Institution, secondary=collection_institution_table,
                                 order_by=collection_institution_table.c.id)
 
+    __managing_roles__ = BaseMixIn.__managing_roles__ | {r.COLLECTION_MANAGE}
+    __modifying_roles__ = __managing_roles__ | {r.COLLECTION_MODIFY}
+
+
     def __repr__(self):
         return f"Collection('{self.code}')"
 
@@ -154,6 +166,13 @@ class Collection(Base, BaseMixIn):
 
     def __str__(self):
         return self.code
+
+    def can_modify(self, user):
+        if user.has_roles(* self.__managing_roles__):
+            return True
+        if user.has_roles(* self.__modifying_roles__) and user.in_group(self.group):
+            return True
+        return False
 
     def as_dict(self, export_samples=False):
         d = super().as_dict(exclude=['institutions', 'samples'])
