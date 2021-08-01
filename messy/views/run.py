@@ -199,10 +199,42 @@ class RunViewer(BaseViewer):
             return HTTPFound(location=rq.route_url(self.view_route, id=run_id))
 
         elif _method == 'delete':
-            raise NotImplementedError()
+
+            runplate_ids = [int(x) for x in rq.POST.getall('runplate-ids')]
+            runplates = dbh.get_runplates_by_ids(runplate_ids, groups=None, user=rq.user)
+
+            if len(runplates) == 0:
+                return Response(modal_error)
+
+            return Response(
+                modal_delete(
+                    title='Unlink run plate(s)',
+                    content=t.literal(
+                        'You are going to unlink the following plate(s): '
+                        '<ul>'
+                        + ''.join('<li>%s</li>' % rp.plate.code for rp in runplates)
+                        + '</ul>'
+                    ), request=rq,
+                ), request=rq
+            )
 
         elif _method == 'delete/confirm':
-            raise NotImplementedError()
+
+            runplate_ids = [int(x) for x in rq.POST.getall('runplate-ids')]
+            runplates = dbh.get_runplates_by_ids(runplate_ids, groups=None, user=rq.user)
+
+            sess = dbh.session()
+            count = 0
+            for rp in runplates:
+                sess.delete(rp)
+                count += 1
+
+            sess.flush()
+            rq.session.flash(
+                ('success', f'You have successfully unlink {count} plate.')
+            )
+
+            return HTTPFound(location=rq.referer)
 
         raise RuntimeError(f'Unknown method name: {_method}')
 
