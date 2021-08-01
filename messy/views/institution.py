@@ -1,6 +1,7 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
-                         render_to_response, form_submit_bar, select2_lookup, or_, error_page)
+                         render_to_response, select2_lookup, or_, error_page, modal_delete,
+                         modal_error, Response, HTTPFound)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 
@@ -63,7 +64,53 @@ class InstitutionViewer(BaseViewer):
         pass
 
     def action_post(self):
-        pass
+
+        rq = self.request
+        dbh = self.dbh
+        _method = rq.POST.get('_method')
+
+        if _method == 'delete':
+
+            inst_ids = [int(x) for x in rq.POST.getall('institution-ids')]
+            institutions = dbh.get_institutions_by_ids(inst_ids, groups=None, user=rq.user)
+
+            if len(institutions) == 0:
+                return Response(modal_error)
+
+            return Response(
+                modal_delete(
+                    title='Removing institution(s)',
+                    content=t.literal(
+                        'You are going to remove the following institution(s): '
+                        '<ul>'
+                        + ''.join(f'<li>{i.code} | {i.name}</li>' for i in institutions)
+                        + '</ul>'
+                    ), request=rq,
+                ), request=rq
+            )
+
+        elif _method == 'delete/confirm':
+
+            inst_ids = [int(x) for x in rq.POST.getall('institution-ids')]
+            institutions = dbh.get_institutions_by_ids(inst_ids, groups=None, user=rq.user)
+
+            sess = dbh.session()
+            count = left = 0
+            for i in institutions:
+                if i.can_modify(rq.user):
+                    sess.delete(i)
+                    count += 1
+                else:
+                    left += 1
+
+            sess.flush()
+            rq.session.flash(
+                ('success', f'You have successfully removed {count} institution(s), kept {left} institution(s).')
+            )
+
+            return HTTPFound(location=rq.referer)
+
+        raise RuntimeError('unknown method')
 
     def update_object(self, obj, d):
         rq = self.request
