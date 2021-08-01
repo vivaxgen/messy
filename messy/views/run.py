@@ -1,8 +1,10 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
-                         Response, modal_delete, modal_error, Response)
+                         Response, modal_delete, modal_error, Response, HTTPFound)
 import rhombus.lib.tags_b46 as t
+from rhombus.lib.modals import popup
+from rhombus.lib.exceptions import AuthError
 
 import sqlalchemy.exc
 from pyramid.response import Response, FileIter
@@ -38,7 +40,6 @@ class RunViewer(BaseViewer):
         group_id = int(self.request.params.get('group_id', 0))
 
         runs = self.dbh.get_sequencingruns(groups=None, fetch=False).order_by(self.dbh.SequencingRun.date.desc())
-        #raise
 
         html, code = generate_run_table(runs, self.request)
         html = t.div()[t.h2('Runs'), html]
@@ -132,6 +133,21 @@ class RunViewer(BaseViewer):
 
         return t.div()[t.h2('Sequencing Run'), eform], jscode
 
+    def view_helper(self, render=True):
+
+        run_html, run_jscode = super().view_helper(render=False)
+
+        run_html.add(
+            t.hr,
+            t.h4('Run Plate'),
+        )
+
+        runplate_html, runplate_js = generate_runplate_table(self.obj, self.request)
+        run_html.add(runplate_html)
+        run_jscode += runplate_js
+
+        return self.render_edit_form(run_html, run_jscode)
+
     def lookup_helper(self):
         q = self.request.params.get('q')
         if not q:
@@ -147,6 +163,48 @@ class RunViewer(BaseViewer):
 
     def can_modify(self, obj):
         return obj.can_modify(self.request.user)
+
+    @m_roles(r.PUBLIC)
+    def plateaction(self):
+
+        rq = self.request
+        dbh = get_dbhandler()
+
+        _method = rq.params.get('_method')
+        run_id = int(rq.params.get('run_id'))
+        sequencingrun = self.get_object(obj_id=run_id)
+
+        if not sequencingrun.can_modify(rq.user):
+            raise AuthError("Your user account does not have the role for modifying SequencingRun.")
+
+        if _method == 'add-runplate':
+
+            plate_id = int(rq.POST.get('messy-runplate-plate_id'))
+            adapterindex_id = int(rq.POST.get('messy-runplate-adapterindex_id'))
+            lane = int(rq.POST.get('messy-runplate-lane'))
+            note = rq.POST.get('messy-runplate-none', '')
+
+            runplate = dbh.SequencingRunPlate(
+                sequencingrun_id=run_id,
+                plate_id=plate_id,
+                adapterindex_id=adapterindex_id,
+                #lane=lane,
+                note=note
+            )
+            sess = dbh.session()
+            sess.add(runplate)
+            sess.flush([runplate])
+            rq.session.flash(('success', 'New plate has been added.'))
+
+            return HTTPFound(location=rq.route_url(self.view_route, id=run_id))
+
+        elif _method == 'delete':
+            raise NotImplementedError()
+
+        elif _method == 'delete/confirm':
+            raise NotImplementedError()
+
+        raise RuntimeError(f'Unknown method name: {_method}')
 
 
 def generate_run_table(runs, request):
@@ -195,5 +253,92 @@ def generate_run_table(runs, request):
         code = ''
 
     return html, code
+
+
+def generate_runplate_table(run, request):
+
+    dbh = get_dbhandler()
+
+    table_body = t.tbody()
+
+    for runplate in run.plates:
+        table_body.add(
+            t.tr(
+                t.td(t.literal(f'<input type="checkbox" name="runplate-ids" value="{runplate.id}" />')),
+                t.td(runplate.plate.code),
+                t.td(runplate.adapterindex),
+                t.td('1'),
+                t.td(runplate.note[:30]),
+            )
+        )
+
+    runplate_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('', style="width: 2em"),
+                t.th('Plate Code'),
+                t.th('Adapter-Index'),
+                t.th('Lane'),
+                t.th('Note')
+            )
+        )
+    ]
+
+    runplate_table += table_body
+
+    if run.can_modify(request.user):
+
+        bar = t.selection_bar(
+            'runplate-ids', action=request.route_url('messy.run-plateaction'),
+            others=t.button('Add plate',
+                            class_='btn btn-sm btn-success',
+                            id='add-runplate',
+                            name='_method',
+                            value='add_runplate',
+                            type='button'),
+            hiddens=[('run_id', run.id), ]
+        )
+        html, code = bar.render(runplate_table)
+
+        # prepare popup
+
+        popup_content = t.fieldset(
+            t.input_select('messy-runplate-plate_id', 'Plate', value=None, offset=3, size=9),
+            t.input_select_ek('messy-runplate-adapterindex_id', 'Adapter Index', offset=3, size=9,
+                              value=None, parent_ek=dbh.get_ekey('@ADAPTERINDEX')),
+            t.input_text('messy-runplate-lane', 'Lane', value='1', offset=3, size=2),
+            t.input_text('messy-runplate-note', 'Note', value='', offset=3, size=9),
+            name='messy-runplate-fieldset'
+        )
+        submit_button = t.submit_bar('Add plate', 'add-runplate')
+
+        add_runplate_form = t.form(name='add-runplate-form', method=t.POST,
+                                   action=request.route_url('messy.run-plateaction'))[
+            popup_content,
+            t.literal(f'<input type="hidden" name="run_id" value="{run.id}">'),
+            submit_button
+        ]
+
+        runplate_table = t.div(
+            t.div(
+                popup('Add plate', add_runplate_form, request=request),
+                id='add-runplate-modal', class_='modal fade', tabindex='-1', role='dialog'
+            ),
+            html
+        )
+
+        runplate_js = (code + "$('#add-runplate').click( function(e) {$('#add-runplate-modal').modal('show');});"
+                       + select2_lookup(tag='messy-runplate-plate_id', minlen=1,
+                                        placeholder="Type plate code here",
+                                        parenttag='messy-runplate-fieldset', usetag=False,
+                                        url=request.route_url('messy.plate-lookup')))
+
+        return runplate_table, runplate_js
+
+    else:
+        html = t.div(runplate_table)
+        code = ''
+
+        return html, code
 
 # EOF
