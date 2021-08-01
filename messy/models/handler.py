@@ -36,6 +36,8 @@ class MessyQueryConstructor(rhombus_handler.QueryConstructor):
         'run_id': dbschema.SequencingRun.id,
         'run_code': dbschema.SequencingRun.code,
         'run_serial': dbschema.SequencingRun.serial,
+
+        'runplate_id': dbschema.SequencingRunPlate.id,
     }
 
 
@@ -190,5 +192,19 @@ class DBHandler(rhombus_handler.DBHandler):
 
     def get_sequencingruns_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_sequencingruns(groups, [{'run_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+
+    # Run plates
+
+    def get_runplates(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
+
+        q = self.construct_query(self.SequencingRunPlate, specs)
+        if fetch:
+            q = q.order_by(self.SequencingRunPlate.id)
+
+        return self.fix_result(q, fetch, raise_if_empty)
+
+    def get_runplates_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+        return self.get_runplates(groups, [{'runplate_id': ids}], user=user,
+                                  fetch=fetch, raise_if_empty=raise_if_empty)
 
 # EOF
