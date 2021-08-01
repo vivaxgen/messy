@@ -1,7 +1,8 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
-                         Response, modal_delete, modal_error, Response, HTTPFound)
+                         Response, modal_delete, modal_error, Response, HTTPFound,
+                         generate_file_table)
 import rhombus.lib.tags_b46 as t
 from messy.lib import plate_utils
 
@@ -110,6 +111,16 @@ class PlateViewer(BaseViewer):
     def view_helper(self, render=True):
 
         plate_html, plate_jscode = super().view_helper(render=False)
+
+        plate_html.add(
+            t.hr,
+            t.h6('Additional files'),
+        )
+
+        file_html, file_jscode = generate_file_table([], self.request, self.obj.id, 'messy.plate-action')
+
+        plate_html.add(file_html)
+        plate_jscode += file_jscode
 
         plate_html.add(
             t.hr,
