@@ -138,7 +138,7 @@ def setup(dbh):
 # add additional initial data here
 
 messy_groups = [
-    ('InstitutionMgr', [r.INSTITUTION_MODIFY]),
+    ('InstitutionMgr', [r.INSTITUTION_MANAGE]),
     ('CollectionMgr', [r.COLLECTION_MODIFY, r.COLLECTION_VIEW]),
     ('CollectionViewer', [r.COLLECTION_VIEW]),
     ('SampleMgr', [r.SAMPLE_MANAGE]),
