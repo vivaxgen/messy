@@ -341,14 +341,17 @@ class SampleViewer(BaseViewer):
             samples = dbh.get_samples_by_ids(sample_ids, groups=None, user=request.user)
 
             sess = dbh.session()
-            count = 0
+            count = left = 0
             for s in samples:
-                sess.delete(s)
-                count += 1
+                if s.can_modify(request.user):
+                    sess.delete(s)
+                    count += 1
+                else:
+                    left += 1
 
             sess.flush()
             request.session.flash(
-                ('success', 'You have successfully removed %d sample(s).' % count)
+                ('success', f'You have successfully removed {count} sample(s), kept {left} samples.')
             )
 
             return HTTPFound(location=request.referer)
