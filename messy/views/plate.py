@@ -278,6 +278,19 @@ class PlateViewer(BaseViewer):
 
         raise RuntimeError('No defined action')
 
+    def lookup_helper(self):
+        q = self.request.params.get('q')
+        if not q:
+            return error_page(self.request, "q not provided")
+        q = '%' + q.lower() + '%'
+
+        runs = get_dbhandler().get_plates_by_codes(q, groups=None, user=self.request.user)
+        result = [
+            {'id': r.id, 'text': r.code} for r in runs
+        ]
+
+        return result
+
 
 def generate_plate_table(plates, request):
 
