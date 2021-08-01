@@ -376,8 +376,11 @@ class SampleViewer(BaseViewer):
         self.obj = res[0]
         return self.obj
 
-    def can_modify(self, obj):
-        return obj.can_modify(self.request.user)
+    def view_halper(self, render=True):
+
+        sample_html, sample_jscode = super().view_helper(render=False)
+
+        return self.render_edit_form(sample_html, sample_jscode)
 
 
 def generate_sample_table(samples, request):
