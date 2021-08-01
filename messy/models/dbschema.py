@@ -81,8 +81,9 @@ class Institution(Base, BaseMixIn):
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
-    def can_modify(self, user):
-        if user.has_roles(* self.__managing_roles__):
+    @classmethod
+    def can_modify(cls, user):
+        if user.has_roles(* cls.__managing_roles__):
             return True
         return False
 
@@ -158,7 +159,7 @@ class Collection(Base, BaseMixIn):
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
     def can_upload(self, user):
-        if user.has_roles(r.SYSADM, r.DATAADM, r.COLLECTION_MODIFY):
+        if user.has_roles(* self.__managing_roles__):
             return True
         if user.in_group(self.group):
             return True
