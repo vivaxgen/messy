@@ -50,6 +50,7 @@ class DBHandler(rhombus_handler.DBHandler):
     Plate = dbschema.Plate
     PlatePosition = dbschema.PlatePosition
     SequencingRun = dbschema.SequencingRun
+    SequencingRunPlate = dbschema.SequencingRunPlate
 
     query_constructor_class = MessyQueryConstructor
 
