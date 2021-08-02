@@ -321,8 +321,8 @@ def generate_runplate_table(run, request):
     if run.can_modify(request.user):
 
         bar = t.selection_bar(
-            'runplate-ids', action=request.route_url('messy.run-plateaction'),
-            others=t.button('Add plate',
+            'runplate-ids', action=request.route_url('messy.run-plateaction'), delete_label='Unlink',
+            others=t.button('Link plate',
                             class_='btn btn-sm btn-success',
                             id='add-runplate',
                             name='_method',
