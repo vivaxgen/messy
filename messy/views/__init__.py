@@ -22,6 +22,77 @@ class BaseViewer(BaseViewer):
 
     @m_roles(r.PUBLIC)
     def fileaction(self):
+
+        # upload file: POS
+        # self.request.params
+        # NestedMultiDict([
+        # ('file_content', FieldStorage('file_content', 'toolbox.py')),
+        # ('object_id', '3>\r\n<div class='),
+        # ('_method', 'upload-file')])
+
+        rq = self.request
+        dbh = self.dbh
+        _method = rq.params.get('_method')
+        obj_id = int(rq.params.get('object_id'))
+        obj = self.get_object(obj_id=obj_id)
+        dbsess = dbh.session()
+
+        if not obj.can_modify(rq.user):
+            raise AuthError("Your user account does not the roles to modify this object.")
+
+        if _method == 'upload-file':
+
+            file_content = rq.POST.get('file_content')
+            file_instance = FileAttachment()
+            dbsess.add(file_instance)
+            file_instance.update(file_content)
+            dbsess.flush([file_instance])
+            obj.additional_files.append(file_instance)
+
+            return HTTPFound(location=rq.referer)
+
+        elif _method == 'delete':
+
+            file_ids = [int(x) for x in rq.POST.getall('file-ids')]
+            file_instances = dbh.FileAttachment.query(dbsess).filter(FileAttachment.id.in_(file_ids))
+            file_instances = [file_instance for file_instance in file_instances
+                              if (file_instance in obj.additional_files)]
+
+            return Response(
+                modal_delete(
+                    title='Removing additional file(s)',
+                    content=t.literal(
+                        'You are going to remove the following file(s):'
+                        '<ul>'
+                        + ''.join(f'<li>{f.filename}</li>' for f in file_instances)
+                        + '</ul>'
+                    ),
+                    request=rq,
+                ),
+                request=rq
+            )
+
+        elif _method == 'delete/confirm':
+
+
+
+            file_ids = [int(x) for x in rq.POST.getall('file-ids')]
+            file_instances = dbh.FileAttachment.query(dbsess).filter(FileAttachment.id.in_(file_ids))
+            file_instances = [file_instance for file_instance in file_instances
+                              if (file_instance in obj.additional_files)]
+
+            deleted_filenames = []
+            for file_instance in file_instances:
+                obj.additional_files.remove(file_instance)
+                deleted_filenames.append(file_instance.filename)
+                dbsess.delete(file_instance)
+
+            dbh.session.flush()
+            rq.session.flash(
+                ('success', 'File(s) that have been removed: ' + ', '.join(deleted_filenames)))
+
+            return HTTPFound(location=rq.referer)
+
         raise NotImplementedError()
 
 
@@ -72,14 +143,14 @@ def generate_file_table(files, request, object_id, route_name):
         # prepare popup
 
         popup_content = t.div(class_='form-group form-inline')[
-            t.div('File', t.literal("<input type='file'>"))
+            t.div('File', t.literal('<input type="file" name="file_content">'))
         ]
         upload_button = t.submit_bar('Upload file', 'upload-file')
 
         upload_form = t.form(name='upload-form', action=request.route_url(route_name),
                              enctype=t.FORM_MULTIPART)[
             popup_content,
-            t.literal(f'<input type="hidden" name="object_id" value="{object_id}>'),
+            t.literal(f'<input type="hidden" name="object_id" value="{object_id}">'),
             upload_button
         ]
 

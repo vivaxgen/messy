@@ -423,6 +423,9 @@ class Plate(Base, BaseMixIn):
     attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
     attachment = FileAttachment.proxy('attachment_file')
 
+    additional_files = relationship(FileAttachment, secondary="plates_files",
+                                    order_by=FileAttachment.filename)
+
     __ek_fields__ = ['specimen_type', 'experiment_type']
 
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.PLATE_MANAGE}
