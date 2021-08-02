@@ -94,7 +94,7 @@ class RunViewer(BaseViewer):
             t.fieldset(
                 t.input_text(ff('code*'), 'Code', value=obj.code, offset=2),
                 t.input_text(ff('serial*'), 'Serial', value=obj.serial, offset=2),
-                t.input_text(ff('date?'), 'Running date', value=obj.date, offset=2, size=2),
+                t.input_text(ff('date?'), 'Running date', value=obj.date, offset=2, size=2, placeholder='YYYY/MM/DD'),
                 t.input_select(ff('sequencing_provider_id*'), 'Sequencing Provider',
                                value=prov_inst.id if prov_inst else '', offset=2, size=5,
                                options=[(prov_inst.id, f'{prov_inst.code} | {prov_inst.name}')] if prov_inst else []),

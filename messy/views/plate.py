@@ -87,14 +87,14 @@ class PlateViewer(BaseViewer):
             self.hidden_fields(obj),
             t.fieldset(
                 t.input_text(ff('code*'), 'Code', value=obj.code, offset=2, size=4),
-                t.input_text(ff('date'), 'Date', value=obj.date, offset=2, size=2),
+                t.input_text(ff('date'), 'Experiment Date', value=obj.date, offset=2, size=2, placeholder='YYYY/MM/DD'),
                 t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=3,
                                options=[(g.id, g.name) for g in dbh.get_group()]),
                 t.input_select_ek(ff('specimen_type_id'), 'Specimen Type', offset=2, size=3,
                                   value=obj.specimen_type_id, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
                 t.input_select_ek(ff('experiment_type_id'), 'Experiment Type', offset=2, size=3,
                                   value=obj.experiment_type_id, parent_ek=dbh.get_ekey('@EXPERIMENT_TYPE')),
-                t.input_text(ff('storage'), 'Storage location', value=obj.storage, offset=2, size=4),
+                t.input_text(ff('storage'), 'Storage Location', value=obj.storage, offset=2, size=4),
                 t.input_textarea(ff('remark'), 'Remark', value=obj.remark, offset=2),
                 t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'attachment')),
