@@ -250,8 +250,16 @@ class Sample(Base, BaseMixIn):
     ct_value1 = Column(types.Float, nullable=False, server_default='-1')
     ct_value2 = Column(types.Float, nullable=False, server_default='-1')
 
+    # ct_target3 = Column(types.Float, nullable=False, server_default='-1')
+    # ct_target4 = Column(types.Float, nullable=False, server_default='-1')
+
+    # ct_host1 = Column(types.Float, nullable=False, server_default='-1')
+    # ct_host2 = Column(types.Float, nullable=False, server_default='-1')
+
     ct_method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     ct_method = EK.proxy('ct_method_id', '@CT_METHOD')
+
+    #ct_info = Column(types.String(64), nullable=False, server_default='')
 
     # originating lab, where diagnostic tests were performed or samples were prepared
     originating_code = Column(types.String(32), nullable=True)
