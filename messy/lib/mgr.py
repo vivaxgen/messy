@@ -2,6 +2,7 @@
 from rhombus.scripts import setup_settings, arg_parser
 from rhombus.lib.utils import cerr, cout, cexit, get_dbhandler
 from rhombus.models.core import set_func_userid
+from messy.lib.whoosh import set_index_service, IndexService
 
 import transaction
 import yaml
@@ -38,6 +39,9 @@ def init_argparser(parser=None):
     p.add_argument('--import_collections', action='store_true',
                    help='import collections')
 
+    p.add_argument('--whoosh_reindex', action='store_true',
+                   help='reindex Whoosh search engine')
+
     # options
     p.add_argument('--with_samples', default=False, action='store_true',
                    help='export samples as well when exporting collections')
@@ -57,6 +61,7 @@ def init_argparser(parser=None):
 def main(args):
 
     settings = setup_settings(args)
+    set_index_service(IndexService(settings['messy.whoosh.path']))
 
     if args.commit:
         with transaction.manager:
@@ -91,6 +96,9 @@ def do_mgr(args, settings, dbh=None):
 
     elif args.import_collections:
         do_import_collections(args, dbh)
+
+    elif args.whoosh_reindex:
+        do_whoosh_reindex(args, dbh)
 
     else:
         cerr('Please provide correct operation')
@@ -141,6 +149,11 @@ def do_import_collections(args, dbh):
             cerr(f'[I - uploaded collection: {coll.code}]')
             c += 1
     cerr(f'[I - collection uploaded: {c}]')
+
+
+def do_whoosh_reindex(args, dbh):
+    from messy.lib import whoosh
+    whoosh.reindex()
 
 
 def yaml_write(args, data, msg):
