@@ -5,6 +5,7 @@ import json
 import yaml
 import pandas as pd
 import os
+import functools
 
 
 _temp_directory_ = None
@@ -148,6 +149,7 @@ class SampleUploadJob(UploadJob):
         self.collection_id = collection_id
         self.filename = filename
         self.dicts = self.stream_to_dicts(instream)
+        self.institution_translation_table = {}
 
     def confirm(self):
 
@@ -256,6 +258,12 @@ class SampleUploadJob(UploadJob):
         return [f'Non-existing institution: {code}' for code in sorted(list(non_existing_codes))]
 
     def get_institution(self, inst_code, dbh):
+        if (inst := self._get_institution(inst_code, dbh)) is not None:
+            return inst
+        raise KeyError(f'Cannot find institution with code: {inst_code}')
+
+    @functools.cache
+    def _get_institution(self, inst_code, dbh):
         if len(inst_code.split()) == 1:
             inst = dbh.get_institutions_by_codes(inst_code, None)
             if len(inst) == 1:
@@ -265,6 +273,12 @@ class SampleUploadJob(UploadJob):
         return inst
 
     def get_ekey(self, key, group, dbh):
+        if (ekey := self._get_ekey(key, group, dbh)) is not None:
+            return ekey
+        raise KeyError(f'key "{key}"" not found')
+
+    @functools.cache
+    def _get_ekey(self, key, group, dbh):
         try:
             ek_id = dbh.EK.getid(key, grp=group, dbsession=dbh.session())
             if ek_id:
@@ -276,7 +290,7 @@ class SampleUploadJob(UploadJob):
         key = key.replace('-', ' ')
         eks = dbh.EK.search_text(key, dbh.session(), 1)
         if len(eks) == 0:
-            raise KeyError(f'key "{key}"" not found')
+            return None
         return eks[0].key
 
     def fix_ekey(self, d, field, dbh):
@@ -298,21 +312,24 @@ class SampleUploadJob(UploadJob):
         try:
             inst = self.get_institution(code, dbh)
             if inst.code != code:
-                del d['originating_institution']
+                d['originating_institution'] = inst.code
                 d['originating_institution_id'] = inst.id
+                self.institution_translation_table[code] = (inst.code, inst.id)
                 err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
-        except IndexError:
+        except KeyError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
+            self.institution_translation_table[code] = None
 
         code = d.get('sampling_institution', None) or d['originating_institution']
         d['sampling_institution'] = code
         try:
             inst = self.get_institution(code, dbh)
             if inst.code != code:
-                del d['sampling_institution']
+                d['sampling_institution'] = inst.code
                 d['sampling_institution_id'] = inst.id
+                self.institution_translation_table[code] = (inst.code, inst.id)
                 err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
-        except IndexError:
+        except KeyError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
         for f in dbh.Sample.__ek_fields__:
