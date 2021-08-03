@@ -16,8 +16,8 @@ Samples
 For adding new samples just for placeholder:
 
 - **code** and **received_date** are required to be filled properly, with YYYY/MM/DD for date format
-- fill **collection_date** with 1970
-- fill **originating_institution** with NOT-AVAILABLE
+- fill **collection_date** with 1970, or with the actual date if possible
+- fill **originating_institution** with NOT-AVAILABLE, or with the actual institution name or code if possible
 
 For adding new samples with any available data, just fill all fields as complete as possible.
 
