@@ -56,6 +56,7 @@ class Institution(Base, BaseMixIn):
     __tablename__ = 'institutions'
 
     code = Column(types.String(24), nullable=False, unique=True)
+    # alt_code = Column(types.String(47), nullable=True, unique=True)
     name = Column(types.String(128), nullable=False, unique=True)
     address = deferred(Column(types.String(128), nullable=False, server_default=''))
     zipcode = Column(types.String(8), nullable=False, server_default='')
