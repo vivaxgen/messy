@@ -37,7 +37,7 @@ class CollectionViewer(BaseViewer):
                 collections = self.dbh.get_collections(groups=[(None, group_id)])
             else:
                 return error_page('You do not have access to view collections that belong to this group.')
-          
+
         elif self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SYSVIEW, r.DATAVIEW):
             collections = self.dbh.get_collections(groups=None)
         else:
@@ -81,6 +81,7 @@ class CollectionViewer(BaseViewer):
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
+        rq = self.request
         obj = obj or self.obj
         dbh = self.dbh
 
@@ -99,8 +100,8 @@ class CollectionViewer(BaseViewer):
             self.hidden_fields(obj),
             t.fieldset(
                 t.input_text(ff('code*'), 'Code', value=obj.code, offset=2),
-                t.input_select(ff('group_id'), 'Group', value=obj.group_id,
-                               offset=2, size=2, options=[(g.id, g.name) for g in dbh.get_group()]),
+                t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=2,
+                               options=[(g.id, g.name) for g in dbh.get_group(user_id=rq.user)]),
                 t.input_text(ff('description'), 'Description', value=obj.description,
                              offset=2),
                 t.input_select(ff('institution_ids'), 'Institution', value=institution_ids, offset=2,
@@ -122,7 +123,7 @@ class CollectionViewer(BaseViewer):
             jscode = select2_lookup(tag="messy-collection-institution_ids", minlen=3,
                                     placeholder="Type an institution name",
                                     parenttag="messy-collection-fieldset",
-                                    url=self.request.route_url('messy.institution-lookup'))
+                                    url=rq.route_url('messy.institution-lookup'))
         else:
             jscode = ''
 

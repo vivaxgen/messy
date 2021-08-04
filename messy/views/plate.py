@@ -78,6 +78,7 @@ class PlateViewer(BaseViewer):
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
+        rq = self.request
         obj = obj or self.obj
         dbh = self.dbh
         ff = self.ffn
@@ -89,7 +90,7 @@ class PlateViewer(BaseViewer):
                 t.input_text(ff('code*'), 'Code', value=obj.code, offset=2, size=4),
                 t.input_text(ff('date'), 'Experiment Date', value=obj.date, offset=2, size=2, placeholder='YYYY/MM/DD'),
                 t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=3,
-                               options=[(g.id, g.name) for g in dbh.get_group()]),
+                               options=[(g.id, g.name) for g in dbh.get_group(user_id=rq.user)]),
                 t.input_select_ek(ff('specimen_type_id'), 'Specimen Type', offset=2, size=3,
                                   value=obj.specimen_type_id, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
                 t.input_select_ek(ff('experiment_type_id'), 'Experiment Type', offset=2, size=3,
