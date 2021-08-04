@@ -1,6 +1,6 @@
 
 from messy.views import (m_roles, get_dbhandler, error_page, render_to_response, HTTPFound,
-                         custom_submit_bar)
+                         custom_submit_bar, select2_lookup)
 from messy.views.rpc import generate_user_token
 from messy.lib import uploads
 from messy.lib import roles as r
@@ -148,6 +148,29 @@ class UploadViewer(object):
             t.div(f"No of samples: {params['samples']}"),
             t.div(f"Error messages: {len(params['err_msgs'])}"),
         ]
+
+        # prepare confirmation list
+
+        tbody = t.tbody(name='table-body')
+        for idx, (inst_code, inst) in enumerate(params['institutions'].items()):
+            if inst and inst_code.upper() == inst.code.upper():
+                continue
+            if inst:
+                value = inst.id
+                options = f'<option value="{inst.id}">{inst.code} | {inst.name}</option>'
+            else:
+                value = options = ''
+            tbody.add(
+                t.tr(
+                    t.td(
+                        t.literal(f'<select name="id-{idx}" id="inst_id-{idx}" value="{value}" class="selids" style="width:100%">{options}</select>'
+                                  f'<input type="hidden" name="inst_code-{idx}" value="{inst_code}">'),
+                        class_='pt-1 pb-0'
+                    ),
+                    t.td(inst_code)
+                )
+            )
+
         html.add(
             t.form('messy/sample', method='POST', action=self.request.route_url('upload-commit')).add(
                 t.input_hidden('jobid', value=job.randkey),
@@ -155,17 +178,47 @@ class UploadViewer(object):
                     ('Add new item only', 'add'),
                     ('Update existing only', 'update'),
                     ('Add new and update existing', 'add_update'),
-                ).set_offset(1).show_reset_button(False)
+                ).set_offset(1).show_reset_button(False),
+                t.h4('Confirmation'),
+                t.table(class_='table table-condensed table-striped')[
+                    t.thead(
+                        t.tr(
+                            t.th('Institute Code | Name'),
+                            t.th('Institute Value in uploaded file')
+                        )
+                    ),
+                    tbody,
+                ]
             )
         )
+
+        jscode = select2_lookup(tag=".selids", minlen=3, usetag=False,
+                                placeholder="Type an institution name",
+                                parenttag="table-body",
+                                url=self.request.route_url('messy.institution-lookup'))
+
         html[t.h4('Error messages')].add(* [t.div(msg) for msg in params['err_msgs']])
 
-        return render_to_response("messy:templates/generic_page.mako",
-                                  {'html': html},
+        return render_to_response("rhombus:templates/generics/formpage.mako",
+                                  {'html': html, 'code': jscode},
                                   request=self.request)
 
     def commitpage_sample(self, job):
         method = self.request.POST['_method']
+
+        # gather institution cache table
+        inst_codes = []
+        inst_ids = []
+        for key, value in self.request.POST.items():
+            if key.startswith('inst_id'):
+                inst_ids.append((key, value))
+            elif key.startswith('inst_code'):
+                inst_codes.append((key, value))
+        for inst_code, inst_id in zip(sorted(inst_codes), sorted(inst_ids)):
+            if inst_code[0].split('-')[1] != inst_id[0].split('-')[1]:
+                raise RuntimeError('mismatch order of institution code and id')
+            job.institution_cache[inst_code[1]] = self.dbh.get_institution_by_ids(inst_id)[0]
+
         added, updated = job.commit(method)
         html = t.div()[
             t.h2('Uploaded Samples'),

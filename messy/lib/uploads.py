@@ -150,6 +150,8 @@ class SampleUploadJob(UploadJob):
         self.filename = filename
         self.dicts = self.stream_to_dicts(instream)
         self.institution_translation_table = {}
+        self.institution_cache = {}
+        self.ekey_cache = {}
 
     def confirm(self):
 
@@ -161,7 +163,7 @@ class SampleUploadJob(UploadJob):
             err_msgs.extend(self.fix_fields(d, dbh))
 
         err_msgs = sorted(list(set(err_msgs)))
-        return {'samples': samples, 'err_msgs': err_msgs}
+        return {'samples': samples, 'err_msgs': err_msgs, 'institutions': self.institution_cache}
 
     def commit(self, method):
 
@@ -232,37 +234,16 @@ class SampleUploadJob(UploadJob):
                 acc_codes[ac] = True
         return err_msgs
 
-    def check_institution_codes(self):
-        """ check for institution codes """
-        institution_codes = [r.get('originating_institution', '') for r in self.dicts]
-        institution_codes += [r.get('sampling_institution', '') for r in self.dicts]
-        institution_codes = set(institution_codes)
-        institution_codes.discard('')
-
-        dbh = get_dbhandler()
-        session = dbh.session()
-        err_msgs = []
-        for code in institution_codes:
-            insts = dbh.Institution.search_text(code, session, 1)
-            if len(insts) > 0:
-                inst = insts[0]
-                err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
-            else:
-                err_msgs.append(f'ERR: Institution code "{code}" not found!')
-
-        return err_msgs
-
-        q = dbh.session().query(dbh.Institution.code).filter(dbh.Institution.code.in_(institution_codes))
-        existing_codes = set([t[0] for t in q])
-        non_existing_codes = institution_codes - existing_codes
-        return [f'Non-existing institution: {code}' for code in sorted(list(non_existing_codes))]
-
     def get_institution(self, inst_code, dbh):
-        if (inst := self._get_institution(inst_code, dbh)) is not None:
-            return inst
-        raise KeyError(f'Cannot find institution with code: {inst_code}')
+        if inst_code not in self.institution_cache:
+            inst = self.institution_cache[inst_code] = self._get_institution(inst_code, dbh)
+        else:
+            inst = self.institution_cache[inst_code]
 
-    @functools.cache
+        if inst is None:
+            raise KeyError(f'Cannot find institution with code: {inst_code}')
+        return inst
+
     def _get_institution(self, inst_code, dbh):
         if len(inst_code.split()) == 1:
             inst = dbh.get_institutions_by_codes(inst_code, None)
@@ -273,9 +254,15 @@ class SampleUploadJob(UploadJob):
         return inst
 
     def get_ekey(self, key, group, dbh):
-        if (ekey := self._get_ekey(key, group, dbh)) is not None:
-            return ekey
-        raise KeyError(f'key "{key}"" not found')
+        t = (key, group)
+        if t not in self.ekey_cache:
+            ekey = self._get_ekey(key, group, dbh)
+        else:
+            ekey = self.ekey_cache[t]
+
+        if ekey is None:
+            raise KeyError(f'key "{key}" not found')
+        return ekey
 
     @functools.cache
     def _get_ekey(self, key, group, dbh):
@@ -331,6 +318,8 @@ class SampleUploadJob(UploadJob):
                 err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
         except KeyError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
+
+        d['host_gender'] = d['host_gender'][0]
 
         for f in dbh.Sample.__ek_fields__:
             if f in d:
