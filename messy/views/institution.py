@@ -17,7 +17,7 @@ class InstitutionViewer(BaseViewer):
     view_route = 'messy.institution-view'
 
     form_fields = {
-        'code': ('messy-institution-code', ),
+        'code*': ('messy-institution-code', ),
         'name': ('messy-institution-name', ),
         'address': ('messy-institution-address', ),
         'zipcode': ('messy-institution-zipcode', ),
@@ -140,22 +140,26 @@ class InstitutionViewer(BaseViewer):
         dbh = self.dbh
 
         ff = self.ffn
-        eform = t.form(name='messy-institution', method=t.POST, readonly=readonly)
+        eform = t.form(name='messy-institution', method=t.POST, readonly=readonly,
+                       update_dict=update_dict)
         eform.add(
             self.hidden_fields(obj),
             t.fieldset(
-                t.input_text(ff('code'), 'Code', value=obj.code,
-                             offset=2, update_dict=update_dict),
-                t.input_text(ff('name'), 'Name', value=obj.name,
-                             offset=2, update_dict=update_dict),
-                t.input_text(ff('address'), 'Address', value=obj.address,
-                             offset=2, update_dict=update_dict),
-                t.input_text(ff('zipcode'), 'Zipcode', value=obj.zipcode,
-                             offset=2, update_dict=update_dict),
-                t.input_text(ff('contact'), 'Contact', value=obj.contact,
-                             offset=2, update_dict=update_dict),
-                t.input_textarea(ff('remark'), 'Remark', value=obj.remark,
-                                 offset=2, update_dict=update_dict)
+                t.input_text(ff('code*'), 'Code', value=obj.code, offset=2, size=5,
+                             popover='Code|Unique, alphanumeric code to identify the institution. '
+                                     'Check availability or pattern of codes using the *Check institution* '
+                                     'field below.'),
+                t.input_text(ff('name'), 'Name', value=obj.name, offset=2,
+                             popover='Name|Official name of the institution.'),
+                t.input_text(ff('address'), 'Address', value=obj.address, offset=2,
+                             popover='Address|Address of the insitution. Comma is allowed.'),
+                t.input_text(ff('zipcode'), 'Zipcode', value=obj.zipcode, offset=2, size=2,
+                             popover='Zipcode|Zipcode of the institution.'),
+                t.input_text(ff('contact'), 'Contact', value=obj.contact, offset=2,
+                             popover='Contact|Contact persons and their numbers that represent this '
+                                     'institution.'),
+                t.input_textarea(ff('remark'), 'Remark', value=obj.remark, offset=2,
+                                 popover='Remark|Any remarks about this institution.')
             ),
             t.fieldset(
                 form_submit_bar(create) if not readonly else t.div(),
@@ -163,8 +167,7 @@ class InstitutionViewer(BaseViewer):
             ),
         )
 
-        jscode = '''
-        '''
+        jscode = """$(function () {$('[data-toggle="popover"]').popover()});"""
 
         div = t.div()[t.h2('Institution'), eform]
 
