@@ -192,7 +192,7 @@ class RunViewer(BaseViewer):
                 sequencingrun_id=run_id,
                 plate_id=plate_id,
                 adapterindex_id=adapterindex_id,
-                #lane=lane,
+                lane=lane,
                 note=note
             )
             sess = dbh.session()
