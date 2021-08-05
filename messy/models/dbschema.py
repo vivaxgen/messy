@@ -16,7 +16,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
 
 import io
 
-__version__ = '20210728'
+__version__ = '20210805'
 
 # Design Consideration
 # ====================
@@ -56,7 +56,7 @@ class Institution(Base, BaseMixIn):
     __tablename__ = 'institutions'
 
     code = Column(types.String(24), nullable=False, unique=True)
-    # alt_code = Column(types.String(47), nullable=True, unique=True)
+    alt_codes = Column(types.String(47), nullable=True, unique=True)
     name = Column(types.String(128), nullable=False, unique=True)
     address = deferred(Column(types.String(128), nullable=False, server_default=''))
     zipcode = Column(types.String(8), nullable=False, server_default='')
@@ -133,7 +133,6 @@ class Collection(Base, BaseMixIn):
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.COLLECTION_MANAGE}
     __modifying_roles__ = __managing_roles__ | {r.COLLECTION_MODIFY}
 
-
     def __repr__(self):
         return f"Collection('{self.code}')"
 
@@ -209,7 +208,7 @@ class Sample(Base, BaseMixIn):
     acc_code = Column(types.String(15), nullable=True, unique=True)
     received_date = Column(types.Date, nullable=False)
 
-    sequence_name = Column(types.String(63), nullable=True, unique=True)
+    sequence_name = Column(types.String(63), nullable=True, index=True, unique=True)
 
     species_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     species = EK.proxy('species_id', '@SPECIES')
@@ -217,7 +216,7 @@ class Sample(Base, BaseMixIn):
     passage_id = Column(types.Integer, nullable=False, server_default='0')
     passage = EK.proxy('passage_id', '@PASSAGE')
 
-    collection_date = Column(types.Date, nullable=False)
+    collection_date = Column(types.Date, index=True, nullable=False)
     location = Column(types.String(64), nullable=False, index=True, server_default='')
     location_info = Column(types.String(128), nullable=False, server_default='')
 
@@ -248,19 +247,17 @@ class Sample(Base, BaseMixIn):
     treatment = Column(types.String(64), nullable=False, server_default='')
 
     viral_load = Column(types.Float, nullable=False, server_default='-1')
-    ct_value1 = Column(types.Float, nullable=False, server_default='-1')
-    ct_value2 = Column(types.Float, nullable=False, server_default='-1')
-
-    # ct_target3 = Column(types.Float, nullable=False, server_default='-1')
-    # ct_target4 = Column(types.Float, nullable=False, server_default='-1')
-
-    # ct_host1 = Column(types.Float, nullable=False, server_default='-1')
-    # ct_host2 = Column(types.Float, nullable=False, server_default='-1')
+    ct_target1 = Column(types.Float, nullable=False, server_default='-1')
+    ct_target2 = Column(types.Float, nullable=False, server_default='-1')
+    ct_target3 = Column(types.Float, nullable=False, server_default='-1')
+    ct_target4 = Column(types.Float, nullable=False, server_default='-1')
+    ct_host1 = Column(types.Float, nullable=False, server_default='-1')
+    ct_host2 = Column(types.Float, nullable=False, server_default='-1')
 
     ct_method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     ct_method = EK.proxy('ct_method_id', '@CT_METHOD')
 
-    #ct_info = Column(types.String(64), nullable=False, server_default='')
+    ct_info = Column(types.String(64), nullable=False, server_default='')
 
     # originating lab, where diagnostic tests were performed or samples were prepared
     originating_code = Column(types.String(32), nullable=True)
@@ -285,7 +282,6 @@ class Sample(Base, BaseMixIn):
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     comment = deferred(Column(types.Text, nullable=False, server_default=''))
-    authorship = deferred(Column(types.Text, nullable=False, server_default=''))
 
     attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
     attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
@@ -369,7 +365,7 @@ class Sample(Base, BaseMixIn):
 sample_file_table = Table(
     'samples_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
-    Column('sample_id', types.Integer, ForeignKey('samples.id'), nullable=False),
+    Column('sample_id', types.Integer, ForeignKey('samples.id'), index=True, nullable=False),
     Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
     UniqueConstraint('sample_id', 'file_id')
 )
@@ -379,8 +375,8 @@ class PlatePosition(Base, BaseMixIn):
 
     __tablename__ = 'platepositions'
 
-    plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
-    sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=False)
+    plate_id = Column(types.Integer, ForeignKey('plates.id'), index=True, nullable=False)
+    sample_id = Column(types.Integer, ForeignKey('samples.id'), index=True, nullable=False)
     sample = relationship(Sample, uselist=False, foreign_keys=sample_id)
 
     # position will be 384:A01 -> P24, 96: A01 -> H12
@@ -483,7 +479,7 @@ class Plate(Base, BaseMixIn):
 plate_file_table = Table(
     'plates_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
-    Column('plate_id', types.Integer, ForeignKey('plates.id'), nullable=False),
+    Column('plate_id', types.Integer, ForeignKey('plates.id'), index=True, nullable=False),
     Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
     UniqueConstraint('plate_id', 'file_id')
 )
@@ -501,8 +497,8 @@ class SequencingRun(Base, BaseMixIn):
     date = Column(types.Date, nullable=False, server_default=func.current_date())
 
     # primary group of user
-    # group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
-    # group = relationship(Group, uselist=False, foreign_keys=group_id)
+    group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
+    group = relationship(Group, uselist=False, foreign_keys=group_id)
 
     sequencing_provider_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     sequencing_provider = relationship(Institution, uselist=False, foreign_keys=sequencing_provider_id)
@@ -511,7 +507,6 @@ class SequencingRun(Base, BaseMixIn):
     sequencing_kit = EK.proxy('sequencing_kit_id', '@SEQUENCING_KIT')
 
     # pdf of depthplots, if available
-    # depthplots = deferred(Column(types.LargeBinary, nullable=False, server_default=''))
     depthplots_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
     depthplots_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplots_file_id)
     depthplots = FileAttachment.proxy('depthplots_file')
@@ -572,7 +567,7 @@ class SequencingRun(Base, BaseMixIn):
 sequencingrun_file_table = Table(
     'sequencingrun_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
-    Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id'), nullable=False),
+    Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id'), index=True, nullable=False),
     Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
     UniqueConstraint('sequencingrun_id', 'file_id')
 )
@@ -582,25 +577,24 @@ class SequencingRunPlate(Base, BaseMixIn):
 
     __tablename__ = 'sequencingrunplates'
 
-    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
+    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), index=True, nullable=False)
     sequencingrun = relationship(SequencingRun, uselist=False, foreign_keys=sequencingrun_id,
                                  backref=backref("plates", order_by='sequencingrunplates.c.plate_id'))
 
-    plate_id = Column(types.Integer, ForeignKey('plates.id'), nullable=False)
+    plate_id = Column(types.Integer, ForeignKey('plates.id'), index=True, nullable=False)
     plate = relationship(Plate, uselist=False, foreign_keys=plate_id,
                          backref=backref("sequencingruns"), order_by='sequencingrunplates.c.plate_id')
 
     adapterindex_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     adapterindex = EK.proxy('adapterindex_id', '@ADAPTERINDEX')
 
-    #lane = Column(type.Integer, nullable=False, server_default='1')
+    lane = Column(types.Integer, nullable=False, server_default='1')
 
     note = Column(types.Text, nullable=True)
 
     __table_args__ = (
         UniqueConstraint('sequencingrun_id', 'plate_id'),
-        UniqueConstraint('sequencingrun_id', 'adapterindex_id'),
-        #UniqueConstraint('sequencingrun_id', 'adapterindex_id', 'lane'),
+        UniqueConstraint('sequencingrun_id', 'adapterindex_id', 'lane'),
     )
 
 
@@ -612,17 +606,17 @@ class Sequence(Base, BaseMixIn):
 
     # referencing
 
-    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), nullable=False)
+    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), index=True, nullable=False)
     sequencingrun = relationship(SequencingRun, uselist=False,
                                  backref=backref('sequences', lazy='dynamic', passive_deletes=True))
-    sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=False)
+    sample_id = Column(types.Integer, ForeignKey('samples.id'), index=True, nullable=False)
     sample = relationship(Sample, uselist=False,
                           backref=backref('sequence', lazy='dynamic', passive_deletes=True))
 
     method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     method = EK.proxy('method_id', '@METHOD')
 
-    accid = Column(types.String(32), nullable=True, unique=True)
+    accid = Column(types.String(32), nullable=True, index=True, unique=True)
     submission_date = Column(types.Date, nullable=True)
 
     sequence = Column(types.Text, nullable=False, server_default='')
@@ -660,6 +654,7 @@ class Sequence(Base, BaseMixIn):
     snvs = deferred(Column(types.JSON, nullable=False, server_default='null'))
     aa_change = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
+    authorship = deferred(Column(types.Text, nullable=False, server_default=''))
     remarks = deferred(Column(types.Text, nullable=False, server_default=''))
 
     __ek_fields__ = ['method']
