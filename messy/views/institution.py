@@ -18,6 +18,7 @@ class InstitutionViewer(BaseViewer):
 
     form_fields = {
         'code*': ('messy-institution-code', ),
+        'alt_codes': ('messy-institution-alt_codes', ),
         'name': ('messy-institution-name', ),
         'address': ('messy-institution-address', ),
         'zipcode': ('messy-institution-zipcode', ),
@@ -149,6 +150,9 @@ class InstitutionViewer(BaseViewer):
                              popover='Code|Unique, alphanumeric code to identify the institution. '
                                      'Check availability or pattern of codes using the *Check institution* '
                                      'field below.'),
+                t.input_text(ff('alt_codes'), 'Alternate Codes', value=obj.alt_codes, offset=2, size=6,
+                             popover='Alternate Codes|Unique, alphanumeric codes used by external sources. '
+                                     'Multiple codes must be separated by single space.'),
                 t.input_text(ff('name'), 'Name', value=obj.name, offset=2,
                              popover='Name|Official name of the institution.'),
                 t.input_text(ff('address'), 'Address', value=obj.address, offset=2,

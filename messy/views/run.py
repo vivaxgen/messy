@@ -26,6 +26,7 @@ class RunViewer(BaseViewer):
         'code*': ('messy-run-code', ),
         'serial*': ('messy-run-serial', ),
         'date?': ('messy-run-date', dateutil.parser.parse),
+        'group_id': ('messy-run-group_id', int),
         'sequencing_provider_id*': ('messy-run-sequencing_provider_id', int),
         'sequencing_kit_id': ('messy-run-sequencing_kit_id', ),
         'depthplots?': ('messy-run-depthplots', ),  # lambda x: x.file.read() if x != b'' else None),
@@ -80,6 +81,7 @@ class RunViewer(BaseViewer):
 
         obj = obj or self.obj
         dbh = self.dbh
+        rq = self.request
         ff = self.ffn
 
         # processing sequencing_provider_id
@@ -95,6 +97,8 @@ class RunViewer(BaseViewer):
                 t.input_text(ff('code*'), 'Code', value=obj.code, offset=2),
                 t.input_text(ff('serial*'), 'Serial', value=obj.serial, offset=2),
                 t.input_text(ff('date?'), 'Running date', value=obj.date, offset=2, size=2, placeholder='YYYY/MM/DD'),
+                t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=2,
+                               options=[(g.id, g.name) for g in dbh.get_group(user_id=rq.user)]),
                 t.input_select(ff('sequencing_provider_id*'), 'Sequencing Provider',
                                value=prov_inst.id if prov_inst else '', offset=2, size=5,
                                options=[(prov_inst.id, f'{prov_inst.code} | {prov_inst.name}')] if prov_inst else []),
@@ -126,7 +130,7 @@ class RunViewer(BaseViewer):
             jscode = select2_lookup(tag=ff('sequencing_provider_id*'), minlen=3,
                                     placeholder="Type an institution name",
                                     parenttag="messy-run-fieldset", usetag=False,
-                                    url=self.request.route_url('messy.institution-lookup'))
+                                    url=rq.route_url('messy.institution-lookup'))
 
         else:
             jscode = ''
