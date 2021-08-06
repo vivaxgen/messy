@@ -46,5 +46,5 @@ Date Format
 
 To avoid confusion, all dates are represented as **YYYY/MM/DD** (or **YYYY-MM-DD**) format.
 
-Please be when you are using spreadsheet software since some of the software perform automatic formatting of the date values (or values that look like dates).
-It is best to recheck the content of the csv/tsv file saved by spreadsheet software using plain text editors (Notepad, Wordpad, ConTEXT) or using R or Python before uploading just to make sure that dates are formatted properly.
+Please be aware when you are using spreadsheet software since some of the software perform automatic formatting of the date values (or values that look like dates).
+It is best to recheck the content of the csv/tsv file saved by spreadsheet software using plain text editors (Notepad, Wordpad, ConTEXT) or using R or Python before uploading just to make sure that dates are still in properly YYYY/MM/DD or YYYY-MM-DD format.
