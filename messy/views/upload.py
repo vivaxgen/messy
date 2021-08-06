@@ -1,6 +1,6 @@
 
 from messy.views import (m_roles, get_dbhandler, error_page, render_to_response, HTTPFound,
-                         custom_submit_bar, select2_lookup)
+                         select2_lookup)
 from messy.views.rpc import generate_user_token
 from messy.lib import uploads
 from messy.lib import roles as r
@@ -284,7 +284,7 @@ def generate_token_form(request):
     html = t.div(t.hr, t.h3('Token Generator', styles="bg-dark;"))
     eform = t.form(name='messy/token-generator', method=t.POST)
     eform.add(
-        custom_submit_bar(('Generate token', 'generate_token')).set_offset(1).show_reset_button(False)
+        t.custom_submit_bar(('Generate token', 'generate_token')).set_offset(1).show_reset_button(False)
     )
 
     return html.add(eform), ''
@@ -350,7 +350,7 @@ def institution_upload_form(request):
                          offset=2, size=6,
                          info='Click <a href="/help/templates/index.rst" target="_blank">here</a>'
                          ' to see templates.'),
-            custom_submit_bar(('Upload', 'upload_institution')).set_offset(1),
+            t.custom_submit_bar(('Upload', 'upload_institution')).set_offset(1),
         )
     )
 
