@@ -1,6 +1,7 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
-                         render_to_response, form_submit_bar, select2_lookup, or_, error_page)
+                         render_to_response, form_submit_bar, select2_lookup, or_, error_page,
+                         Response, modal_delete, modal_error, HTTPFound)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 import json
@@ -128,6 +129,57 @@ class CollectionViewer(BaseViewer):
             jscode = ''
 
         return t.div()[t.h2('Collection'), eform], jscode
+
+    def action_post(self):
+
+        rq = self.request
+        dbh = self.dbh
+        _method = rq.POST.get('_method')
+
+        if _method == 'delete':
+
+            collection_ids = [int(x) for x in rq.params.getall('collection-ids')]
+            collections = dbh.get_collections_by_ids(collection_ids, groups=None, user=rq.user)
+
+            if len(collections) == 0:
+                return Response(modal_error)
+
+            return Response(
+                modal_delete(
+                    title='Removing collection(s)',
+                    content=t.literal(
+                        'You are going to remove the following collection(s): '
+                        '<ul>'
+                        + ''.join(f'<li>{c.code}</li>' for c in collections)
+                        + '</ul>'
+                    ), request=rq,
+
+                ), request=rq
+            )
+
+        elif _method == 'delete/confirm':
+
+            collection_ids = [int(x) for x in rq.params.getall('collection-ids')]
+            collections = dbh.get_collections_by_ids(collection_ids, groups=None, user=rq.user)
+
+            sess = dbh.session()
+            count = left = 0
+            for c in collections:
+                if c.can_modify(rq.user):
+                    sess.delete(c)
+                    count += 1
+                else:
+                    left += 1
+
+            sess.flush()
+            rq.session.flash(
+                ('success', f'You have successfully removed {count} collection(s), '
+                            f'kept {left} collections.')
+            )
+
+            return HTTPFound(location=rq.referer)
+
+        raise RuntimeError('No defined action')
 
 
 def generate_collection_table(collections, request):
