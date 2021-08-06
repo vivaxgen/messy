@@ -1,7 +1,7 @@
 
 from rhombus.lib.utils import cerr, cout, get_dbhandler
 from rhombus.models.core import (Base, BaseMixIn, metadata, deferred, relationship,
-                                 registered, backref, declared_attr, column_property)
+                                 registered, declared_attr, column_property)
 from rhombus.models.ek import EK
 from rhombus.models.user import Group, User
 from rhombus.models.fileattach import FileAttachment
@@ -11,6 +11,7 @@ import dateutil.parser
 import datetime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import object_session
+from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
                         Identity)
 
@@ -122,13 +123,17 @@ class Collection(Base, BaseMixIn):
     group = relationship(Group, uselist=False, foreign_keys=group_id)
 
     attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
+    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id,
+                                   cascade='all, delete')
     attachment = FileAttachment.proxy('attachment_file')
 
     contact = deferred(Column(types.String(64), nullable=False, server_default=''))
 
     institutions = relationship(Institution, secondary=collection_institution_table,
                                 order_by=collection_institution_table.c.id)
+
+    samples = relationship('Sample', lazy='dynamic', back_populates='collection',
+                           passive_deletes=True)
 
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.COLLECTION_MANAGE}
     __modifying_roles__ = __managing_roles__ | {r.COLLECTION_MODIFY}
@@ -200,8 +205,7 @@ class Sample(Base, BaseMixIn):
 
     collection_id = Column(types.Integer, ForeignKey('collections.id', ondelete='CASCADE'),
                            nullable=False, index=True)
-    collection = relationship(Collection, uselist=False,
-                              backref=backref('samples', lazy='dynamic', passive_deletes=True))
+    collection = relationship('Collection', uselist=False, back_populates='samples')
 
     # various code
     code = Column(types.String(16), nullable=False, unique=True, server_default='')
@@ -284,11 +288,19 @@ class Sample(Base, BaseMixIn):
     comment = deferred(Column(types.Text, nullable=False, server_default=''))
 
     attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
+    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id,
+                                   cascade='all, delete')
     attachment = FileAttachment.proxy('attachment_file')
 
     flag = Column(types.Integer, nullable=False, server_default='0')
     extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
+
+    additional_files = relationship(FileAttachment, secondary="samples_files", cascade='all, delete',
+                                    collection_class=attribute_mapped_collection('id'),
+                                    order_by=FileAttachment.filename)
+
+    sequences = relationship('Sequence', lazy='dynamic', back_populates='sample',
+                             passive_deletes=True)
 
     __table_args__ = (
         UniqueConstraint('originating_code', 'originating_institution_id'),
@@ -365,8 +377,10 @@ class Sample(Base, BaseMixIn):
 sample_file_table = Table(
     'samples_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
-    Column('sample_id', types.Integer, ForeignKey('samples.id'), index=True, nullable=False),
-    Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
+    Column('sample_id', types.Integer, ForeignKey('samples.id', ondelete='CASCADE'),
+           index=True, nullable=False),
+    Column('file_id', types.Integer, ForeignKey('fileattachments.id', ondelete='CASCADE'),
+           nullable=False),
     UniqueConstraint('sample_id', 'file_id')
 )
 
@@ -375,7 +389,10 @@ class PlatePosition(Base, BaseMixIn):
 
     __tablename__ = 'platepositions'
 
-    plate_id = Column(types.Integer, ForeignKey('plates.id'), index=True, nullable=False)
+    plate_id = Column(types.Integer, ForeignKey('plates.id', ondelete='CASCADE'),
+                      index=True, nullable=False)
+    plate = relationship("Plate", uselist=False, foreign_keys=plate_id, back_populates='positions')
+
     sample_id = Column(types.Integer, ForeignKey('samples.id'), index=True, nullable=False)
     sample = relationship(Sample, uselist=False, foreign_keys=sample_id)
 
@@ -384,9 +401,6 @@ class PlatePosition(Base, BaseMixIn):
     value = Column(types.Float, nullable=False, server_default='-1')
     volume = Column(types.Float, nullable=False, server_default='-1')
     note = Column(types.String(31), nullable=True)
-
-    plate = relationship("Plate", uselist=False, foreign_keys=plate_id,
-                         backref=backref("positions", order_by='platepositions.c.id'))
 
     __table_args__ = (
         UniqueConstraint('plate_id', 'position'),
@@ -417,11 +431,19 @@ class Plate(Base, BaseMixIn):
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
     attachment_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id)
+    attachment_file = relationship(FileAttachment, uselist=False, foreign_keys=attachment_file_id,
+                                   cascade='all, delete')
     attachment = FileAttachment.proxy('attachment_file')
 
-    additional_files = relationship(FileAttachment, secondary="plates_files",
+    additional_files = relationship(FileAttachment, secondary="plates_files", cascade='all, delete',
+                                    collection_class=attribute_mapped_collection('id'),
                                     order_by=FileAttachment.filename)
+
+    positions = relationship(PlatePosition, order_by='platepositions.c.id', passive_deletes=True,
+                             back_populates='plate')
+
+    sequencingruns = relationship('SequencingRunPlate', order_by='sequencingrunplates.c.plate_id',
+                                  back_populates='plates')
 
     __ek_fields__ = ['specimen_type', 'experiment_type']
 
@@ -479,8 +501,10 @@ class Plate(Base, BaseMixIn):
 plate_file_table = Table(
     'plates_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
-    Column('plate_id', types.Integer, ForeignKey('plates.id'), index=True, nullable=False),
-    Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
+    Column('plate_id', types.Integer, ForeignKey('plates.id', ondelete='CASCADE'),
+           index=True, nullable=False),
+    Column('file_id', types.Integer, ForeignKey('fileattachments.id', ondelete='CASCADE'),
+           nullable=False),
     UniqueConstraint('plate_id', 'file_id')
 )
 
@@ -508,20 +532,33 @@ class SequencingRun(Base, BaseMixIn):
 
     # pdf of depthplots, if available
     depthplots_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    depthplots_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplots_file_id)
+    depthplots_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplots_file_id,
+                                   cascade='all, delete')
     depthplots = FileAttachment.proxy('depthplots_file')
 
     # gzip html from multiqc, if available
     qcreport_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    qcreport_file = relationship(FileAttachment, uselist=False, foreign_keys=qcreport_file_id)
+    qcreport_file = relationship(FileAttachment, uselist=False, foreign_keys=qcreport_file_id,
+                                 cascade='all, delete')
     qcreport = FileAttachment.proxy('qcreport_file')
 
     # screenshot from the instrument, if available
     screenshot_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    screenshot_file = relationship(FileAttachment, uselist=False, foreign_keys=screenshot_file_id)
+    screenshot_file = relationship(FileAttachment, uselist=False, foreign_keys=screenshot_file_id,
+                                   cascade='all, delete')
     screenshot = FileAttachment.proxy('screenshot_file')
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
+
+    additional_files = relationship(FileAttachment, secondary="sequencingruns_files", cascade='all, delete',
+                                    collection_class=attribute_mapped_collection('id'),
+                                    order_by=FileAttachment.filename)
+
+    sequences = relationship('Sequence', lazy='dynamic', back_populates='sequencingrun',
+                             passive_deletes=True)
+
+    plates = relationship('SequencingRunPlate', order_by='sequencingrunplates.c.plate_id',
+                          back_populates='sequencingrun')
 
     __ek_fields__ = ['sequencing_kit']
 
@@ -565,10 +602,11 @@ class SequencingRun(Base, BaseMixIn):
 
 
 sequencingrun_file_table = Table(
-    'sequencingrun_files', metadata,
+    'sequencingruns_files', metadata,
     Column('id', types.Integer, Identity(), primary_key=True),
-    Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id'), index=True, nullable=False),
-    Column('file_id', types.Integer, ForeignKey('fileattachments.id'), nullable=False),
+    Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id', ondelete='CASCADE'),
+           index=True, nullable=False),
+    Column('file_id', types.Integer, ForeignKey('fileattachments.id', ondelete='CASCADE'), nullable=False),
     UniqueConstraint('sequencingrun_id', 'file_id')
 )
 
@@ -577,13 +615,15 @@ class SequencingRunPlate(Base, BaseMixIn):
 
     __tablename__ = 'sequencingrunplates'
 
-    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), index=True, nullable=False)
+    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id', ondelete='CASCADE'),
+                              index=True, nullable=False)
     sequencingrun = relationship(SequencingRun, uselist=False, foreign_keys=sequencingrun_id,
-                                 backref=backref("plates", order_by='sequencingrunplates.c.plate_id'))
+                                 back_populates='plates')
 
-    plate_id = Column(types.Integer, ForeignKey('plates.id'), index=True, nullable=False)
+    plate_id = Column(types.Integer, ForeignKey('plates.id', ondelete='CASCADE'),
+                      index=True, nullable=False)
     plate = relationship(Plate, uselist=False, foreign_keys=plate_id,
-                         backref=backref("sequencingruns"), order_by='sequencingrunplates.c.plate_id')
+                         back_populates='sequencingruns')
 
     adapterindex_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     adapterindex = EK.proxy('adapterindex_id', '@ADAPTERINDEX')
@@ -606,12 +646,13 @@ class Sequence(Base, BaseMixIn):
 
     # referencing
 
-    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id'), index=True, nullable=False)
-    sequencingrun = relationship(SequencingRun, uselist=False,
-                                 backref=backref('sequences', lazy='dynamic', passive_deletes=True))
-    sample_id = Column(types.Integer, ForeignKey('samples.id'), index=True, nullable=False)
-    sample = relationship(Sample, uselist=False,
-                          backref=backref('sequence', lazy='dynamic', passive_deletes=True))
+    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id', ondelete='CASCADE'),
+                              index=True, nullable=False)
+    sequencingrun = relationship(SequencingRun, uselist=False, back_populates='sequences')
+
+    sample_id = Column(types.Integer, ForeignKey('samples.id', ondelete='CASCADE'),
+                       index=True, nullable=False)
+    sample = relationship(Sample, uselist=False, back_populates='sequences')
 
     method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     method = EK.proxy('method_id', '@METHOD')
@@ -623,7 +664,8 @@ class Sequence(Base, BaseMixIn):
     avg_depth = Column(types.Integer, nullable=False, server_default='-1')
 
     depthplot_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    depthplot_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplot_file_id)
+    depthplot_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplot_file_id,
+                                  cascade='all, delete')
     depthplot = FileAttachment.proxy('depthplot_file')
 
     length = Column(types.Integer, nullable=False, server_default='-1')
