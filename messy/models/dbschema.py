@@ -64,7 +64,7 @@ class Institution(Base, BaseMixIn):
     contact = Column(types.String(64), nullable=False, server_default='')
     remark = deferred(Column(types.String(2048), nullable=False, server_default=''))
 
-    __searchable__ = ['code', 'name', 'address']
+    __searchable__ = ['code', 'alt_codes', 'name', 'address']
 
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.INSTITUTION_MANAGE}
     __modifying_roles__ = __managing_roles__ | {r.INSTITUTION_MODIFY}
