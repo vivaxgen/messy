@@ -1,5 +1,9 @@
 
-from messy.views import *
+from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
+                         render_to_response, form_submit_bar, select2_lookup, error_page,
+                         Response, modal_delete, modal_error, Response, HTTPFound,
+                         generate_file_table)
+import rhombus.lib.tags_b46 as t
 import dateutil
 
 
@@ -15,8 +19,8 @@ class SequenceViewer(BaseViewer):
     """
 
 
-    managing_roles = BaseViewer.managing_roles + [ SEQUENCE_MANAGE ]
-    modifying_roles = managing_roles + [ SEQUENCE_MODIFY ]
+    managing_roles = BaseViewer.managing_roles + [r.SEQUENCE_MANAGE]
+    modifying_roles = managing_roles + [r.SEQUENCE_MODIFY]
 
     object_class = get_dbhandler().Sequence
     fetch_func = get_dbhandler().get_sequences_by_ids
@@ -42,17 +46,16 @@ class SequenceViewer(BaseViewer):
         'sequence': ('messy-sequence-sequence', ),
     }
 
-    @m_roles(PUBLIC)
+    @m_roles(r.PUBLIC)
     def index(self):
 
         sequences = self.dbh.get_sequences(groups=None, fetch=False)
         html, code = generate_sequence_table(sequences, self.request)
-        html = div()[ h2('Sequences'), html ]
+        html = t.div()[t.h2('Sequences'), html]
 
         return render_to_response("messy:templates/generic_page.mako",
-            { 'html': html
-            },
-            request = self.request)
+                                  {'html': html, },
+                                  request=self.request)
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
 
@@ -64,77 +67,78 @@ class SequenceViewer(BaseViewer):
         sequencingrun = obj.sequencingrun
         sample = obj.sample
 
-        eform = form(name='messy-sample', method=POST, enctype=FORM_MULTIPART)[
+        eform = t.form(name='messy-sample', method=t.POST, enctype=t.FORM_MULTIPART)[
             self.hidden_fields(obj),
-            fieldset(
-                input_select(ff['sequencingrun_id'][0], 'Sequencing Run', value=obj.sequencingrun_id,
-                             offset=2, size=3, static=readonly,
-                             options=[(sequencingrun.id, sequencingrun.code)] if sequencingrun else []),
-                input_select(ff['sample_id'][0], 'Sample', value=obj.sample_id,
-                             offset=2, size=4, static=readonly,
-                             options=[(sample.id, f'{sample.code} | {sample.collection.code}')] if sample else []),
-                input_text(ff['accid'][0], 'Acc ID', value=obj.accid,
-                           offset=2, static=readonly, update_dict=update_dict),
-                input_text(ff['submission_date?'][0], 'Submission Date', value=obj.submission_date,
-                           offset=2, static=readonly, update_dict=update_dict),
+            t.fieldset(
+                t.input_select(ff['sequencingrun_id'][0], 'Sequencing Run', value=obj.sequencingrun_id,
+                               offset=2, size=3, static=readonly,
+                               options=[(sequencingrun.id, sequencingrun.code)] if sequencingrun else []),
+                t.input_select(ff['sample_id'][0], 'Sample', value=obj.sample_id,
+                               offset=2, size=4, static=readonly,
+                               options=[(sample.id, f'{sample.code} | {sample.collection.code}')] if sample else []),
+                t.input_text(ff['accid'][0], 'Acc ID', value=obj.accid,
+                             offset=2, static=readonly, update_dict=update_dict),
+                t.input_text(ff['submission_date?'][0], 'Submission Date', value=obj.submission_date,
+                             offset=2, static=readonly, update_dict=update_dict),
             ),
-            fieldset(
-                form_submit_bar(create) if not readonly else div(),
+            t.fieldset(
+                form_submit_bar(create) if not readonly else t.div(),
                 name='footer'
             ),
         ]
 
-        return div()[h2('Sequence'), eform], ''
+        return t.div()[t.h2('Sequence'), eform], ''
 
 
 def generate_sequence_table(sequences, request):
 
-    table_body = tbody()
+    table_body = t.tbody()
 
-    not_guest = not request.user.has_roles( GUEST )
+    not_guest = not request.user.has_roles(r.GUEST)
 
     for sequence in sequences:
         sample = sequence.sample
         table_body.add(
-            tr(
-                td(literal('<input type="checkbox" name="sequence-ids" value="%d" />' % sequence.id)
-                    if not_guest else ''),
-                td( a(sample.code, href=request.route_url('messy.sequence-view', id=sequence.id)) ),
-                td( sequence.accid),
-                td( sample.sequence_name ),
-                td( sample.location),
-                td( sample.collection_date),
-                td( sample.lineage_1),
+            t.tr(
+                t.td(t.literal('<input type="checkbox" name="sequence-ids" value="%d" />' % sequence.id)
+                     if not_guest else ''),
+                t.td(t.a(sample.code, href=request.route_url('messy.sequence-view', id=sequence.id))),
+                t.td(sequence.accid),
+                t.td(sample.sequence_name),
+                t.td(sample.location),
+                t.td(sample.collection_date),
+                t.td(sample.lineage_1),
             )
         )
 
-    sequence_table = table(class_='table table-condensed table-striped')[
-        thead(
-            tr(
-                th('', style="width: 2em"),
-                th('Code'),
-                th('Acc ID'),
-                th('Name'),
-                th('Location'),
-                th('Collection Date'),
-                th('Lineage 1'),
+    sequence_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('', style="width: 2em"),
+                t.th('Code'),
+                t.th('Acc ID'),
+                t.th('Name'),
+                t.th('Location'),
+                t.th('Collection Date'),
+                t.th('Lineage 1'),
             )
         )
     ]
 
-    sequence_table.add( table_body )
+    sequence_table.add(table_body)
 
     if not_guest:
-        add_button = ( 'New sequence',
-                        request.route_url('messy.sequence-add')
-        )
+        add_button = ('New sequence',
+                      request.route_url('messy.sequence-add'))
 
-        bar = selection_bar('sequence-ids', action=request.route_url('messy.sequence-action'),
-                    add = add_button)
+        bar = t.selection_bar('sequence-ids', action=request.route_url('messy.sequence-action'),
+                              add=add_button)
         html, code = bar.render(sequence_table)
 
     else:
-        html = div(sample_table)
+        html = t.div(sequence_table)
         code = ''
 
     return html, code
+
+# EOF
