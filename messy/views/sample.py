@@ -31,8 +31,13 @@ class SampleViewer(BaseViewer):
         'specimen_type_id': ('messy-sample-specimen_type_id', ),
         'passage_id': ('messy-sample-passage_id', ),
         'ct_method_id': ('messy-sample-ct_method_id', ),
-        'ct_target1': ('messy-sample-ct_value1', float),
-        'ct_target2': ('messy-sample-ct_value2', float),
+        'ct_target1': ('messy-sample-ct_target1', float),
+        'ct_target2': ('messy-sample-ct_target2', float),
+        'ct_target3': ('messy-sample-ct_target3', float),
+        'ct_target4': ('messy-sample-ct_target4', float),
+        'ct_host1': ('messy-sample-ct_host1', float),
+        'ct_host2': ('messy-sample-ct_host2', float),
+        'ct_info': ('messy-sample-ct_info', ),
         'species_id': ('messy-sample-species_id', ),
         'host_id': ('messy-sample-host_id', ),
         'host_info': ('messy-sample-host_info', ),
@@ -200,18 +205,37 @@ class SampleViewer(BaseViewer):
                     t.input_select_ek(ff('specimen_type_id'), 'Specimen type',
                                       value=obj.specimen_type_id or dbh.get_ekey('np+op').id,
                                       offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
-                    t.input_text(ff('ct_target1'), 'Ct val 1&2',
-                                 value=-1 if obj.ct_target1 is None else obj.ct_target1, offset=1, size=1,
-                                 popover='Ct value target 1 & target 2|Ct value for target 1 (usually RdRp/ORF1) '
-                                         'and target 2 (usually E)'),
-                    t.input_text(ff('ct_target2'), None,
-                                 value=-1 if obj.ct_target2 is None else obj.ct_target2, offset=1, size=1),
-                    t.input_select_ek(ff('ct_method_id'), None,
-                                      value=obj.ct_method_id or dbh.get_ekey('rtpcr').id,
-                                      offset=1, size=2, parent_ek=dbh.get_ekey('@CT_METHOD')),
+
                     t.input_select_ek(ff('passage_id'), 'Passage',
                                       value=obj.passage_id or dbh.get_ekey('original').id,
                                       offset=1, size=2, parent_ek=dbh.get_ekey('@PASSAGE')),
+                    t.input_text(ff('ct_host1'), 'Ct host 1, 2',
+                                 value=-1 if obj.ct_host1 is None else obj.ct_host1, offset=1, size=1,
+                                 popover='Ct value control or host 1 & 2|Ct value for host control region 1 '
+                                         'and region 2, and others. Please refer to the kit '
+                                         'being used and describe the kit in *Ct Info* field'),
+                    t.input_text(ff('ct_host2'), None,
+                                 value=-1 if obj.ct_host2 is None else obj.ct_host2, offset=1, size=1),
+                    t.input_text(ff('viral_load'), 'Viral Load',
+                                 value=-1 if obj.viral_load is None else obj.viral_load, offset=1, size=1),
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('ct_target1'), 'Ct target 1, 2, 3, 4',
+                                 value=-1 if obj.ct_target1 is None else obj.ct_target1, offset=2, size=1,
+                                 popover='Ct value target 1, 2, 3 and 4|Ct value for target 1 (usually RdRp/ORF1) '
+                                         'and target 2 (usually E), and others. Please refer to the kit '
+                                         'being used and describe the kit in *Ct Info* field'),
+                    t.input_text(ff('ct_target2'), None,
+                                 value=-1 if obj.ct_target2 is None else obj.ct_target2, offset=1, size=1),
+                    t.input_text(ff('ct_target3'), None,
+                                 value=-1 if obj.ct_target3 is None else obj.ct_target2, offset=1, size=1),
+                    t.input_text(ff('ct_target4'), None,
+                                 value=-1 if obj.ct_target4 is None else obj.ct_target2, offset=1, size=1),
+                    t.input_select_ek(ff('ct_method_id'), None,
+                                      value=obj.ct_method_id or dbh.get_ekey('rtpcr').id,
+                                      offset=1, size=2, parent_ek=dbh.get_ekey('@CT_METHOD')),
+                    t.input_text(ff('ct_info'), 'Ct Info', value=obj.ct_info, offset=1, size=3),
                 ),
 
                 t.inline_inputs(
@@ -229,19 +253,17 @@ class SampleViewer(BaseViewer):
                     t.input_select_ek(ff('host_occupation_id'), 'Occupation',
                                       value=obj.host_occupation_id or dbh.get_ekey('other').id,
                                       offset=1, size=4, parent_ek=dbh.get_ekey('@HOST_OCCUPATION')),
-                    t.input_text(ff('viral_load'), 'Viral Load',
-                                 value=-1 if obj.viral_load is None else obj.viral_load, offset=1, size=1),
+                    t.input_text(ff('host_severity'), 'Severity',
+                                 value=-1 if obj.host_severity is None else obj.host_severity,
+                                 offset=1, size=1),
                 ),
 
                 t.inline_inputs(
                     t.input_select_ek(ff('host_status_id'), 'Host Status',
                                       value=obj.host_status_id or dbh.get_ekey('unknown').id,
                                       offset=2, size=2, parent_ek=dbh.get_ekey('@HOST_STATUS')),
-                    t.input_text(ff('host_severity'), 'Severity',
-                                 value=-1 if obj.host_severity is None else obj.host_severity,
-                                 offset=1, size=1),
                     t.input_text(ff('treatment'), 'Treatment', value=obj.treatment,
-                                 offset=1, size=5),
+                                 offset=2, size=6),
                 ),
 
                 t.inline_inputs(
