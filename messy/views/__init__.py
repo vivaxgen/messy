@@ -3,15 +3,13 @@ from rhombus.lib.utils import cerr, cout, random_string, get_dbhandler
 #from rhombus.lib.roles import SYSADM, DATAADM
 from rhombus.views.generics import error_page
 from rhombus.views import *
-from rhombus.lib.modals import *
+from rhombus.lib.modals import modal_delete, popup, modal_error
+from rhombus.lib.exceptions import AuthError
 import rhombus.lib.tags_b46 as t
 import messy.lib.roles as r
-from sqlalchemy.orm import make_transient, make_transient_to_detached
 import sqlalchemy.exc
 from sqlalchemy import or_
-
-from messy.lib.roles import *
-from rhombus.lib.tags import *
+import mimetypes
 
 
 class BaseViewer(BaseViewer):
@@ -32,9 +30,21 @@ class BaseViewer(BaseViewer):
 
         rq = self.request
         dbh = self.dbh
-        _method = rq.params.get('_method')
+
+        _method = rq.params.get('_method', None)
         obj_id = int(rq.params.get('object_id'))
         obj = self.get_object(obj_id=obj_id)
+
+        fid = rq.params.get('fid', None)
+        if fid:
+            fid = int(fid.removeprefix('/'))
+            file_instance = obj.additional_files[fid]
+            content_encoding = mimetypes.guess_type(file_instance.filename)[1]
+            return Response(app_iter=FileIter(file_instance.fp()),
+                            content_type=file_instance.mimetype, content_encoding=content_encoding,
+                            content_disposition=f'inline; filename="{file_instance.filename}"',
+                            request=rq)
+
         dbsess = dbh.session()
 
         if not obj.can_modify(rq.user):
@@ -43,20 +53,22 @@ class BaseViewer(BaseViewer):
         if _method == 'upload-file':
 
             file_content = rq.POST.get('file_content')
-            file_instance = FileAttachment()
+            if type(file_content) == bytes:
+                return error_page(rq, 'Please select the file first before clicking submit button')
+            file_instance = dbh.FileAttachment()
             dbsess.add(file_instance)
             file_instance.update(file_content)
             dbsess.flush([file_instance])
-            obj.additional_files.append(file_instance)
+            obj.additional_files[file_instance.id] = file_instance
 
             return HTTPFound(location=rq.referer)
 
         elif _method == 'delete':
 
             file_ids = [int(x) for x in rq.POST.getall('file-ids')]
-            file_instances = dbh.FileAttachment.query(dbsess).filter(FileAttachment.id.in_(file_ids))
+            file_instances = dbh.FileAttachment.query(dbsess).filter(dbh.FileAttachment.id.in_(file_ids))
             file_instances = [file_instance for file_instance in file_instances
-                              if (file_instance in obj.additional_files)]
+                              if (file_instance.id in obj.additional_files)]
 
             return Response(
                 modal_delete(
@@ -74,12 +86,10 @@ class BaseViewer(BaseViewer):
 
         elif _method == 'delete/confirm':
 
-
-
             file_ids = [int(x) for x in rq.POST.getall('file-ids')]
-            file_instances = dbh.FileAttachment.query(dbsess).filter(FileAttachment.id.in_(file_ids))
+            file_instances = dbh.FileAttachment.query(dbsess).filter(dbh.FileAttachment.id.in_(file_ids))
             file_instances = [file_instance for file_instance in file_instances
-                              if (file_instance in obj.additional_files)]
+                              if (file_instance.id in obj.additional_files)]
 
             deleted_filenames = []
             for file_instance in file_instances:
@@ -102,11 +112,13 @@ def generate_file_table(files, request, object_id, route_name):
 
     table_body = t.tbody()
 
-    for a_file in files:
+    for a_file in files.values():
         table_body.add(
             t.tr(
                 t.td(t.literal(f'<input type="checkbox" name="file-ids" value="{a_file.id}" />')),
-                t.td(a_file.filename),
+                t.td(t.a(a_file.filename, href=request.route_url(route_name,
+                                                                 _query={'object_id': object_id,
+                                                                         'fid': str(a_file.id)}))),
                 t.td(a_file.size / 1000)
             )
         )
