@@ -1,5 +1,5 @@
 
-from messy.views import roles, render_to_response, literal, get_dbhandler
+from messy.views import roles, render_to_response, get_dbhandler
 from messy.lib import roles as r
 
 from rhombus.lib import tags_b46 as t
