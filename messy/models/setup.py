@@ -274,7 +274,7 @@ ek_initlist = [
             ('rtpcr', 'generic realtime RT-PCR'),
             ('cobas', 'Cobas'),
             ('charite-berlin', 'Charite-Berlin method'),
-            ('lamp', 'LAMP')
+            ('lamp', 'LAMP'),
             ('no-ct', 'No Ct'),
         ]
      ),
