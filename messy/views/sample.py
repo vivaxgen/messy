@@ -46,6 +46,9 @@ class SampleViewer(BaseViewer):
         'host_occupation_id': ('messy-sample-host_occupation_id', ),
         'host_status_id': ('messy-sample-host_status_id', ),
         'host_severity': ('messy-sample-host_severity', int),
+        'infection_date?': ('messy-sample-infection_date', dateutil.parser.parse),
+        'symptom_date?': ('messy-sample-symptom_date', dateutil.parser.parse),
+        'symptoms': ('messy-sample-symptoms', ),
         'viral_load': ('messy-sample-viral_load', float),
         'treatment': ('messy-sample-treatment', ),
         'last_vaccinated_date?': ('messy-sample-last_vaccinated_date', dateutil.parser.parse),
@@ -247,23 +250,35 @@ class SampleViewer(BaseViewer):
                 ),
 
                 t.inline_inputs(
-                    t.input_text(ff('host_age?'), 'Host Age', value=obj.host_age, offset=2, size=1),
-                    t.input_text(ff('host_gender'), 'Gender', value=obj.host_gender, offset=1, size=1,
-                                 placeholder='M/F/U'),
-                    t.input_select_ek(ff('host_occupation_id'), 'Occupation',
-                                      value=obj.host_occupation_id or dbh.get_ekey('other').id,
-                                      offset=1, size=4, parent_ek=dbh.get_ekey('@HOST_OCCUPATION')),
+                    t.input_select_ek(ff('host_status_id'), 'Host Status',
+                                      value=obj.host_status_id or dbh.get_ekey('unknown').id,
+                                      offset=2, size=2, parent_ek=dbh.get_ekey('@HOST_STATUS')),
+                    t.input_text(ff('treatment'), 'Treatment', value=obj.treatment,
+                                 offset=2, size=6),
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('infection_date?'), 'Date of infection', value=obj.infection_date,
+                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
+                    t.input_text(ff('symptom_date?'), 'Date of symptom', value=obj.symptom_date,
+                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
                     t.input_text(ff('host_severity'), 'Severity',
                                  value=-1 if obj.host_severity is None else obj.host_severity,
                                  offset=1, size=1),
                 ),
 
                 t.inline_inputs(
-                    t.input_select_ek(ff('host_status_id'), 'Host Status',
-                                      value=obj.host_status_id or dbh.get_ekey('unknown').id,
-                                      offset=2, size=2, parent_ek=dbh.get_ekey('@HOST_STATUS')),
-                    t.input_text(ff('treatment'), 'Treatment', value=obj.treatment,
-                                 offset=2, size=6),
+                    t.input_text(ff('symptoms'), 'Symptoms', value=obj.symptoms,
+                                 offset=2, size=10, placeholder='Use space to separate symptoms'),
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('host_age?'), 'Host Age', value=obj.host_age, offset=2, size=1),
+                    t.input_text(ff('host_gender'), 'Gender', value=obj.host_gender, offset=1, size=1,
+                                 placeholder='M/F/U'),
+                    t.input_select_ek(ff('host_occupation_id'), 'Occupation',
+                                      value=obj.host_occupation_id or dbh.get_ekey('other').id,
+                                      offset=1, size=4, parent_ek=dbh.get_ekey('@HOST_OCCUPATION')),
                 ),
 
                 t.inline_inputs(

@@ -17,7 +17,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
 
 import io
 
-__version__ = '20210805'
+__version__ = '20210806'
 
 # Design Consideration
 # ====================
@@ -239,6 +239,10 @@ class Sample(Base, BaseMixIn):
 
     host_severity = Column(types.Integer, nullable=False, server_default='-1')
 
+    infection_date = Column(types.Date, nullable=True)
+    symptom_date = Column(types.Date, nullable=True)
+    symptoms = Column(types.String(128), nullable=False, server_default='')
+
     category_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     category = EK.proxy('category_id', '@CATEGORY')
 
@@ -443,7 +447,7 @@ class Plate(Base, BaseMixIn):
                              back_populates='plate')
 
     sequencingruns = relationship('SequencingRunPlate', order_by='sequencingrunplates.c.plate_id',
-                                  back_populates='plates')
+                                  back_populates='plate')
 
     __ek_fields__ = ['specimen_type', 'experiment_type']
 
