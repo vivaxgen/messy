@@ -269,6 +269,7 @@ class PlateViewer(BaseViewer):
     def action_post(self):
 
         rq = self.request
+        dbh = self.dbh
         _method = rq.POST.get('_method')
 
         if _method == 'create_layout':
@@ -276,7 +277,49 @@ class PlateViewer(BaseViewer):
             layout = int(rq.POST.get('messy-plate-layout'))
             plate_utils.create_positions(plate, layout)
             rq.session.flash(('success', f'Plate layout {layout}-well has been created'))
-            return HTTPFound(location=self.request.route_url(self.view_route, id=plate.id))
+            return HTTPFound(location=rq.route_url(self.view_route, id=plate.id))
+
+        elif _method == 'delete':
+
+            plate_ids = [int(x) for x in rq.params.getall('plate-ids')]
+            plates = dbh.get_plates_by_ids(plate_ids, groups=None, user=rq.user)
+
+            if len(plates) == 0:
+                return Response(modal_error)
+
+            return Response(
+                modal_delete(
+                    title='Removing plate(s)',
+                    content=t.literal(
+                        'You are going to remove the following plate(s): '
+                        '<ul>'
+                        + ''.join(f'<li>{p.code}</li>' for p in plates)
+                        + '</ul>'
+                    ), request=rq,
+
+                ), request=rq
+            )
+
+        elif _method == 'delete/confirm':
+
+            plate_ids = [int(x) for x in rq.params.getall('plate-ids')]
+            plates = dbh.get_plates_by_ids(plate_ids, groups=None, user=rq.user)
+
+            sess = dbh.session()
+            count = left = 0
+            for p in plates:
+                if p.can_modify(rq.user):
+                    sess.delete(p)
+                    count += 1
+                else:
+                    left += 1
+
+            sess.flush()
+            rq.session.flash(
+                ('success', f'You have successfully removed {count} sample(s), kept {left} samples.')
+            )
+
+            return HTTPFound(location=rq.referer)
 
         raise RuntimeError('No defined action')
 
