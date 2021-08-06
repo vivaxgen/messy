@@ -471,7 +471,7 @@ class Plate(Base, BaseMixIn):
                 obj['user_id'] = dbh.get_user(obj['user']).id
 
             if 'group' in obj:
-                obj['group_id'] = dbh.get_group(obj['code']).id
+                obj['group_id'] = dbh.get_group(obj['group']).id
 
             convert_date(obj, 'date')
 
@@ -581,6 +581,9 @@ class SequencingRun(Base, BaseMixIn):
 
             dbh = get_dbhandler()
 
+            if 'group' in obj:
+                obj['group_id'] = dbh.get_group(obj['group']).id
+
             if 'sequencing_provider' in obj:
                 self.sequencing_provider_id = dbh.get_institutions_by_codes(
                     obj['sequencing_provider'], None, raise_if_empty=True)[0].id
@@ -594,7 +597,7 @@ class SequencingRun(Base, BaseMixIn):
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
     def as_dict(self, exclude=None):
-        d = super().as_dict(exclude={'sequences'})
+        d = super().as_dict(exclude={'sequences', 'plates', 'additional_files'})
         return d
 
     def can_modify(self, user):
