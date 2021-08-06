@@ -37,7 +37,7 @@ class ClassIndexer(object):
         self.fields = fields
 
     def text(self, obj):
-        return ' '.join(getattr(obj, f) for f in self.fields)
+        return ' '.join((getattr(obj, f) or '') for f in self.fields)
 
 
 class Updater(object):
