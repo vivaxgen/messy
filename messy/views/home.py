@@ -66,7 +66,7 @@ def formatter(abspath, request):
         # restructuredtext
         with open(abspath) as f:
             text = f.read()
-            content = literal(render_rst(text))
+            content = t.literal(render_rst(text))
 
         return render_to_response(
             'messy:templates/generic_page.mako',
