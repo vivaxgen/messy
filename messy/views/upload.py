@@ -152,9 +152,10 @@ class UploadViewer(object):
         # prepare confirmation list
 
         tbody = t.tbody(name='table-body')
-        for idx, (inst_code, inst) in enumerate(params['institutions'].items()):
-            if inst and inst_code.upper() == inst.code.upper():
-                continue
+
+        mismatch_institutions = [t for t in params['institutions'].items()
+                                 if (t[1] and t[0].upper() != t[1].code.upper())]
+        for idx, (inst_code, inst) in enumerate(mismatch_institutions):
             if inst:
                 value = inst.id
                 options = f'<option value="{inst.id}">{inst.code} | {inst.name}</option>'
@@ -171,14 +172,17 @@ class UploadViewer(object):
                 )
             )
 
-        html.add(
-            t.form('messy/sample', method='POST', action=self.request.route_url('upload-commit')).add(
-                t.input_hidden('jobid', value=job.randkey),
-                t.custom_submit_bar(
-                    ('Add new item only', 'add'),
-                    ('Update existing only', 'update'),
-                    ('Add new and update existing', 'add_update'),
-                ).set_offset(1).show_reset_button(False),
+        sform = t.form('messy/sample', method='POST', action=self.request.route_url('upload-commit')).add(
+            t.input_hidden('jobid', value=job.randkey),
+            t.custom_submit_bar(
+                ('Add new item only', 'add'),
+                ('Update existing only', 'update'),
+                ('Add new and update existing', 'add_update'),
+            ).set_offset(1).show_reset_button(False),
+        )
+
+        if len(mismatch_institutions) > 0:
+            sform.add(
                 t.h4('Confirmation'),
                 t.table(class_='table table-condensed table-striped')[
                     t.thead(
@@ -190,14 +194,16 @@ class UploadViewer(object):
                     tbody,
                 ]
             )
-        )
+
+        html.add(sform)
 
         jscode = select2_lookup(tag=".selids", minlen=3, usetag=False,
                                 placeholder="Type an institution name",
                                 parenttag="table-body",
                                 url=self.request.route_url('messy.institution-lookup'))
 
-        html[t.h4('Error messages')].add(* [t.div(msg) for msg in params['err_msgs']])
+        if len(params['err_msgs']) > 0:
+            html[t.h4('Error messages')].add(* [t.div(msg) for msg in params['err_msgs']])
 
         return render_to_response("rhombus:templates/generics/formpage.mako",
                                   {'html': html, 'code': jscode},
