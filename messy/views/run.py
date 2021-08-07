@@ -183,9 +183,13 @@ class RunViewer(BaseViewer):
 
         if _method == 'add-runplate':
 
-            plate_id = int(rq.POST.get('messy-runplate-plate_id'))
-            adapterindex_id = int(rq.POST.get('messy-runplate-adapterindex_id'))
-            lane = int(rq.POST.get('messy-runplate-lane'))
+            plate_id = int(rq.POST.get('messy-runplate-plate_id', -1))
+            if plate_id < 0:
+                return error_page(rq, 'Please select the plate you want to link!')
+            adapterindex_id = int(rq.POST.get('messy-runplate-adapterindex_id', -1))
+            if adapterindex_id < 0:
+                return error_page(rq, 'Please select the adapter-index kit!')
+            lane = int(rq.POST.get('messy-runplate-lane', 1))
             note = rq.POST.get('messy-runplate-none', '')
 
             runplate = dbh.SequencingRunPlate(
