@@ -319,7 +319,8 @@ class SampleUploadJob(UploadJob):
         except KeyError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
-        d['host_gender'] = d['host_gender'][0]
+        if 'host_gender' in d:
+            d['host_gender'] = d['host_gender'][0]
 
         for f in dbh.Sample.__ek_fields__:
             if f in d:
