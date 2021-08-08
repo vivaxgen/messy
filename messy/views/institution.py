@@ -131,7 +131,7 @@ class InstitutionViewer(BaseViewer):
                 if 'institutions.code' in detail or 'uq_institutions_code' in detail:
                     raise ParseFormError(f'The institution code: {d["code"]} is '
                                          f'already being used. Please use other institution code!',
-                                         self.ffn('code')) from err
+                                         self.ffn('code*')) from err
 
             raise RuntimeError('error updating object')
 
