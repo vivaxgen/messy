@@ -157,13 +157,15 @@ class SampleUploadJob(UploadJob):
 
         dbh = get_dbhandler()
         samples = len(self.dicts)
-        err_msgs = self.check_duplicate_codes()
+        err_msgs, existing_codes, existing_acc_codes = self.check_duplicate_codes()
 
         for d in self.dicts:
             err_msgs.extend(self.fix_fields(d, dbh))
 
         err_msgs = sorted(list(set(err_msgs)))
-        return {'samples': samples, 'err_msgs': err_msgs, 'institutions': self.institution_cache}
+        return {'samples': samples, 'existing_codes': existing_codes,
+                'existing_acc_codes': existing_acc_codes, 'err_msgs': err_msgs,
+                'institutions': self.institution_cache}
 
     def commit(self, method):
 
@@ -217,7 +219,7 @@ class SampleUploadJob(UploadJob):
         raise RuntimeError
 
     def check_duplicate_codes(self):
-        """ check for duplicate sample codes & acc_codes """
+        """ check for duplicate sample codes & acc_codes and also existing codes """
 
         composite_codes = [(r['code'], r.get('acc_code', '')) for r in self.dicts]
         codes = {}
@@ -232,7 +234,16 @@ class SampleUploadJob(UploadJob):
                 err_msgs.append(f'Duplicate acc_code: {ac}')
             else:
                 acc_codes[ac] = True
-        return err_msgs
+
+        dbh = get_dbhandler()
+
+        q = dbh.session().query(dbh.Sample.code).filter(dbh.Sample.code.in_(codes.keys()))
+        existing_codes = set([t[0] for t in q])
+
+        q = dbh.session().query(dbh.Sample.acc_code).filter(dbh.Sample.acc_code.in_(acc_codes.keys()))
+        existing_acc_codes = set([t[0] for t in q])
+
+        return err_msgs, existing_codes, existing_acc_codes
 
     def get_institution(self, inst_code, dbh):
         if inst_code not in self.institution_cache:
@@ -310,7 +321,7 @@ class SampleUploadJob(UploadJob):
                 d['originating_institution'] = inst.code
                 d['originating_institution_id'] = inst.id
                 self.institution_translation_table[code] = (inst.code, inst.id)
-                err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
+                #err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
         except KeyError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
             self.institution_translation_table[code] = None
@@ -323,7 +334,7 @@ class SampleUploadJob(UploadJob):
                 d['sampling_institution'] = inst.code
                 d['sampling_institution_id'] = inst.id
                 self.institution_translation_table[code] = (inst.code, inst.id)
-                err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
+                #err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
         except KeyError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 

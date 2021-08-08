@@ -145,8 +145,22 @@ class UploadViewer(object):
         params = job.confirm()
         html = t.div()[
             t.h3('Sample Upload Confirmation'),
-            t.div(f"No of samples: {params['samples']}"),
-            t.div(f"Error messages: {len(params['err_msgs'])}"),
+            t.div(f"No of total samples: {params['samples']}"),
+            t.div(f"No of existing samples by codes: {len(params['existing_codes'])}",
+                  t.button('View', class_='btn btn-sm btn-link', type='button',
+                           **{'data-toggle': 'collapse', 'data-target': '#codelist',
+                              'aria-expanded': 'true', 'aria-controls': 'codelist'})),
+            t.div(t.div(t.div(class_='card card-body')[' '.join(params['existing_codes'])],
+                  class_='collapse', id='codelist')
+                  ),
+            t.div(f"No of exsiting samples by acc_codes: {len(params['existing_acc_codes'])}",
+                  t.button('View', class_='btn btn-sm btn-link', type='button',
+                           **{'data-toggle': 'collapse', 'data-target': '#acccodelist',
+                              'aria-expanded': 'true', 'aria-controls': 'acccodelist'})),
+            t.div(t.div(t.div(class_='card card-body')[' '.join(params['existing_acc_codes'])],
+                  class_='collapse', id='acccodelist')
+                  ),
+            t.div(f"Warning messages: {len(params['err_msgs'])}"),
         ]
 
         # prepare confirmation list
@@ -203,7 +217,7 @@ class UploadViewer(object):
                                 url=self.request.route_url('messy.institution-lookup'))
 
         if len(params['err_msgs']) > 0:
-            html[t.h4('Error messages')].add(* [t.div(msg) for msg in params['err_msgs']])
+            html[t.h4('Warning messages')].add(* [t.div(msg) for msg in params['err_msgs']])
 
         return render_to_response("rhombus:templates/generics/formpage.mako",
                                   {'html': html, 'code': jscode},
