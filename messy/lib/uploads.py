@@ -261,7 +261,7 @@ class SampleUploadJob(UploadJob):
             ekey = self.ekey_cache[t]
 
         if ekey is None:
-            raise KeyError(f'key "{key}" not found')
+            raise KeyError(f'key "{key}" for group "{group}" not found')
         return ekey
 
     @functools.cache
@@ -292,9 +292,17 @@ class SampleUploadJob(UploadJob):
         return []
 
     def fix_fields(self, d, dbh):
+        try:
+            return self._fix_fields(d, dbh)
+
+        except Exception as err:
+            raise RuntimeError(f'Error parsing data: {err}\r\nduring processing {d}') from err
+
+    def _fix_fields(self, d, dbh):
 
         err_msgs = []
 
+        d['originating_institution'] = d.get('originating_institution', '') or 'NOT-AVAILABLE'
         code = d['originating_institution']
         try:
             inst = self.get_institution(code, dbh)
@@ -320,7 +328,10 @@ class SampleUploadJob(UploadJob):
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
         if 'host_gender' in d:
-            d['host_gender'] = d['host_gender'][0]
+            gender = d['host_gender']
+            d['host_gender'] = gender[0] if gender else None
+
+        d['host_status'] = d.get('host_status', '') or 'unknown'
 
         for f in dbh.Sample.__ek_fields__:
             if f in d:

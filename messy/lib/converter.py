@@ -27,7 +27,7 @@ def import_gisaid_csv(filename):
 
             host=r['covv_host'],
             host_info=r['covv_add_host_info'] or '',
-            host_gender=r['covv_gender'][0],
+            host_gender=r['covv_gender'][0] if r['covv_gender'] else '',
             host_age=r['covv_patient_age'],
             host_status=r['covv_patient_status'],
             host_occupation='other',
@@ -43,14 +43,14 @@ def import_gisaid_csv(filename):
 
             ct_method='rtpcr',
         )
-        d['category'] = 'S-SU' if not d['last_vaccinated_info'] else 'F-PO'
+        d['category'] = 'r-ra' if not d['last_vaccinated_info'] else 'F-PO'
         if type(d['host_age']) == str:
             if 'month' in d['host_age'].lower():
                 d['host_age'] = int(d['host_age'].split()[0]) / 12
-            elif 'unknown' in d['host_age'].lower():
+            elif ('unknown' in d['host_age'].lower()) or (d['host_age'] == ''):
                 d['host_age'] = -1
             else:
-                d['host_age'] = int(d['host_age'])
+                d['host_age'] = float(d['host_age'])
         a_list.append(d)
 
     return a_list
