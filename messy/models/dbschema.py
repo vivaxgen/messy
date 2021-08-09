@@ -35,6 +35,10 @@ __version__ = '20210806'
 #
 
 
+# set default date to middle of month
+default_date = datetime.date(1970, 1, 15)
+
+
 def dict_from_fields(obj, fields, exclude=None):
     d = {}
     for f in fields:
@@ -46,7 +50,7 @@ def dict_from_fields(obj, fields, exclude=None):
 
 def convert_date(obj, field, now=None):
     if field in obj and isinstance(obj[field], str):
-        date_value = dateutil.parser.parse(obj[field])
+        date_value = dateutil.parser.parse(obj[field], default=default_date)
         if now and date_value > now:
             raise RuntimeError(f'Invalid date in the future: {date_value}')
         obj[field] = date_value
@@ -339,11 +343,9 @@ class Sample(Base, BaseMixIn):
                 self.sampling_institution_id = dbh.get_institutions_by_codes(
                     obj['sampling_institution'], None, raise_if_empty=True)[0].id
 
-            now = datetime.datetime.now()
+            now = datetime.date.today()
             for f in ['collection_date', 'received_date', 'host_dob']:
                 convert_date(obj, f, now)
-
-            print(obj)
 
             self.update_fields_with_dict(obj, additional_fields=['attachment'])
             self.update_ek_with_dict(obj, dbh=dbh)
