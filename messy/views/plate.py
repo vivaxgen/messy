@@ -203,7 +203,7 @@ class PlateViewer(BaseViewer):
                 return list(zip(*volumes))
 
             elif name == 'tabular':
-                return list([[p.position, p.sample.code, p.value, p.volume]
+                return list([[p.position, p.sample.code, p.value, p.volume, p.note if p.note else '']
                             for idx, p in enumerate(plate.positions, 1)])
 
             return []
@@ -256,6 +256,12 @@ class PlateViewer(BaseViewer):
                             plate.positions[idx].value = float(value)
                         elif _c == '3':
                             plate.positions[idx].volume = float(value)
+                        elif _c == '4':
+                            if (value := value.strip()):
+                                value = value[:31]
+                            else:
+                                value = None
+                            plate.positions[idx].note = value[:31]
                 return {'success': True}
 
         elif _m == t.PUT:
@@ -434,7 +440,8 @@ template_additional_options_js = """
         { title: 'Position', width: 75, readOnly: true },
         { title: 'Sample Code', width:100 },
         { title: 'Value', width: 75},
-        { title: 'Volume', width: 75 }
+        { title: 'Volume', width: 75 },
+        { title: 'Note', width: 175 },
     ],
     updateTable: function (instance, cell, col, row, val, id) {
         if (col == 1) {
