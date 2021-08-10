@@ -495,7 +495,7 @@ class Plate(Base, BaseMixIn):
 
     def add_positions(self, positions):
         session = object_session(self)
-        empty = Sample.query(object_session(self)).filter(Sample.code == 'none').one()
+        empty = Sample.query(object_session(self)).filter(Sample.code == '-').one()
         platepositions = []
         for pos in positions:
             platepos = PlatePosition(plate_id=self.id, sample_id=empty.id, position=pos)

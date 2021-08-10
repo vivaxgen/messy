@@ -52,7 +52,7 @@ def setup(dbh):
     samples = [
         dbh.Sample(
             collection=dbh.get_collections_by_codes('CONTROL', None)[0],
-            code='none',
+            code='-',
             received_date=parser.parse('1970'),
             collection_date=parser.parse('1970'),
             species='no-species',
@@ -113,6 +113,21 @@ def setup(dbh):
         dbh.Sample(
             collection=dbh.get_collections_by_codes('CONTROL', None)[0],
             code='NTC4',
+            received_date=parser.parse('1970'),
+            collection_date=parser.parse('1970'),
+            species='no-species',
+            host='no-species',
+            host_occupation='other',
+            host_status='unknown',
+            category='R-RA',
+            specimen_type='water',
+            ct_method='no-ct',
+            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+        ),
+        dbh.Sample(
+            collection=dbh.get_collections_by_codes('CONTROL', None)[0],
+            code='*',
             received_date=parser.parse('1970'),
             collection_date=parser.parse('1970'),
             species='no-species',
