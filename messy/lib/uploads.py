@@ -191,16 +191,12 @@ class SampleUploadJob(UploadJob):
                 dbh.session().add(obj)
                 added += 1
 
-            return added, updated
-
         elif method == 'update':
 
             for code in existing_codes:
                 obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
                 obj.update(samples[code])
                 updated += 1
-
-            return added, updated
 
         elif method == 'add_update':
 
@@ -210,13 +206,14 @@ class SampleUploadJob(UploadJob):
                     obj.update(d)
                     updated += 1
                     continue
-                obj = dbh.Institution.from_dict(d)
+                obj = dbh.Institution.from_dict(d, dbh)
                 dbh.session().add(obj)
                 added += 1
 
-            return added, updated
+        else:
+            raise RuntimeError('method is not registered')
 
-        raise RuntimeError
+        return added, updated
 
     def check_duplicate_codes(self):
         """ check for duplicate sample codes & acc_codes and also existing codes """
@@ -321,7 +318,6 @@ class SampleUploadJob(UploadJob):
                 d['originating_institution'] = inst.code
                 d['originating_institution_id'] = inst.id
                 self.institution_translation_table[code] = (inst.code, inst.id)
-                #err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
         except KeyError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
             self.institution_translation_table[code] = None
@@ -334,7 +330,6 @@ class SampleUploadJob(UploadJob):
                 d['sampling_institution'] = inst.code
                 d['sampling_institution_id'] = inst.id
                 self.institution_translation_table[code] = (inst.code, inst.id)
-                #err_msgs.append(f'WARN: Institution code "{code}" => {inst.code} | {inst.name}')
         except KeyError:
             err_msgs.append(f'ERR: Institution code "{code}" not found!')
 
