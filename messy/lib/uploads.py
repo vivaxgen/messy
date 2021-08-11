@@ -208,6 +208,8 @@ class SampleUploadJob(UploadJob):
                 obj.update(samples[code])
                 updated += 1
 
+            dbh.session().flush()
+
             for d in samples.values():
                 if d['code'] in existing_codes:
                     continue
