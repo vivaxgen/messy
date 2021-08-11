@@ -200,11 +200,16 @@ class SampleUploadJob(UploadJob):
 
         elif method == 'add_update':
 
+            # we perform updates first before addition in case any of the updates fix inconsistency
+            # or constraint that addition may cause
+
+            for code in existing_codes:
+                obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
+                obj.update(samples[code])
+                updated += 1
+
             for d in samples.values():
                 if d['code'] in existing_codes:
-                    obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == d['code']).one()
-                    obj.update(d)
-                    updated += 1
                     continue
                 obj = dbh.Institution.from_dict(d, dbh)
                 dbh.session().add(obj)
