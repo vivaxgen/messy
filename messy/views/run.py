@@ -305,7 +305,9 @@ def generate_runplate_table(run, request):
         table_body.add(
             t.tr(
                 t.td(t.literal(f'<input type="checkbox" name="runplate-ids" value="{runplate.id}" />')),
-                t.td(runplate.plate.code),
+                t.td(t.a(runplate.plate.code, href=request.route_url('messy.plate-view', id=runplate.plate.id))),
+                t.td(runplate.plate.specimen_type),
+                t.td(runplate.plate.experiment_type),
                 t.td(runplate.adapterindex),
                 t.td('1'),
                 t.td(runplate.note[:30]),
@@ -317,6 +319,8 @@ def generate_runplate_table(run, request):
             t.tr(
                 t.th('', style="width: 2em"),
                 t.th('Plate Code'),
+                t.th('Specimen'),
+                t.th('Experiment'),
                 t.th('Adapter-Index'),
                 t.th('Lane'),
                 t.th('Note')
