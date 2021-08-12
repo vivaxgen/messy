@@ -5,7 +5,7 @@ from rhombus.lib.utils import cerr, cout
 # from .setup import setup
 
 from messy.models import dbschema
-from messy.lib.roles import *
+from messy.lib import roles as r
 from sqlalchemy import or_, and_
 
 
@@ -93,12 +93,22 @@ class DBHandler(rhombus_handler.DBHandler):
 
     # Collections
 
-    def get_collections(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
+    def get_collections(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False,
+                        ignore_acl=False):
 
         q = self.construct_query(self.Collection, specs)
+
+        if not ignore_acl and groups is None and user is None:
+            raise ValueError('ERR: either groups or user needs to be provided!')
+
+        if not ignore_acl and groups is None:
+            if not user.has_roles(r.SYSADM, r.DATAADM, r.COLLECTION_MANAGE):
+                groups = user.groups
+
         if groups is not None:
             # enforce security
             q = q.filter(self.Collection.group_id.in_([x[1] for x in groups]))
+
         if fetch:
             q = q.order_by(self.Collection.code)
 
@@ -123,10 +133,10 @@ class DBHandler(rhombus_handler.DBHandler):
         # all samples under collections owned by certain groups to enforce security
 
         if not override_security and groups is None and user is None:
-            raise RuntimeError('ERR: either groups or user needs to be provided!')
+            raise ValueError('ERR: either groups or user needs to be provided!')
 
         if not override_security and groups is None:
-            if not user.has_roles(SYSADM, DATAADM, SAMPLE_MANAGE):
+            if not user.has_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE):
                 groups = user.groups
 
         if groups is not None:

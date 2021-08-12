@@ -219,14 +219,30 @@ class SampleUploadJob(UploadJob):
         updated = failed = 0
         for code in existing_codes:
             obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
+
+            # ensure that current user can modify the sample
             if not obj.can_modify(user):
                 failed += 1
                 continue
+
+            # ensure if current user wants to change collection, the user is also a member
+            # of the group of the target collection
+            sample = samples[code]
+            if (collection := sample.get('collection', None)):
+                if not dbh.get_collections_by_codes(collection, groups=None, user=user):
+                    # current user cannot get collection (either wrong colletion or not a member)
+                    failed += 1
+                    continue
+            if (collection_id := sample.get('collection_id', None)):
+                if not dbh.get_collections_by_ids(collection_id, groups=None, user=user):
+                    # current user cannot get collection (either wrong colletion or not a member)
+                    failed += 1
+                    continue
+
             obj.update(samples[code])
             updated += 1
 
         return updated, failed
-
 
     def check_duplicate_codes(self):
         """ check for duplicate sample codes & acc_codes and also existing codes """

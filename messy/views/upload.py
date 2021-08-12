@@ -331,7 +331,8 @@ def sample_upload_form(request):
                               ' to see templates.'),
             t.input_select('messy-sample/collection_id', 'Collection',
                            value=None, offset=1, size=2,
-                           options=[(c.id, c.code) for c in dbh.get_collections(groups=None)]),
+                           options=[(c.id, c.code) for c in dbh.get_collections(groups=None,
+                                                                                user=request.user)]),
             t.custom_submit_bar(('Upload', 'upload_samples')).set_offset(1),
         )
     )

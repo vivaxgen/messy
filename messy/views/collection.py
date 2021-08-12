@@ -39,8 +39,8 @@ class CollectionViewer(BaseViewer):
             else:
                 return error_page('You do not have access to view collections that belong to this group.')
 
-        elif self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SYSVIEW, r.DATAVIEW):
-            collections = self.dbh.get_collections(groups=None)
+        elif self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SYSVIEW, r.DATAVIEW, r.COLLECTION_MANAGE):
+            collections = self.dbh.get_collections(groups=None, ignore_acl=True)
         else:
             collections = self.dbh.get_collections(groups=self.request.user.groups)
 
