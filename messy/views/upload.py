@@ -118,7 +118,7 @@ class UploadViewer(object):
 
         if self.request.method == 'POST':
             collection_id = int(self.request.params.get('messy-sample/collection_id', 0))
-            collection = self.dbh.get_collections_by_ids([collection_id], None)[0]
+            collection = self.dbh.get_collections_by_ids([collection_id], None, user=self.request.user)[0]
             if not collection.can_upload(self.request.user):
                 raise RuntimeError('Current user cannot upload sample to this collection')
 
