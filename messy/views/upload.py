@@ -189,9 +189,9 @@ class UploadViewer(object):
         sform = t.form('messy/sample', method='POST', action=self.request.route_url('upload-commit')).add(
             t.input_hidden('jobid', value=job.randkey),
             t.custom_submit_bar(
-                ('Add new item only', 'add'),
+                ('Add new samples only', 'add'),
                 ('Update existing only', 'update'),
-                ('Add new and update existing', 'add_update'),
+                ('Update existing and add new samples', 'add_update'),
             ).set_offset(1).show_reset_button(False),
         )
 
@@ -239,11 +239,12 @@ class UploadViewer(object):
                 raise RuntimeError('mismatch order of institution code and id')
             job.institution_cache[inst_code[1]] = self.dbh.get_institution_by_ids(inst_id)[0]
 
-        added, updated = job.commit(method)
+        added, updated, failed = job.commit(method, self.request.user)
         html = t.div()[
             t.h2('Uploaded Samples'),
             t.div(f"Added sample(s): {added}"),
             t.div(f"Updated sample(s): {updated}"),
+            t.div(f"Failed sample(s): {failed}"),
         ]
         return render_to_response("messy:templates/generic_page.mako",
                                   {'html': html, },
@@ -276,7 +277,7 @@ class UploadViewer(object):
                 t.custom_submit_bar(
                     ('Add new item only', 'add'),
                     ('Update existing only', 'update'),
-                    ('Add new and update existing', 'add_update'),
+                    ('Update existing and add new', 'add_update'),
                 ).set_offset(1).show_reset_button(False)
             )
         )
@@ -288,11 +289,12 @@ class UploadViewer(object):
     def commitpage_institution(self, job):
 
         method = self.request.POST['_method']
-        added, updated = job.commit(method)
+        added, updated, failed = job.commit(method)
         html = t.div()[
             t.h2('Uploaded Institution'),
             t.div(f"Added institution(s): {added}"),
             t.div(f"Updated institution(s): {updated}"),
+            t.div(f"Failed institution(s): {failed}")
         ]
         return render_to_response("messy:templates/generic_page.mako",
                                   {'html': html, },

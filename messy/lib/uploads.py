@@ -95,7 +95,7 @@ class InstitutionUploadJob(UploadJob):
     def commit(self, method):
 
         dbh = get_dbhandler()
-        updated = added = 0
+        updated = added = failed = 0
 
         institutions = {}
         for d in self.dicts:
@@ -114,8 +114,6 @@ class InstitutionUploadJob(UploadJob):
                 dbh.session().add(obj)
                 added += 1
 
-            return added, updated
-
         elif method == 'update':
 
             for code in existing_codes:
@@ -123,23 +121,26 @@ class InstitutionUploadJob(UploadJob):
                 obj.update(institutions[code])
                 updated += 1
 
-            return added, updated
-
         elif method == 'add_update':
+
+            for code in existing_codes:
+                obj = dbh.Institution.query(dbh.session()).filter(dbh.Institution.code == code).one()
+                obj.update(institutions[code])
+                updated += 1
+
+            dbh.session().flush()
 
             for d in institutions.values():
                 if d['code'] in existing_codes:
-                    obj = dbh.Institution.query(dbh.session()).filter(dbh.Institution.code == d['code']).one()
-                    obj.update(d)
-                    updated += 1
                     continue
                 obj = dbh.Institution.from_dict(d, dbh)
                 dbh.session().add(obj)
                 added += 1
 
-            return added, updated
+        else:
+            raise RuntimeError('unrecognized method')
 
-        raise RuntimeError
+        return added, updated, failed
 
 
 class SampleUploadJob(UploadJob):
@@ -167,10 +168,10 @@ class SampleUploadJob(UploadJob):
                 'existing_acc_codes': existing_acc_codes, 'err_msgs': err_msgs,
                 'institutions': self.institution_cache}
 
-    def commit(self, method):
+    def commit(self, method, user):
 
         dbh = get_dbhandler()
-        updated = added = 0
+        updated = added = failed = 0
 
         samples = {}
         for d in self.dicts:
@@ -195,6 +196,9 @@ class SampleUploadJob(UploadJob):
 
             for code in existing_codes:
                 obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
+                if not obj.can_modify(user):
+                    failed += 1
+                    continue
                 obj.update(samples[code])
                 updated += 1
 
@@ -205,6 +209,9 @@ class SampleUploadJob(UploadJob):
 
             for code in existing_codes:
                 obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
+                if not obj.can_modify(user):
+                    failed += 1
+                    continue
                 obj.update(samples[code])
                 updated += 1
 
@@ -213,14 +220,15 @@ class SampleUploadJob(UploadJob):
             for d in samples.values():
                 if d['code'] in existing_codes:
                     continue
-                obj = dbh.Institution.from_dict(d, dbh)
+                d['collection_id'] = self.collection_id
+                obj = dbh.Sample.from_dict(d, dbh)
                 dbh.session().add(obj)
                 added += 1
 
         else:
             raise RuntimeError('method is not registered')
 
-        return added, updated
+        return added, updated, failed
 
     def check_duplicate_codes(self):
         """ check for duplicate sample codes & acc_codes and also existing codes """
