@@ -13,7 +13,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import object_session
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
-                        Identity)
+                        Identity, select)
 
 import io
 
@@ -307,6 +307,9 @@ class Sample(Base, BaseMixIn):
                                     collection_class=attribute_mapped_collection('id'),
                                     order_by=FileAttachment.filename)
 
+    platepositions = relationship('PlatePosition', back_populates='sample',
+                                  passive_deletes=True)
+
     sequences = relationship('Sequence', lazy='dynamic', back_populates='sample',
                              passive_deletes=True)
 
@@ -379,6 +382,26 @@ class Sample(Base, BaseMixIn):
             return True
         return False
 
+    # aux methods
+
+    def get_related_platepositions(self):
+        """return [ (plate, position), ... ] related to plates"""
+        dbsess = object_session(self)
+        return dbsess.execute(
+            select(PlatePosition, Plate).
+            join(Plate).
+            filter(PlatePosition.sample_id == self.id)).all()
+
+    def get_related_runs(self):
+        """return [ (run, plateposition, plate), ...]"""
+        dbsess = object_session(self)
+        return dbsess.execute(
+            select(SequencingRun, SequencingRunPlate, Plate, PlatePosition).
+            join(SequencingRunPlate, SequencingRunPlate.sequencingrun_id == SequencingRun.id).
+            join(Plate, Plate.id == SequencingRunPlate.plate_id).
+            join(PlatePosition, PlatePosition.plate_id == Plate.id).
+            filter(PlatePosition.sample_id == self.id)).all()
+
 
 sample_file_table = Table(
     'samples_files', metadata,
@@ -400,7 +423,7 @@ class PlatePosition(Base, BaseMixIn):
     plate = relationship("Plate", uselist=False, foreign_keys=plate_id, back_populates='positions')
 
     sample_id = Column(types.Integer, ForeignKey('samples.id'), index=True, nullable=False)
-    sample = relationship(Sample, uselist=False, foreign_keys=sample_id)
+    sample = relationship(Sample, uselist=False, foreign_keys=sample_id, back_populates='platepositions')
 
     # position will be 384:A01 -> P24, 96: A01 -> H12
     position = Column(types.String(3), nullable=False, server_default='')
@@ -411,6 +434,9 @@ class PlatePosition(Base, BaseMixIn):
     __table_args__ = (
         UniqueConstraint('plate_id', 'position'),
     )
+
+    def __repr__(self):
+        return f"PlatePosition(plate_id={self.plate_id}, sample_id={self.sample_id}, {self.position})"
 
 
 class Plate(Base, BaseMixIn):
@@ -445,7 +471,7 @@ class Plate(Base, BaseMixIn):
                                     collection_class=attribute_mapped_collection('id'),
                                     order_by=FileAttachment.filename)
 
-    positions = relationship(PlatePosition, order_by='platepositions.c.id', passive_deletes=True,
+    positions = relationship(PlatePosition, order_by='PlatePosition.id', passive_deletes=True,
                              back_populates='plate')
 
     sequencingruns = relationship('SequencingRunPlate', order_by='sequencingrunplates.c.plate_id',
@@ -456,9 +482,17 @@ class Plate(Base, BaseMixIn):
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.PLATE_MANAGE}
     __modifying_roles__ = __managing_roles__ | {r.PLATE_MODIFY}
 
-    @declared_attr
-    def has_layout(cls):
-        return column_property(exists().where(PlatePosition.plate_id == cls.id))
+    #
+    # using column_property interferes with auto-correlation when using select(Plate, PlatePosition)
+    # @declared_attr
+    # def has_layout(self):
+    #    return column_property(exists().where(PlatePosition.plate_id == self.id))
+    #
+
+    def has_layout(self):
+        return object_session(self).execute(
+            exists().where(PlatePosition.plate_id == self.id)
+        ).scalar()
 
     def __repr__(self):
         return f"Plate('{self.code}')"

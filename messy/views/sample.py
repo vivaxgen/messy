@@ -332,6 +332,24 @@ class SampleViewer(BaseViewer):
 
         return t.div()[t.h2('Sample'), eform], jscode
 
+    def view_helper(self, render=True):
+
+        sample_html, sample_jscode = super().view_helper(render=False)
+
+        sample_html.add(
+            t.hr,
+        )
+
+        platepos_html, platepos_js = generate_plateposition_table(self.obj, self.request)
+        sample_html.add(platepos_html)
+        sample_jscode += platepos_js
+
+        run_html, run_js = generate_run_table(self.obj, self.request)
+        sample_html.add(run_html)
+        sample_jscode += run_js
+
+        return self.render_edit_form(sample_html, sample_jscode)
+
     def lookup_helper(self):
         q = self.request.params.get('q')
         if not q:
@@ -416,12 +434,6 @@ class SampleViewer(BaseViewer):
         self.obj = res[0]
         return self.obj
 
-    def view_halper(self, render=True):
-
-        sample_html, sample_jscode = super().view_helper(render=False)
-
-        return self.render_edit_form(sample_html, sample_jscode)
-
 
 def generate_sample_table(samples, request):
 
@@ -476,5 +488,76 @@ def generate_sample_table(samples, request):
         code = ''
 
     return html, code
+
+
+def generate_plateposition_table(sample, request):
+
+    table_body = t.tbody()
+
+    if len(sample.platepositions) == 0:
+        return t.div('No related plates'), ''
+
+    for platepos in sample.platepositions:
+        table_body.add(
+            t.tr(
+                t.td(t.a(platepos.plate.code, href=request.route_url('messy.plate-view',
+                                                                     id=platepos.plate.id))),
+                t.td(platepos.position),
+                t.td(platepos.plate.specimen_type),
+                t.td(platepos.plate.experiment_type),
+                t.td(platepos.note)
+            )
+        )
+
+    platepos_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('Plate Code'),
+                t.th('Position'),
+                t.th('Specimen'),
+                t.th('Experiment'),
+                t.th('Note'),
+            )
+        )
+    ]
+
+    platepos_table.add(table_body)
+    html = t.div(t.h5('Plates'), platepos_table)
+
+    return html, ''
+
+
+def generate_run_table(sample, request):
+
+    runs = sample.get_related_runs()
+
+    if len(runs) == 0:
+        return t.div('No related sequencing runs'), ''
+
+    table_body = t.tbody()
+
+    for run, runplate, plate, platepos in runs:
+        table_body.add(
+            t.tr(
+                t.td(t.a(run.code, href=request.route_url('messy.run-view', id=run.id))),
+                t.td(platepos.position),
+                t.td(plate.code),
+            )
+        )
+
+    run_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('Run Code'),
+                t.th('Position'),
+                t.th('Plate Code'),
+            )
+        )
+    ]
+    run_table.add(table_body)
+
+    html = t.div(t.h5('Sequencing Runs'), run_table)
+
+    return html, ''
 
 # EOF
