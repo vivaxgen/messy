@@ -184,51 +184,49 @@ class SampleUploadJob(UploadJob):
 
         if method == 'add':
 
-            for d in samples.values():
-                if d['code'] in existing_codes:
-                    continue
-                d['collection_id'] = self.collection_id
-                obj = dbh.Sample.from_dict(d, dbh)
-                dbh.session().add(obj)
-                added += 1
+            added = self._add_samples(samples, existing_codes, dbh)
 
         elif method == 'update':
 
-            for code in existing_codes:
-                obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
-                if not obj.can_modify(user):
-                    failed += 1
-                    continue
-                obj.update(samples[code])
-                updated += 1
+            updated, failed = self._update_samples(samples, existing_codes, dbh, user)
 
         elif method == 'add_update':
 
             # we perform updates first before addition in case any of the updates fix inconsistency
             # or constraint that addition may cause
 
-            for code in existing_codes:
-                obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
-                if not obj.can_modify(user):
-                    failed += 1
-                    continue
-                obj.update(samples[code])
-                updated += 1
-
+            updated, failed = self._update_samples(samples, existing_codes, dbh, user)
             dbh.session().flush()
-
-            for d in samples.values():
-                if d['code'] in existing_codes:
-                    continue
-                d['collection_id'] = self.collection_id
-                obj = dbh.Sample.from_dict(d, dbh)
-                dbh.session().add(obj)
-                added += 1
+            added = self._add_samples(samples, existing_codes, dbh)
 
         else:
             raise RuntimeError('method is not registered')
 
         return added, updated, failed
+
+    def _add_samples(self, samples, existing_codes, dbh):
+        added = 0
+        for d in samples.values():
+            if d['code'] in existing_codes:
+                continue
+            d['collection_id'] = self.collection_id
+            obj = dbh.Sample.from_dict(d, dbh)
+            dbh.session().add(obj)
+            added += 1
+        return added
+
+    def _update_samples(self, samples, existing_codes, dbh, user):
+        updated = failed = 0
+        for code in existing_codes:
+            obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
+            if not obj.can_modify(user):
+                failed += 1
+                continue
+            obj.update(samples[code])
+            updated += 1
+
+        return updated, failed
+
 
     def check_duplicate_codes(self):
         """ check for duplicate sample codes & acc_codes and also existing codes """
