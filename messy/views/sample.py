@@ -541,7 +541,7 @@ def generate_run_table(sample, request):
             t.tr(
                 t.td(t.a(run.code, href=request.route_url('messy.run-view', id=run.id))),
                 t.td(platepos.position),
-                t.td(plate.code),
+                t.td(t.a(plate.code, href=request.route_url('messy.plate-view', id=plate.id))),
             )
         )
 
