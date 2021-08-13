@@ -242,10 +242,32 @@ class UploadViewer(object):
         added, updated, failed = job.commit(method, self.request.user)
         html = t.div()[
             t.h2('Uploaded Samples'),
-            t.div(f"Added sample(s): {added}"),
-            t.div(f"Updated sample(s): {updated}"),
-            t.div(f"Failed sample(s): {failed}"),
+            t.div(f"Added sample(s): {len(added)}"),
+            t.div(f"Updated sample(s): {len(updated)}"),
+            t.div(f"Failed sample(s): {len(failed)}"),
         ]
+
+        # create a verbose log
+        log_lines = []
+
+        # failed samples
+        log_lines.append('Failed samples:')
+        log_lines += [('\t%s\t%s' % row) for row in sorted(failed)]
+
+        # updated samples
+        log_lines.append('Updated samples:')
+        log_lines += [('\t%s' % code) for code in sorted(updated)]
+
+        # added samples
+        log_lines.append('Added samples:')
+        log_lines += [('\t%s' % code) for code in sorted(added)]
+
+        html.add(t.div().add(
+            t.hr,
+            t.h5('Complete log'),
+            t.pre('\r\n'.join(log_lines))
+        ))
+
         return render_to_response("messy:templates/generic_page.mako",
                                   {'html': html, },
                                   request=self.request)

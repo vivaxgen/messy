@@ -171,7 +171,10 @@ class SampleUploadJob(UploadJob):
     def commit(self, method, user):
 
         dbh = get_dbhandler()
-        updated = added = failed = 0
+        updated = []
+        added = []
+        not_added = []
+        failed = []
 
         samples = {}
         for d in self.dicts:
@@ -184,7 +187,7 @@ class SampleUploadJob(UploadJob):
 
         if method == 'add':
 
-            added = self._add_samples(samples, existing_codes, dbh)
+            added, not_added = self._add_samples(samples, existing_codes, dbh)
 
         elif method == 'update':
 
@@ -197,7 +200,10 @@ class SampleUploadJob(UploadJob):
 
             updated, failed = self._update_samples(samples, existing_codes, dbh, user)
             dbh.session().flush()
-            added = self._add_samples(samples, existing_codes, dbh)
+            added, not_added = self._add_samples(samples, existing_codes, dbh)
+            error_samples = set(updated) - set(not_added)
+            for code in error_samples:
+                failed.append((code, 'this sample is not updated nor added'))
 
         else:
             raise RuntimeError('method is not registered')
@@ -205,42 +211,60 @@ class SampleUploadJob(UploadJob):
         return added, updated, failed
 
     def _add_samples(self, samples, existing_codes, dbh):
-        added = 0
+        added = []
+        not_added = []
         for d in samples.values():
-            if d['code'] in existing_codes:
-                continue
-            d['collection_id'] = self.collection_id
-            obj = dbh.Sample.from_dict(d, dbh)
-            dbh.session().add(obj)
-            added += 1
-        return added
+            try:
+                if d['code'] in existing_codes:
+                    not_added.append(d['code'])
+                    continue
+                d['collection_id'] = self.collection_id
+                obj = dbh.Sample.from_dict(d, dbh)
+                dbh.session().add(obj)
+                added.append(obj.code)
+
+            except Exception as err:
+                raise RuntimeError(
+                    f'Error while processing sample code {d["code"]} with message:\n{str(err)}'
+                ) from err
+
+        return added, not_added
 
     def _update_samples(self, samples, existing_codes, dbh, user):
-        updated = failed = 0
+        updated = []
+        failed = []
         for code in existing_codes:
-            obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
+            try:
+                obj = dbh.Sample.query(dbh.session()).filter(dbh.Sample.code == code).one()
 
-            # ensure that current user can modify the sample
-            if not obj.can_modify(user):
-                failed += 1
-                continue
-
-            # ensure if current user wants to change collection, the user is also a member
-            # of the group of the target collection
-            sample = samples[code]
-            if (collection := sample.get('collection', None)):
-                if not dbh.get_collections_by_codes(collection, groups=None, user=user):
-                    # current user cannot get collection (either wrong colletion or not a member)
-                    failed += 1
-                    continue
-            if (collection_id := sample.get('collection_id', None)):
-                if not dbh.get_collections_by_ids(collection_id, groups=None, user=user):
-                    # current user cannot get collection (either wrong colletion or not a member)
-                    failed += 1
+                # ensure that current user can modify the sample
+                if not obj.can_modify(user):
+                    failed.append((obj.code, f'{user.login} do not have permission to modify'))
                     continue
 
-            obj.update(samples[code])
-            updated += 1
+                # ensure if current user wants to change collection, the user is also a member
+                # of the group of the target collection
+                sample = samples[code]
+                if (collection := sample.get('collection', None)):
+                    if not dbh.get_collections_by_codes(collection, groups=None, user=user):
+                        # current user cannot get collection (either wrong colletion or not a member)
+                        failed.append((obj.code, f'either collection {collection} does not exist or '
+                                                 f'{user.login} is not a member of {collection}'))
+                        continue
+                if (collection_id := sample.get('collection_id', None)):
+                    if not dbh.get_collections_by_ids(collection_id, groups=None, user=user):
+                        # current user cannot get collection (either wrong colletion or not a member)
+                        failed.append((obj.code, f'either collection_id {collection_id} does not exist or '
+                                                 f'{user.login} is not a member the collection'))
+                        continue
+
+                obj.update(samples[code])
+                updated.append(code)
+
+            except Exception as err:
+                raise RuntimeError(
+                    f'Error while processing sample code {code} with message:\n{str(err)}'
+                ) from err
 
         return updated, failed
 
