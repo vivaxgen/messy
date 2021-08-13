@@ -161,8 +161,7 @@ class SampleViewer(BaseViewer):
                     t.input_select('messy-sample-collection_id', 'Collection', value=obj.collection_id,
                                    offset=2, size=2,
                                    options=[(c.id, c.code) for c in dbh.get_collections(
-                                       groups=None if req.user.has_roles(r.SYSADM, r.DATAADM)
-                                       else req.user.groups)]),
+                                       groups=None, user=req.user)]),
                     t.input_text(ff('code*'), '* Code', value=obj.code, offset=1, size=3,
                                  popover='Code|Unique code to be used in lab'),
                     t.input_text(ff('acc_code'), 'Acc Code', value=obj.acc_code, offset=1, size=3,
