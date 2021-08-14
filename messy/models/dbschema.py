@@ -336,7 +336,8 @@ class Sample(Base, BaseMixIn):
             dbh = get_dbhandler()
 
             if 'collection' in obj:
-                self.collection_id = dbh.get_collections_by_codes(obj['collection'], groups=None)[0].id
+                self.collection_id = dbh.get_collections_by_codes(obj['collection'], groups=None,
+                                                                  ignore_acl=True)[0].id
 
             if 'originating_institution' in obj:
                 self.originating_institution_id = dbh.get_institutions_by_codes(

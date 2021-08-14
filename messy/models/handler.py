@@ -99,7 +99,7 @@ class DBHandler(rhombus_handler.DBHandler):
         q = self.construct_query(self.Collection, specs)
 
         if not ignore_acl and groups is None and user is None:
-            raise ValueError('ERR: either groups or user needs to be provided!')
+            raise ValueError('ERR: get_collections() - either groups or user needs to be provided !')
 
         if not ignore_acl and groups is None:
             if not user.has_roles(r.SYSADM, r.DATAADM, r.COLLECTION_MANAGE):
@@ -114,13 +114,13 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_collections_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+    def get_collections_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
         return self.get_collections(groups, [{'collection_id': ids}], user=user, fetch=fetch,
-                                    raise_if_empty=raise_if_empty)
+                                    raise_if_empty=raise_if_empty, ignore_acl=ignore_acl)
 
-    def get_collections_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
+    def get_collections_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
         return self.get_collections(groups, [{'collection_code': codes}], user=user, fetch=fetch,
-                                    raise_if_empty=raise_if_empty)
+                                    raise_if_empty=raise_if_empty, ignore_acl=ignore_acl)
 
     #
     # Samples
@@ -133,7 +133,7 @@ class DBHandler(rhombus_handler.DBHandler):
         # all samples under collections owned by certain groups to enforce security
 
         if not override_security and groups is None and user is None:
-            raise ValueError('ERR: either groups or user needs to be provided!')
+            raise ValueError('ERR: get_samples() - either groups or user needs to be provided!')
 
         if not override_security and groups is None:
             if not user.has_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE):
