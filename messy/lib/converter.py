@@ -15,6 +15,7 @@ def import_gisaid_csv(filename):
 
     for _, r in df.iterrows():
         d = dict(
+            collection=r['collection'] or '',
             code=r['covv_provider_sample_id'] or r['fn'],
             acc_code=r['covv_subm_sample_id'],
             sequence_name=r['covv_virus_name'],
