@@ -118,9 +118,10 @@ class UploadViewer(object):
 
         if self.request.method == 'POST':
             collection_id = int(self.request.params.get('messy-sample/collection_id', 0))
-            collection = self.dbh.get_collections_by_ids([collection_id], None, user=self.request.user)[0]
-            if not collection.can_upload(self.request.user):
-                raise RuntimeError('Current user cannot upload sample to this collection')
+            if collection_id > 0:
+                collection = self.dbh.get_collections_by_ids([collection_id], None, user=self.request.user)[0]
+                if not collection.can_upload(self.request.user):
+                    raise RuntimeError('Current user cannot upload sample to this collection')
 
             infile = self.request.params.get('messy-sample/infile', None)
             gisaid = self.request.params.get('messy-sample/gisaidfile', None)
@@ -239,10 +240,11 @@ class UploadViewer(object):
                 raise RuntimeError('mismatch order of institution code and id')
             job.institution_cache[inst_code[1]] = self.dbh.get_institution_by_ids(inst_id)[0]
 
-        added, updated, failed = job.commit(method, self.request.user)
+        added, not_added, updated, failed = job.commit(method, self.request.user)
         html = t.div()[
             t.h2('Uploaded Samples'),
             t.div(f"Added sample(s): {len(added)}"),
+            t.div(f"Existed sample(s): {len(not_added)}") if not_added else '',
             t.div(f"Updated sample(s): {len(updated)}"),
             t.div(f"Failed sample(s): {len(failed)}"),
         ]
@@ -261,6 +263,11 @@ class UploadViewer(object):
         # added samples
         log_lines.append('Added samples:')
         log_lines += [('\t%s' % code) for code in sorted(added)]
+
+        # not_added samples because already existed in the system
+        if not_added:
+            log_lines.append('Already existed samples:')
+            log_lines += [('\t%s' % code) for code in sorted(not_added)]
 
         html.add(t.div().add(
             t.hr,
@@ -353,8 +360,9 @@ def sample_upload_form(request):
                               ' to see templates.'),
             t.input_select('messy-sample/collection_id', 'Collection',
                            value=None, offset=1, size=2,
-                           options=[(c.id, c.code) for c in dbh.get_collections(groups=None,
-                                                                                user=request.user)]),
+                           options=[('-1', 'Set in file')] + [(c.id, c.code)
+                                                              for c in dbh.get_collections(
+                                                              groups=None, user=request.user)]),
             t.custom_submit_bar(('Upload', 'upload_samples')).set_offset(1),
         )
     )

@@ -153,6 +153,7 @@ class SampleUploadJob(UploadJob):
         self.institution_translation_table = {}
         self.institution_cache = {}
         self.ekey_cache = {}
+        self.collection_cache = {}
 
     def confirm(self):
 
@@ -187,50 +188,64 @@ class SampleUploadJob(UploadJob):
 
         if method == 'add':
 
-            added, not_added = self._add_samples(samples, existing_codes, dbh)
+            added, not_added, failed = self._add_samples(samples, existing_codes, user, dbh)
 
         elif method == 'update':
 
-            updated, failed = self._update_samples(samples, existing_codes, dbh, user)
+            updated, failed = self._update_samples(samples, existing_codes, user, dbh)
 
         elif method == 'add_update':
 
             # we perform updates first before addition in case any of the updates fix inconsistency
             # or constraint that addition may cause
 
-            updated, failed = self._update_samples(samples, existing_codes, dbh, user)
+            updated, failed = self._update_samples(samples, existing_codes, user, dbh)
             dbh.session().flush()
-            added, not_added = self._add_samples(samples, existing_codes, dbh)
-            error_samples = set(updated) - set(not_added)
-            for code in error_samples:
-                failed.append((code, 'this sample is not updated nor added'))
+            added, not_added, failed_2 = self._add_samples(samples, existing_codes, user, dbh)
+            if len(not_added) != (len(updated) + len(failed)):
+                raise RuntimeError('samples not being added is not in the set of being updated!')
+            else:
+                not_added = []
+            failed += failed_2
 
         else:
             raise RuntimeError('method is not registered')
 
-        return added, updated, failed
+        return added, not_added, updated, failed
 
-    def _add_samples(self, samples, existing_codes, dbh):
+    def _add_samples(self, samples, existing_codes, user, dbh):
         added = []
         not_added = []
+        failed = []
         for d in samples.values():
             try:
                 if d['code'] in existing_codes:
                     not_added.append(d['code'])
                     continue
-                d['collection_id'] = self.collection_id
+                if 'collection' not in d:
+                    if self.collection_id < 0:
+                        raise ValueError('Please either set the collection in the file '
+                                         'or use correct collection_id')
+                    # collection_id has been verified when assigning the number
+                    d['collection_id'] = self.collection_id
+                else:
+                    collection = d['collection']
+                    if not self.is_collection_member(collection, user, dbh):
+                        failed.append((d['code'], f'either collection {collection} does not exist or '
+                                                     f'{user.login} is not a member of {collection}'))
+                        continue
                 obj = dbh.Sample.from_dict(d, dbh)
                 dbh.session().add(obj)
                 added.append(obj.code)
 
-            except Exception as err:
+            except AssertionError as err:
                 raise RuntimeError(
                     f'Error while processing sample code {d["code"]} with message:\n{str(err)}'
                 ) from err
 
-        return added, not_added
+        return added, not_added, failed
 
-    def _update_samples(self, samples, existing_codes, dbh, user):
+    def _update_samples(self, samples, existing_codes, user, dbh):
         updated = []
         failed = []
         for code in existing_codes:
@@ -246,14 +261,12 @@ class SampleUploadJob(UploadJob):
                 # of the group of the target collection
                 sample = samples[code]
                 if (collection := sample.get('collection', None)):
-                    if not dbh.get_collections_by_codes(collection, groups=None, user=user):
-                        # current user cannot get collection (either wrong colletion or not a member)
+                    if not self.is_collection_member(collection, user, dbh):
                         failed.append((obj.code, f'either collection {collection} does not exist or '
                                                  f'{user.login} is not a member of {collection}'))
                         continue
                 if (collection_id := sample.get('collection_id', None)):
-                    if not dbh.get_collections_by_ids(collection_id, groups=None, user=user):
-                        # current user cannot get collection (either wrong colletion or not a member)
+                    if not self.is_collection_membet(collection_id, user, dbh):
                         failed.append((obj.code, f'either collection_id {collection_id} does not exist or '
                                                  f'{user.login} is not a member the collection'))
                         continue
@@ -340,6 +353,26 @@ class SampleUploadJob(UploadJob):
         if len(eks) == 0:
             return None
         return eks[0].key
+
+    def is_collection_member(self, collection_or_id, user, dbh):
+        """return true or false indicating whether the user is member of collection group"""
+        if collection_or_id in self.collection_cache:
+            return self.collection_cache[collection_or_id]
+
+        if type(collection_or_id) is int:
+            if not dbh.get_collections_by_ids(collection_or_id, groups=None, user=user):
+                # user cannot get collection (either wrong colletion_id or not a member)
+                self.collection_cache[collection_or_id] = False
+            else:
+                self.collection_cache[collection_or_id] = True
+        else:
+            if not dbh.get_collections_by_codes(collection_or_id, groups=None, user=user):
+                # user cannot get collection (either wrong colletion or not a member)
+                self.collection_cache[collection_or_id] = False
+            else:
+                self.collection_cache[collection_or_id] = True
+
+        return self.collection_cache[collection_or_id]
 
     def fix_ekey(self, d, field, dbh):
         key = d[field]
