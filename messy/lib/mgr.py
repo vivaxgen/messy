@@ -1,11 +1,13 @@
 
 from rhombus.scripts import setup_settings, arg_parser
 from rhombus.lib.utils import cerr, cout, cexit, get_dbhandler
+from rhombus.lib.mgr import yaml_write, yaml_read
 from rhombus.models.core import set_func_userid
 from messy.lib.whoosh import set_index_service, IndexService
 
 import transaction
 import yaml
+import os.path
 
 
 def init_argparser(parser=None):
@@ -30,6 +32,9 @@ def init_argparser(parser=None):
     p.add_argument('--export_collections', action='store_true',
                    help='export collections (including their samples')
 
+    p.add_argument('--export_plates', action='store_true',
+                   help='export runs (including well positions)')
+
     p.add_argument('--import_institutions', action='store_true',
                    help='import instituions')
 
@@ -38,6 +43,9 @@ def init_argparser(parser=None):
 
     p.add_argument('--import_collections', action='store_true',
                    help='import collections')
+
+    p.add_argument('--backup', action='store_true',
+                   help='backup to YAML files')
 
     p.add_argument('--whoosh_reindex', action='store_true',
                    help='reindex Whoosh search engine')
@@ -97,6 +105,12 @@ def do_mgr(args, settings, dbh=None):
     elif args.import_collections:
         do_import_collections(args, dbh)
 
+    elif args.export_plates:
+        do_export_plates(args, dbh)
+
+    elif args.backup:
+        do_backup(args, dbh)
+
     elif args.whoosh_reindex:
         do_whoosh_reindex(args, dbh)
 
@@ -151,12 +165,60 @@ def do_import_collections(args, dbh):
     cerr(f'[I - collection uploaded: {c}]')
 
 
+def do_export_plates(args, dbh):
+    sess = dbh.session()
+    yaml_write(args, [plate.as_dict()
+                      for plate in dbh.Plate.query(sess)],
+               'Plate')
+
+
+def do_export_sequences(args, dbh):
+    sess = dbh.session()
+    yaml_write(args, [sequence.as_dict()
+                      for sequence in dbh.Sequence.query(sess)],
+               'Sequence')
+
+
+def do_backup(args, dbh):
+
+    args.outfile = os.path.join(args.dstdir, 'institutions.yaml')
+    do_export_institutions(args, dbh)
+
+    args.outfile = os.path.join(args.dstdir, 'collections.yaml')
+    do_export_collections(args, dbh)
+
+    args.outfile = os.path.join(args.dstdir, 'plates.yaml')
+    do_export_plates(args, dbh)
+
+    args.outfile = os.path.join(args.dstdir, 'sequencingruns.yaml')
+    do_export_runs(args, dbh)
+
+    args.outfile = os.path.join(args.dstdir, 'sequences.yaml')
+    do_export_sequences(args, dbh)
+
+
+def do_restore(args, dbh):
+    # to restore database, do in the following order:
+    # restore Institution
+    # restore Collection (including samples)
+    # restore Plate
+    # restore SequencingRun
+    # restore Sequence
+    raise NotImplementedError("this function hasn't been implemented")
+
+
 def do_whoosh_reindex(args, dbh):
     from messy.lib import whoosh
     whoosh.reindex()
 
 
-def yaml_write(args, data, msg):
+def yaml_write(args, data, msg, printout=False):
+    if printout:
+        # this is for debugging purpose, obviously
+        import pprint
+        for d in data:
+            pprint.pprint(d)
+            pprint.pprint(yaml.dump(d))
     with open(args.outfile, 'w') as outstream:
         yaml.dump_all(data, outstream, default_flow_style=False)
     cerr(f'[Exported {msg} to {args.outfile}]')
