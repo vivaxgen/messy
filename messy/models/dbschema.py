@@ -538,6 +538,12 @@ class Plate(Base, BaseMixIn):
             platepositions.append(platepos)
         return platepos
 
+    def as_dict(self):
+        d = super().as_dict(exclude=['positions', 'sequencingruns', 'additional_files'])
+        d['positions'] = [[p.sample.code, p.position, p.value, p.volume, p.note] for p in self.positions]
+        d['additional_files'] = [f.as_dict() for f in self.additional_files]
+        return d
+
 
 plate_file_table = Table(
     'plates_files', metadata,
@@ -635,6 +641,7 @@ class SequencingRun(Base, BaseMixIn):
 
     def as_dict(self, exclude=None):
         d = super().as_dict(exclude={'sequences', 'plates', 'additional_files'})
+        d['plates'] = [[p.plate.code, p.adapterindex, p.lane, p.note] for p in self.plates]
         return d
 
     def can_modify(self, user):
