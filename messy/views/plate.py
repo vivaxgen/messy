@@ -129,7 +129,7 @@ class PlateViewer(BaseViewer):
             t.h4('Plate Layout'),
         )
 
-        if not self.obj.has_layout:
+        if not self.obj.has_layout():
             plate_html.add(t.p('No layout defined.'))
             plate_html[
                 t.form(name='messy-platelayout', action=self.request.route_url('messy.plate-action', id=self.obj.id),

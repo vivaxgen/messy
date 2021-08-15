@@ -491,7 +491,7 @@ class Plate(Base, BaseMixIn):
     #
 
     def has_layout(self):
-        return object_session(self).execute(
+        return object_session(self).query(
             exists().where(PlatePosition.plate_id == self.id)
         ).scalar()
 
