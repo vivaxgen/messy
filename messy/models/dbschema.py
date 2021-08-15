@@ -361,7 +361,7 @@ class Sample(Base, BaseMixIn):
         return self.code
 
     def as_dict(self):
-        return super().as_dict(exclude=['sequence'])
+        return super().as_dict(exclude=['sequences', 'additional_files', 'platepositions'])
 
     def update_sequence_name(self):
         if self.species and self.host and self.location and self.acc_code and self.collection_date:
@@ -505,6 +505,7 @@ class Plate(Base, BaseMixIn):
             dbh = get_dbhandler()
 
             if 'user' in obj:
+                print(obj['user'])
                 obj['user_id'] = dbh.get_user(obj['user']).id
 
             if 'group' in obj:
@@ -537,6 +538,17 @@ class Plate(Base, BaseMixIn):
             session.add(platepos)
             platepositions.append(platepos)
         return platepos
+
+    @classmethod
+    def from_dict(cls, a_dict, dbh):
+        plate = super().from_dict(a_dict, dbh)
+        dbh.session().flush([plate])
+        for pp in a_dict['positions']:
+            # get sample_id first
+            sample = dbh.get_samples_by_codes(pp[0], groups=None, ignore_acl=True)[0]
+            d = dict(plate_id=plate.id, sample_id=sample.id, position=pp[1], value=pp[2],
+                     volume=pp[3], note=pp[4])
+            PlatePosition.from_dict(d, dbh)
 
     def as_dict(self):
         d = super().as_dict(exclude=['positions', 'sequencingruns', 'additional_files'])

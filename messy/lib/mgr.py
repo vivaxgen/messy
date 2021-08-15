@@ -44,8 +44,14 @@ def init_argparser(parser=None):
     p.add_argument('--import_collections', action='store_true',
                    help='import collections')
 
+    p.add_argument('--import_plates', action='store_true',
+                   help='import plates')
+
     p.add_argument('--backup', action='store_true',
                    help='backup to YAML files')
+
+    p.add_argument('--restore', action='store_true',
+                   help='restore from YAML files')
 
     p.add_argument('--whoosh_reindex', action='store_true',
                    help='reindex Whoosh search engine')
@@ -108,8 +114,14 @@ def do_mgr(args, settings, dbh=None):
     elif args.export_plates:
         do_export_plates(args, dbh)
 
+    elif args.import_plates:
+        do_import_plates(args, dbh)
+
     elif args.backup:
         do_backup(args, dbh)
+
+    elif args.restore:
+        do_restore(args, dbh)
 
     elif args.whoosh_reindex:
         do_whoosh_reindex(args, dbh)
@@ -124,6 +136,7 @@ def do_export_institutions(args, dbh):
 
 
 def do_import_institutions(args, dbh):
+    return yaml_read(args, dbh, dbh.Institution)
     c = 0
     with open(args.infile) as instream:
         for inst_dict in yaml.safe_load_all(instream):
@@ -139,6 +152,8 @@ def do_export_runs(args, dbh):
 
 
 def do_import_runs(args, dbh):
+    return yaml_read(args, dbh, dbh.SequencingRun)
+
     c = 0
     with open(args.infile) as instream:
         for run_dict in yaml.safe_load_all(instream):
@@ -156,6 +171,8 @@ def do_export_collections(args, dbh):
 
 
 def do_import_collections(args, dbh):
+    return yaml_read(args, dbh, dbh.Collection)
+
     c = 0
     with open(args.infile) as instream:
         for coll_dict in yaml.safe_load_all(instream):
@@ -172,6 +189,10 @@ def do_export_plates(args, dbh):
                'Plate')
 
 
+def do_import_plates(args, dbh):
+    yaml_read(args, dbh, dbh.Plate)
+
+
 def do_export_sequences(args, dbh):
     sess = dbh.session()
     yaml_write(args, [sequence.as_dict()
@@ -179,11 +200,16 @@ def do_export_sequences(args, dbh):
                'Sequence')
 
 
+def do_import_sequences(args, dbh):
+    return yaml_read(args, dbh, dbh.Sequence)
+
+
 def do_backup(args, dbh):
 
     args.outfile = os.path.join(args.dstdir, 'institutions.yaml')
     do_export_institutions(args, dbh)
 
+    args.with_samples = True
     args.outfile = os.path.join(args.dstdir, 'collections.yaml')
     do_export_collections(args, dbh)
 
@@ -204,7 +230,25 @@ def do_restore(args, dbh):
     # restore Plate
     # restore SequencingRun
     # restore Sequence
-    raise NotImplementedError("this function hasn't been implemented")
+
+    args.infile = os.path.join(args.srcdir, 'institutions.yaml')
+    do_import_institutions(args, dbh)
+    dbh.session().flush()
+
+    args.infile = os.path.join(args.srcdir, 'collections.yaml')
+    do_import_collections(args, dbh)
+    dbh.session().flush()
+
+    args.infile = os.path.join(args.srcdir, 'plates.yaml')
+    do_import_plates(args, dbh)
+    dbh.session().flush()
+
+    args.infile = os.path.join(args.srcdir, 'sequencingruns.yaml')
+    do_import_runs(args, dbh)
+    dbh.session().flush()
+
+    args.infile = os.path.join(args.srcdir, 'sequences.yaml')
+    do_import_sequences(args, dbh)
 
 
 def do_whoosh_reindex(args, dbh):
