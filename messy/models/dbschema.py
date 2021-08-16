@@ -543,7 +543,7 @@ class Plate(Base, BaseMixIn):
     def from_dict(cls, a_dict, dbh):
         plate = super().from_dict(a_dict, dbh)
         dbh.session().flush([plate])
-        for pp in a_dict['positions']:
+        for pp in a_dict.get('positions', []):
             # get sample_id first
             sample = dbh.get_samples_by_codes(pp[0], groups=None, ignore_acl=True)[0]
             d = dict(plate_id=plate.id, sample_id=sample.id, position=pp[1], value=pp[2],
@@ -656,6 +656,14 @@ class SequencingRun(Base, BaseMixIn):
         d['plates'] = [[p.plate.code, p.adapterindex, p.lane, p.note] for p in self.plates]
         return d
 
+    @classmethod
+    def from_dict(cls, a_dict, dbh):
+        run = super().from_dict(a_dict, dbh)
+        for rp in a_dict.get('plates', []):
+            plate = dbh.get_plates_by_codes(rp[0], groups=None, ignore_acl=True)[0]
+            d = dict(sequencingrun_id=run.id, plate_id=plate.id, adapterindex=rp[1], lane=rp[2], note=rp[3])
+            srp = SequencingRunPlate.from_dict(d, dbh)
+
     def can_modify(self, user):
         if user.has_roles(* self.__managing_roles__):
             return True
@@ -694,6 +702,8 @@ class SequencingRunPlate(Base, BaseMixIn):
     lane = Column(types.Integer, nullable=False, server_default='1')
 
     note = Column(types.Text, nullable=True)
+
+    __ek_fields__ = {'adapterindex'}
 
     __table_args__ = (
         UniqueConstraint('sequencingrun_id', 'plate_id'),

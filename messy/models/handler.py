@@ -173,7 +173,7 @@ class DBHandler(rhombus_handler.DBHandler):
 
     # Plates
 
-    def get_plates(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
+    def get_plates(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
 
         q = self.construct_query(self.Plate, specs)
         if fetch:
@@ -184,11 +184,13 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_plates_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_plates(groups, [{'plate_id': ids}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_plates_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
+        return self.get_plates(groups, [{'plate_id': ids}], user=user, fetch=fetch,
+                               raise_if_empty=raise_if_empty, ignore_acl=False)
 
-    def get_plates_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_plates(groups, [{'plate_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_plates_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
+        return self.get_plates(groups, [{'plate_code': codes}], user=user, fetch=fetch,
+                               ignore_acl=False, raise_if_empty=raise_if_empty)
 
     # Runs
 
