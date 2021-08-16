@@ -310,7 +310,7 @@ def generate_runplate_table(run, request):
                 t.td(runplate.plate.experiment_type),
                 t.td(runplate.adapterindex),
                 t.td('1'),
-                t.td(runplate.note[:30]),
+                t.td(runplate.note[:30] if runplate.note else ''),
             )
         )
 
