@@ -570,17 +570,16 @@ $(document).ready(function() {
             headerOffset: $('#fixedNavbar').outerHeight()
         },
         orderClasses: false,
-
         columns: [
-            { title: ' ', orderable: false, width: '15px' },
-            { title: 'Code' },
-            { title: 'Collection' },
-            { title: 'Category' },
-            { title: 'Acc Code' },
-            { title: 'Name' },
-            { title: 'Location' },
-            { title: 'Collection Date' },
-            { title: 'Age' },
+            { title: ' ', orderable: false, width: '12px' },
+            { },
+            { },
+            { },
+            { },
+            { },
+            { },
+            { },
+            { },
         ]
     } );
 } );
