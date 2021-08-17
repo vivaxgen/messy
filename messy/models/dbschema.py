@@ -17,7 +17,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
 
 import io
 
-__version__ = '20210806'
+__version__ = '20210817'
 
 # Design Consideration
 # ====================
@@ -66,7 +66,7 @@ class Institution(Base, BaseMixIn):
     address = deferred(Column(types.String(128), nullable=False, server_default=''))
     zipcode = Column(types.String(8), nullable=False, server_default='')
     contact = Column(types.String(64), nullable=False, server_default='')
-    remark = deferred(Column(types.String(2048), nullable=False, server_default=''))
+    remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
     __searchable__ = ['code', 'alt_codes', 'name', 'address']
 
@@ -120,7 +120,7 @@ class Collection(Base, BaseMixIn):
 
     code = Column(types.String(16), nullable=False, unique=True)
     description = Column(types.String(256), nullable=False, server_default='')
-    remark = deferred(Column(types.String(2048), nullable=False, server_default=''))
+    remark = deferred(Column(types.Text, nullable=False, server_default=''))
     data = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
@@ -201,6 +201,17 @@ class Collection(Base, BaseMixIn):
             for samp in samples:
                 dbh.Sample.from_dict(samp, dbh)
         return coll
+
+
+collection_file_table = Table(
+    'collections_files', metadata,
+    Column('id', types.Integer, Identity(), primary_key=True),
+    Column('collection_id', types.Integer, ForeignKey('collections.id', ondelete='CASCADE'),
+           index=True, nullable=False),
+    Column('file_id', types.Integer, ForeignKey('fileattachments.id', ondelete='CASCADE'),
+           nullable=False),
+    UniqueConstraint('collection_id', 'file_id')
+)
 
 
 class Sample(Base, BaseMixIn):
@@ -312,6 +323,9 @@ class Sample(Base, BaseMixIn):
 
     sequences = relationship('Sequence', lazy='dynamic', back_populates='sample',
                              passive_deletes=True)
+
+    analysis = relationship('Analysis', uselist=False, back_populates='sample',
+                            passive_deletes=True)
 
     __table_args__ = (
         UniqueConstraint('originating_code', 'originating_institution_id'),
@@ -747,12 +761,6 @@ class Sequence(Base, BaseMixIn):
     length = Column(types.Integer, nullable=False, server_default='-1')
     gaps = Column(types.Integer, nullable=False, server_default='-1')
     base_N = Column(types.Integer, nullable=False, server_default='-1')
-    lineage_1 = Column(types.String(24), nullable=False, server_default='')
-    prob_1 = Column(types.Float, nullable=False, server_default='-1')
-    lineage_2 = Column(types.String(24), nullable=False, server_default='')
-    prob_2 = Column(types.Float, nullable=False, server_default='-1')
-    lineage_3 = Column(types.String(24), nullable=False, server_default='')
-    prob_3 = Column(types.Float, nullable=False, server_default='-1')
 
     refid = Column(types.String(32), nullable=True)
     point_mutations = Column(types.Integer, nullable=False, server_default='-1')
@@ -799,5 +807,29 @@ class Sequence(Base, BaseMixIn):
 
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
+
+
+class Analyses(Base, BaseMixIn):
+    """ Analysis result is seperated from Sequence because Anslysis can be frequently updated
+        while the Sequence still stay the same.
+    """
+
+    __tablename__ = 'analyses'
+
+    sequence_id = Column(types.Integer, ForeignKey('sequences.id', ondelete='CASCADE'),
+                         index=True, nullable=False)
+
+    sample_id = Column(types.Integer, ForeignKey('samples.id', ondelete='CASCADE'),
+                       index=True, nullable=False)
+    sample = relationship(Sample, uselist=False, back_populates='analysis')
+
+    lineage_1 = Column(types.String(24), nullable=False, server_default='')
+    prob_1 = Column(types.Float, nullable=False, server_default='-1')
+    lineage_2 = Column(types.String(24), nullable=False, server_default='')
+    prob_2 = Column(types.Float, nullable=False, server_default='-1')
+    lineage_3 = Column(types.String(24), nullable=False, server_default='')
+    prob_3 = Column(types.Float, nullable=False, server_default='-1')
+    lineage_4 = Column(types.String(24), nullable=False, server_default='')
+    prob_4 = Column(types.Float, nullable=False, server_default='-1')
 
 # EOF
