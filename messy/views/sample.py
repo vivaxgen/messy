@@ -74,7 +74,7 @@ class SampleViewer(BaseViewer):
 
         html = t.div()[t.h2('Samples'), html]
 
-        return render_to_response("messy:templates/generic_page.mako",
+        return render_to_response("messy:templates/datatablebase.mako",
                                   {
                                       'html': html,
                                       'code': code,
@@ -456,7 +456,8 @@ def generate_sample_table(samples, request):
             )
         )
 
-    sample_table = t.table(class_='table table-condensed table-striped')[
+    sample_table = t.table(id='sample-table', class_='table table-condensed table-striped',
+                           style='width:100%')[
         t.thead(
             t.tr(
                 t.th('', style="width: 2em"),
@@ -486,6 +487,7 @@ def generate_sample_table(samples, request):
         html = t.div(sample_table)
         code = ''
 
+    code += template_datatable_js
     return html, code
 
 
@@ -559,4 +561,28 @@ def generate_run_table(sample, request):
 
     return html, ''
 
+
+template_datatable_js = """
+$(document).ready(function() {
+    $('#sample-table').DataTable( {
+        paging: false,
+        fixedHeader: {
+            headerOffset: $('#fixedNavbar').outerHeight()
+        },
+        orderClasses: false,
+
+        columns: [
+            { title: ' ', orderable: false, width: '15px' },
+            { title: 'Code' },
+            { title: 'Collection' },
+            { title: 'Category' },
+            { title: 'Acc Code' },
+            { title: 'Name' },
+            { title: 'Location' },
+            { title: 'Collection Date' },
+            { title: 'Age' },
+        ]
+    } );
+} );
+"""
 # EOF

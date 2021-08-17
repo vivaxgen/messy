@@ -45,8 +45,9 @@ class RunViewer(BaseViewer):
         html, code = generate_run_table(runs, self.request)
         html = t.div()[t.h2('Runs'), html]
 
-        return render_to_response("messy:templates/generic_page.mako", {
-            'html': html
+        return render_to_response('messy:templates/datatablebase.mako', {
+            'html': html,
+            'code': code,
         }, request=self.request)
 
     def update_object(self, obj, d):
@@ -266,10 +267,11 @@ def generate_run_table(runs, request):
             )
         )
 
-    run_table = t.table(class_='table table-condensed table-striped')[
+    run_table = t.table(id='run-table', class_='table table-condensed table-striped',
+                        style='width:100%')[
         t.thead(
             t.tr(
-                t.th('', style="width: 2em"),
+                t.th('_', style="width: 2em"),
                 t.th('Code'),
                 t.th('Date'),
                 t.th('Serial'),
@@ -292,6 +294,7 @@ def generate_run_table(runs, request):
         html = t.div(run_table)
         code = ''
 
+    code += template_datatable_js
     return html, code
 
 
@@ -384,5 +387,27 @@ def generate_runplate_table(run, request):
         code = ''
 
         return html, code
+
+
+template_datatable_js = """
+$(document).ready(function() {
+    $('#run-table').DataTable( {
+        paging: false,
+        fixedHeader: {
+            headerOffset: $('#fixedNavbar').outerHeight()
+        },
+        order: [ [2, "desc"] ],
+        columns: [
+            { title: " ", "orderable": false, "width": "12px" },
+            { },
+            { },
+            { },
+            { },
+            { },
+        ]
+    } );
+} );
+"""
+
 
 # EOF
