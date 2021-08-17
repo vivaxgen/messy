@@ -42,7 +42,7 @@ class PlateViewer(BaseViewer):
         if self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SYSVIEW, r.DATAVIEW, r.PLATE_MODIFY, r.PLATE_VIEW):
             plates = self.dbh.get_plates(groups=None)
         else:
-            plates = self.dbh.get_plates(groups=self.request.user.groups)
+            plates = self.dbh.get_plates(groups=self.request.user.groups, fetch=False).order_by(self.dbh.Plate.date.desc())
 
         html, code = generate_plate_table(plates, self.request)
 
@@ -447,7 +447,7 @@ template_additional_options_js = """
         if (col == 1) {
             cell.innerHTML = '<a href="/sample/code=' + val + '" style="text-decoration:none;">' + val + '</a>';
         }
-    }
+    },
 """
 
 # set text to hyperlink for index layout
