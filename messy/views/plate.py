@@ -139,9 +139,19 @@ class PlateViewer(BaseViewer):
                                    options=[(str(x), str(x)) for x in plate_utils.plate_layouts]),
                     t.input_hidden('id', self.obj.id),
                     t.custom_submit_bar(('Create', 'create_layout')).set_offset(1),
+                    '- or -',
+                    t.fieldset(
+                        t.input_select('messy-plate-source_plate_id', 'Copy from',
+                                       value=None, offset=1, size=3),
+                        name='messy-copyplate-fieldset'
+                    ),
+                    t.custom_submit_bar(('Copy', 'copy_layout')).set_offset(1),
                 ]
             ]
-            layout_js = ''
+            layout_js = (select2_lookup(tag='messy-plate-source_plate_id', minlen=2,
+                                        placeholder="Type plate code here",
+                                        parenttag='messy-copyplate-fieldset', usetag=False,
+                                        url=self.request.route_url('messy.plate-lookup')))
 
         elif not self.request.GET.get('tabular', False):
 
@@ -283,6 +293,14 @@ class PlateViewer(BaseViewer):
             layout = int(rq.POST.get('messy-plate-layout'))
             plate_utils.create_positions(plate, layout)
             rq.session.flash(('success', f'Plate layout {layout}-well has been created'))
+            return HTTPFound(location=rq.route_url(self.view_route, id=plate.id))
+
+        elif _method == 'copy_layout':
+            plate = self.get_object(obj_id=rq.params.get('id'))
+            source_plate_id = int(rq.POST.get('messy-plate-source_plate_id'))
+            source_plate = dbh.get_plates_by_ids([source_plate_id], groups=None)[0]
+            plate_utils.copy_positions(plate, source_plate)
+            rq.session.flash(('success', f'Plate layout has been copied from {source_plate.code}'))
             return HTTPFound(location=rq.route_url(self.view_route, id=plate.id))
 
         elif _method == 'delete':

@@ -439,6 +439,9 @@ class PlatePosition(Base, BaseMixIn):
     def __repr__(self):
         return f"PlatePosition(plate_id={self.plate_id}, sample_id={self.sample_id}, {self.position})"
 
+    def clone_sample(self):
+        return PlatePosition(sample_id=self.sample_id, position=self.position)
+
 
 class Plate(Base, BaseMixIn):
 
