@@ -266,6 +266,7 @@ class Sample(Base, BaseMixIn):
 
     outbreak = Column(types.String(64), nullable=False, server_default='')
     last_vaccinated_date = Column(types.Date, nullable=True)
+    last_vaccinated_dose = Column(types.Integer, nullable=False, server_default='-1')
     last_vaccinated_info = Column(types.String(64), nullable=False, server_default='')
     treatment = Column(types.String(64), nullable=False, server_default='')
 
