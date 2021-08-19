@@ -3,6 +3,7 @@ from messy.lib import roles as r
 from messy.lib import plate_utils
 
 from dateutil import parser
+import uuid
 
 
 def setup(dbh):
@@ -23,6 +24,7 @@ def setup(dbh):
     dbh.session().add(
         dbh.Collection(
             code='CONTROL',
+            uuid=uuid.uuid4(),
             group=dbh.get_group('CollectionMgr'),
             institutions=[dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0]],
         )
@@ -49,97 +51,29 @@ def setup(dbh):
         dbh.session().add(p)
     dbh.session().flush(plates)
 
+    d_sample = dict(
+        collection=dbh.get_collections_by_codes('CONTROL', None, ignore_acl=True)[0],
+        received_date=parser.parse('1970'),
+        collection_date=parser.parse('1970'),
+        passage='original',
+        species='no-species',
+        host='no-species',
+        host_occupation='other',
+        host_status='unknown',
+        category='Z-CR',
+        specimen_type='no-specimen',
+        ct_method='no-ct',
+        originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+        sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+    )
+
     samples = [
-        dbh.Sample(
-            collection=dbh.get_collections_by_codes('CONTROL', None, ignore_acl=True)[0],
-            code='-',
-            received_date=parser.parse('1970'),
-            collection_date=parser.parse('1970'),
-            species='no-species',
-            host='no-species',
-            host_occupation='other',
-            host_status='unknown',
-            category='R-RA',
-            specimen_type='no-specimen',
-            ct_method='no-ct',
-            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-        ),
-        dbh.Sample(
-            collection=dbh.get_collections_by_codes('CONTROL', None, ignore_acl=True)[0],
-            code='NTC1',
-            received_date=parser.parse('1970'),
-            collection_date=parser.parse('1970'),
-            species='no-species',
-            host='no-species',
-            host_occupation='other',
-            host_status='unknown',
-            category='R-RA',
-            specimen_type='water',
-            ct_method='no-ct',
-            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-        ),
-        dbh.Sample(
-            collection=dbh.get_collections_by_codes('CONTROL', None, ignore_acl=True)[0],
-            code='NTC2',
-            received_date=parser.parse('1970'),
-            collection_date=parser.parse('1970'),
-            species='no-species',
-            host='no-species',
-            host_occupation='other',
-            host_status='unknown',
-            category='R-RA',
-            specimen_type='water',
-            ct_method='no-ct',
-            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-        ),
-        dbh.Sample(
-            collection=dbh.get_collections_by_codes('CONTROL', None, ignore_acl=True)[0],
-            code='NTC3',
-            received_date=parser.parse('1970'),
-            collection_date=parser.parse('1970'),
-            species='no-species',
-            host='no-species',
-            host_occupation='other',
-            host_status='unknown',
-            category='R-RA',
-            specimen_type='water',
-            ct_method='no-ct',
-            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-        ),
-        dbh.Sample(
-            collection=dbh.get_collections_by_codes('CONTROL', None, ignore_acl=True)[0],
-            code='NTC4',
-            received_date=parser.parse('1970'),
-            collection_date=parser.parse('1970'),
-            species='no-species',
-            host='no-species',
-            host_occupation='other',
-            host_status='unknown',
-            category='R-RA',
-            specimen_type='water',
-            ct_method='no-ct',
-            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-        ),
-        dbh.Sample(
-            collection=dbh.get_collections_by_codes('CONTROL', None, ignore_acl=True)[0],
-            code='*',
-            received_date=parser.parse('1970'),
-            collection_date=parser.parse('1970'),
-            species='no-species',
-            host='no-species',
-            host_occupation='other',
-            host_status='unknown',
-            category='R-RA',
-            specimen_type='water',
-            ct_method='no-ct',
-            originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-            sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-        ),
+        dbh.Sample().update(d_sample | dict(code='-')),
+        dbh.Sample().update(d_sample | dict(code='NTC1')),
+        dbh.Sample().update(d_sample | dict(code='NTC2')),
+        dbh.Sample().update(d_sample | dict(code='NTC3')),
+        dbh.Sample().update(d_sample | dict(code='NTC4')),
+        dbh.Sample().update(d_sample | dict(code='*')),
     ]
     for s in samples:
         dbh.session().add(s)
@@ -262,7 +196,8 @@ ek_initlist = [
             ('E-RE', 'E - reinfection'),
             ('F-PO', 'F - post-vaccination'),
             ('G-CH', 'G - child case'),
-            ('H-CO', 'H - comorbid case')
+            ('H-CO', 'H - comorbid case'),
+            ('Z-CR', 'Z - Control or reference sample'),
         ]
      ),
     ('@SPECIMEN_TYPE', 'Specimen type',
