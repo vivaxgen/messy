@@ -49,6 +49,9 @@ class SampleViewer(BaseViewer):
         'infection_date?': ('messy-sample-infection_date', dateutil.parser.parse),
         'symptom_date?': ('messy-sample-symptom_date', dateutil.parser.parse),
         'symptoms': ('messy-sample-symptoms', ),
+        'comorbids': ('messy-sample-comorbids', ),
+        'last_infection_date?': ('messy-sample-last_infection_date', dateutil.parser.parse),
+        'last_infection_info': ('messy-sample-last_infection_info', ),
         'viral_load': ('messy-sample-viral_load', float),
         'treatment': ('messy-sample-treatment', ),
         'last_vaccinated_date?': ('messy-sample-last_vaccinated_date', dateutil.parser.parse),
@@ -188,7 +191,7 @@ class SampleViewer(BaseViewer):
                 ),
 
                 t.input_text(ff('location_info'), 'Additional location', value=obj.location_info,
-                             offset=2, size=10, placeholder='Any location info'),
+                             offset=2, size=10, placeholder='Any location info such traveling history'),
 
                 t.inline_inputs(
                     t.input_select(ff('originating_institution_id*'), '* Originating Institution',
@@ -269,7 +272,21 @@ class SampleViewer(BaseViewer):
 
                 t.inline_inputs(
                     t.input_text(ff('symptoms'), 'Symptoms', value=obj.symptoms,
-                                 offset=2, size=10, placeholder='Use space to separate symptoms'),
+                                 offset=2, size=10, placeholder='List of space-delimited symptoms'),
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('comorbids'), 'Comorbids', value=obj.comorbids,
+                                 offset=2, size=10, placeholder='List of space-delimited comorbids')
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('last_infection_date?'), 'Last Infection Date',
+                                 value=obj.last_infection_date, placeholder='YYYY/MM/DD',
+                                 offset=2, size=2),
+                    t.input_text(ff('last_infection_info'), 'Last Infection Info',
+                                 value=obj.last_infection_info, offset=2, size=6,
+                                 placeholder='YYYY/MM/DD of previous infection; previous status;'),
                 ),
 
                 t.inline_inputs(
@@ -287,7 +304,8 @@ class SampleViewer(BaseViewer):
                     t.input_text(ff('last_vaccinated_date?'), 'On Date', value=obj.last_vaccinated_date,
                                  offset=1, size=2, placeholder='YYYY/MM/DD'),
                     t.input_text(ff('last_vaccinated_info'), 'With Info', value=obj.last_vaccinated_info,
-                                 offset=1, size=5),
+                                 offset=1, size=5,
+                                 placeholder='YYYY/MM/DD of previous vaccination; brand of vaccine'),
                 ),
 
                 t.input_text(ff('outbreak'), 'Outbreak info', value=obj.outbreak,

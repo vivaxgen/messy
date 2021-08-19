@@ -261,6 +261,9 @@ class Sample(Base, BaseMixIn):
     infection_date = Column(types.Date, nullable=True)
     symptom_date = Column(types.Date, nullable=True)
     symptoms = Column(types.String(128), nullable=False, server_default='')
+    comorbids = Column(types.String(128), nullable=False, server_default='')
+    last_infection_date = Column(types.Date, nullable=True)
+    last_infection_info = Column(types.String(64), nullable=False, server_default='')
 
     category_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     category = EK.proxy('category_id', '@CATEGORY')
