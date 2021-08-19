@@ -139,6 +139,10 @@ class Collection(Base, BaseMixIn):
     samples = relationship('Sample', lazy='dynamic', back_populates='collection',
                            passive_deletes=True)
 
+    additional_files = relationship(FileAttachment, secondary="collections_files", cascade='all, delete',
+                                    collection_class=attribute_mapped_collection('id'),
+                                    order_by=FileAttachment.filename)
+
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.COLLECTION_MANAGE}
     __modifying_roles__ = __managing_roles__ | {r.COLLECTION_MODIFY}
 
@@ -325,7 +329,7 @@ class Sample(Base, BaseMixIn):
     sequences = relationship('Sequence', lazy='dynamic', back_populates='sample',
                              passive_deletes=True)
 
-    analysis = relationship('Analysis', uselist=False, back_populates='sample',
+    lineages = relationship('Lineage', back_populates='sample',
                             passive_deletes=True)
 
     __table_args__ = (
@@ -810,27 +814,44 @@ class Sequence(Base, BaseMixIn):
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
 
-class Analyses(Base, BaseMixIn):
-    """ Analysis result is seperated from Sequence because Anslysis can be frequently updated
+class Lineage(Base, BaseMixIn):
+    """ Lineage result is seperated from Sequence because Lineage can be frequently updated
         while the Sequence still stay the same.
     """
 
-    __tablename__ = 'analyses'
+    __tablename__ = 'lineages'
 
     sequence_id = Column(types.Integer, ForeignKey('sequences.id', ondelete='CASCADE'),
                          index=True, nullable=False)
 
     sample_id = Column(types.Integer, ForeignKey('samples.id', ondelete='CASCADE'),
                        index=True, nullable=False)
-    sample = relationship(Sample, uselist=False, back_populates='analysis')
+    sample = relationship(Sample, uselist=False, back_populates='lineages')
 
-    lineage_1 = Column(types.String(24), nullable=False, server_default='')
-    prob_1 = Column(types.Float, nullable=False, server_default='-1')
-    lineage_2 = Column(types.String(24), nullable=False, server_default='')
-    prob_2 = Column(types.Float, nullable=False, server_default='-1')
-    lineage_3 = Column(types.String(24), nullable=False, server_default='')
-    prob_3 = Column(types.Float, nullable=False, server_default='-1')
-    lineage_4 = Column(types.String(24), nullable=False, server_default='')
-    prob_4 = Column(types.Float, nullable=False, server_default='-1')
+    lineage_method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
+    lineage_method = EK.proxy('lineage_method_id', '@LINEAGEMETHOD')
+
+    lineage = Column(types.String(24), nullable=False, server_default='')
+    support = Column(types.Float, nullable=False, server_default='-1')
+    conflict = Column(types.Float, nullable=False, server_default='-1')
+    version = Column(types.String(48), nullable=False, server_default='')
+    note = Column(types.String(127), nullable=True, server_default='')
+
+    __ek_fields__ = ['lineage_method']
+
+    def __repr__(self):
+        return f"Lineage(lineage='{self.lineage}')"
+
+    def update(self, obj):
+
+        if isinstance(obj, dict):
+
+            dbh = get_dbhandler()
+
+            self.update_fields_dict(obj)
+            self.update_ek_with_dict(obj, dbh=dbh)
+
+        else:
+            raise TypeError('PROG/ERR: can only update from dict object')
 
 # EOF
