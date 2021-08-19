@@ -12,10 +12,13 @@ import datetime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import object_session
 from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.types import TypeDecorator, CHAR
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
                         Identity, select)
 
 import io
+import uuid
 
 __version__ = '20210817'
 
@@ -37,6 +40,42 @@ __version__ = '20210817'
 
 # set default date to middle of month
 default_date = datetime.date(1970, 1, 15)
+
+
+class GUID(TypeDecorator):
+    """Platform-independent GUID type.
+
+    Uses PostgreSQL's UUID type, otherwise uses
+    CHAR(32), storing as stringified hex values.
+
+    """
+    impl = CHAR
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(UUID())
+        else:
+            return dialect.type_descriptor(CHAR(32))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return str(value)
+        else:
+            if not isinstance(value, uuid.UUID):
+                return "%.32x" % uuid.UUID(value).int
+            else:
+                # hexstring
+                return "%.32x" % value.int
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            if not isinstance(value, uuid.UUID):
+                value = uuid.UUID(value)
+            return value
 
 
 def dict_from_fields(obj, fields, exclude=None):
@@ -119,6 +158,7 @@ class Collection(Base, BaseMixIn):
     __tablename__ = 'collections'
 
     code = Column(types.String(16), nullable=False, unique=True)
+    uuid = Column(GUID(), nullable=False, unique=True)
     description = Column(types.String(256), nullable=False, server_default='')
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     data = deferred(Column(types.JSON, nullable=False, server_default='null'))
@@ -168,8 +208,14 @@ class Collection(Base, BaseMixIn):
 
             self.update_fields_with_dict(obj, additional_fields=['attachment'])
 
+            # check if UUID still  None, then create one
+            if self.uuid is None:
+                self.uuid = uuid.uuid4()
+
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
+
+        return self
 
     def can_upload(self, user):
         if user.has_roles(* self.__managing_roles__):
@@ -227,7 +273,8 @@ class Sample(Base, BaseMixIn):
     collection = relationship('Collection', uselist=False, back_populates='samples')
 
     # various code
-    code = Column(types.String(16), nullable=False, unique=True, server_default='')
+    code = Column(types.String(16), nullable=False, unique=True)
+    uuid = Column(GUID(), nullable=False, unique=True)
     acc_code = Column(types.String(15), nullable=True, unique=True)
     received_date = Column(types.Date, nullable=False)
 
@@ -236,7 +283,7 @@ class Sample(Base, BaseMixIn):
     species_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     species = EK.proxy('species_id', '@SPECIES')
 
-    passage_id = Column(types.Integer, nullable=False, server_default='0')
+    passage_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     passage = EK.proxy('passage_id', '@PASSAGE')
 
     collection_date = Column(types.Date, index=True, nullable=False)
@@ -248,7 +295,7 @@ class Sample(Base, BaseMixIn):
 
     host_info = Column(types.String(64), nullable=False, server_default='')
     host_gender = Column(types.String(1), nullable=False, server_default='X')
-    host_age = Column(types.Float, nullable=False, server_default='0')
+    host_age = Column(types.Float, nullable=False, server_default='-1')
 
     host_occupation_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     host_occupation = EK.proxy('host_occupation_id', '@HOST_OCCUPATION')
@@ -260,7 +307,9 @@ class Sample(Base, BaseMixIn):
 
     infection_date = Column(types.Date, nullable=True)
     symptom_date = Column(types.Date, nullable=True)
+    # space-delimited symptom list
     symptoms = Column(types.String(128), nullable=False, server_default='')
+    # space-delimited comorbid list
     comorbids = Column(types.String(128), nullable=False, server_default='')
     last_infection_date = Column(types.Date, nullable=True)
     last_infection_info = Column(types.String(64), nullable=False, server_default='')
@@ -357,27 +406,37 @@ class Sample(Base, BaseMixIn):
 
             dbh = get_dbhandler()
 
-            if 'collection' in obj:
-                self.collection_id = dbh.get_collections_by_codes(obj['collection'], groups=None,
+            if type(collection := obj.get('collection', None)) == str:
+                self.collection_id = dbh.get_collections_by_codes(collection, groups=None,
                                                                   ignore_acl=True)[0].id
+                del obj['collection']
 
-            if 'originating_institution' in obj:
+            if type(inst := obj.get('originating_institution', None)) == str:
                 self.originating_institution_id = dbh.get_institutions_by_codes(
-                    obj['originating_institution'], None, raise_if_empty=True)[0].id
+                    inst, None, raise_if_empty=True)[0].id
+                del obj['originating_institution']
 
-            if 'sampling_institution' in obj:
+            if type(inst := obj.get('sampling_institution', None)) == str:
                 self.sampling_institution_id = dbh.get_institutions_by_codes(
-                    obj['sampling_institution'], None, raise_if_empty=True)[0].id
+                    inst, None, raise_if_empty=True)[0].id
+                del obj['sampling_institution']
 
             now = datetime.date.today()
             for f in ['collection_date', 'received_date', 'host_dob']:
                 convert_date(obj, f, now)
 
-            self.update_fields_with_dict(obj, additional_fields=['attachment'])
+            self.update_fields_with_dict(obj, additional_fields=['attachment', 'collection',
+                                         'originating_institution', 'sampling_institution'])
             self.update_ek_with_dict(obj, dbh=dbh)
+
+            # check if UUID still  None, then create one
+            if self.uuid is None:
+                self.uuid = uuid.uuid4()
 
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
+
+        return self
 
     def __str__(self):
         return self.code
