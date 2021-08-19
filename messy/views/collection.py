@@ -1,7 +1,7 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, or_, error_page,
-                         Response, modal_delete, modal_error, HTTPFound)
+                         Response, modal_delete, modal_error, HTTPFound, generate_file_table)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 import json
@@ -181,6 +181,22 @@ class CollectionViewer(BaseViewer):
 
         raise RuntimeError('No defined action')
 
+    def view_helper(self, render=True):
+
+        collection_html, collection_jscode = super().view_helper(render=False)
+
+        collection_html.add(
+            t.hr,
+            t.h6('Additional Files'),
+        )
+
+        file_html, file_jscode = generate_file_table(self.obj.additional_files, self.request,
+                                                     self.obj.id, 'messy.collection-fileaction')
+
+        collection_html.add(file_html)
+        collection_jscode += file_jscode
+
+        return self.render_edit_form(collection_html, collection_jscode)
 
 def generate_collection_table(collections, request):
 

@@ -62,6 +62,7 @@ def includeme(config):
         '/collection',
         '/collection/@@action',
         '/collection/@@add',
+        '/plate/@@fileaction',
         '/collection/{id}@@edit',
         '/collection/{id}@@save',
         ('/collection/{id}@@attachment/{fieldname}', 'attachment'),
