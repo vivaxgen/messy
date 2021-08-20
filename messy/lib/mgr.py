@@ -179,6 +179,7 @@ def do_import_collections(args, dbh):
             coll = dbh.Collection.from_dict(coll_dict, dbh)
             cerr(f'[I - uploaded collection: {coll.code}]')
             c += 1
+            dbh.session().flush([coll])
     cerr(f'[I - collection uploaded: {c}]')
 
 
