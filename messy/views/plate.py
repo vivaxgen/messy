@@ -48,7 +48,7 @@ class PlateViewer(BaseViewer):
 
         html = t.div()[t.h2('Plates')].add(html)
 
-        return render_to_response("messy:templates/generic_page.mako", {
+        return render_to_response("messy:templates/datatablebase.mako", {
             'html': html,
             'code': code,
         }, request=self.request)
@@ -388,7 +388,8 @@ def generate_plate_table(plates, request):
             )
         )
 
-    plate_table = t.table(class_='table table-condensed table-striped')[
+    plate_table = t.table(id='plate-table', class_='table table-condensed table-striped',
+                          style='width:100%')[
         t.thead(
             t.tr(
                 t.th('', style="width: 2em"),
@@ -415,6 +416,7 @@ def generate_plate_table(plates, request):
         html = t.div(plate_table)
         code = ''
 
+    code += template_datatable_js
     return html, code
 
 
@@ -480,6 +482,27 @@ template_sample_link_js = """
     updateTable: function (instance, cell, col, row, val, id) {
         cell.innerHTML = '<a href="/sample/code=' + val + '" style="text-decoration:none;">' + val + '</a>';
     }
+"""
+
+template_datatable_js = """
+$(document).ready(function() {
+    $('#plate-table').DataTable( {
+        paging: false,
+        fixedHeader: {
+            headerOffset: $('#fixedNavbar').outerHeight()
+        },
+        orderClasses: false,
+        columns: [
+            { title: ' ', orderable: false, width: '12px' },
+            { },
+            { },
+            { },
+            { },
+            { },
+            { },
+        ]
+    } );
+} );
 """
 
 # EOF
