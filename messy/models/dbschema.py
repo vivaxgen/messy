@@ -5,6 +5,7 @@ from rhombus.models.core import (Base, BaseMixIn, metadata, deferred, relationsh
 from rhombus.models.ek import EK
 from rhombus.models.user import Group, User
 from rhombus.models.fileattach import FileAttachment
+from rhombus.models.auxtypes import GUID
 import messy.lib.roles as r
 from messy.lib import nomenclature
 import dateutil.parser
@@ -12,8 +13,6 @@ import datetime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import object_session
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy.types import TypeDecorator, CHAR
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
                         Identity, select)
 
@@ -40,42 +39,6 @@ __version__ = '20210817'
 
 # set default date to middle of month
 default_date = datetime.date(1970, 1, 15)
-
-
-class GUID(TypeDecorator):
-    """Platform-independent GUID type.
-
-    Uses PostgreSQL's UUID type, otherwise uses
-    CHAR(32), storing as stringified hex values.
-
-    """
-    impl = CHAR
-
-    def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
-            return dialect.type_descriptor(UUID())
-        else:
-            return dialect.type_descriptor(CHAR(32))
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return value
-        elif dialect.name == 'postgresql':
-            return str(value)
-        else:
-            if not isinstance(value, uuid.UUID):
-                return "%.32x" % uuid.UUID(value).int
-            else:
-                # hexstring
-                return "%.32x" % value.int
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return value
-        else:
-            if not isinstance(value, uuid.UUID):
-                value = uuid.UUID(value)
-            return value
 
 
 def dict_from_fields(obj, fields, exclude=None):
@@ -210,8 +173,7 @@ class Collection(Base, BaseMixIn):
 
             # check if UUID still  None, then create one
             if self.uuid is None:
-                self.uuid = uuid.uuid4()
-
+                self.uuid = GUID.new()
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
 
@@ -431,7 +393,7 @@ class Sample(Base, BaseMixIn):
 
             # check if UUID still  None, then create one
             if self.uuid is None:
-                self.uuid = uuid.uuid4()
+                self.uuid = GUID.new()
 
         else:
             raise RuntimeError('PROG/ERR: can only update from dict object')
@@ -443,6 +405,15 @@ class Sample(Base, BaseMixIn):
 
     def as_dict(self):
         return super().as_dict(exclude=['sequences', 'additional_files', 'platepositions'])
+
+    @classmethod
+    def from_dict(cls, a_dict, dbh):
+        sample = super().from_dict(a_dict, dbh)
+        if not sample.passage_id:
+            sample.passage = 'original'
+        if not sample.species_id:
+            sample.species = 'no-species'
+        return sample
 
     def update_sequence_name(self):
         if self.species and self.host and self.location and self.acc_code and self.collection_date:
