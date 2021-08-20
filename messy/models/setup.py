@@ -291,6 +291,14 @@ ek_initlist = [
             ('nebnext-udi-set-4', 'NebNext Multiplex Oligo UDI Set 4'),
         ]
      ),
+    ('@LINEAGEMETHOD', 'Lineage classification method',
+        [
+            ('pangolin', 'Pangolin'),
+            ('scorpio', 'Scorpio'),
+            ('gisaid', 'GISAID'),
+            ('nextstrain', 'NextStrain'),
+        ]
+     ),
 ]
 
 # EOF
