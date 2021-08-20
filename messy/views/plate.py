@@ -40,7 +40,7 @@ class PlateViewer(BaseViewer):
     def index(self):
 
         if self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SYSVIEW, r.DATAVIEW, r.PLATE_MODIFY, r.PLATE_VIEW):
-            plates = self.dbh.get_plates(groups=None)
+            plates = self.dbh.get_plates(groups=None, fetch=False).order_by(self.dbh.Plate.date.desc())
         else:
             plates = self.dbh.get_plates(groups=self.request.user.groups, fetch=False).order_by(self.dbh.Plate.date.desc())
 
