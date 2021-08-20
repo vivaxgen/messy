@@ -2,7 +2,7 @@
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
                          Response, modal_delete, modal_error, Response, HTTPFound,
-                         generate_file_table)
+                         generate_file_table, AuthError)
 import rhombus.lib.tags_b46 as t
 from messy.lib import plate_utils
 
@@ -222,6 +222,9 @@ class PlateViewer(BaseViewer):
             """
             request.POST is MultiDict([('data', '[{"row":"3","data":{"3":"def"}}]'), ('name', '')])
             """
+            if not plate.can_modify(rq.user):
+                return {'success': False}
+
             updates = json.loads(rq.POST.get('data'))
             name = rq.POST.get('name')
 
@@ -290,6 +293,8 @@ class PlateViewer(BaseViewer):
 
         if _method == 'create_layout':
             plate = self.get_object(obj_id=rq.params.get('id'))
+            if not plate.can_modify(rq.user):
+                raise AuthError()
             layout = int(rq.POST.get('messy-plate-layout'))
             plate_utils.create_positions(plate, layout)
             rq.session.flash(('success', f'Plate layout {layout}-well has been created'))
@@ -297,6 +302,8 @@ class PlateViewer(BaseViewer):
 
         elif _method == 'copy_layout':
             plate = self.get_object(obj_id=rq.params.get('id'))
+            if not plate.can_modify(rq.user):
+                raise AuthError()
             source_plate_id = int(rq.POST.get('messy-plate-source_plate_id'))
             source_plate = dbh.get_plates_by_ids([source_plate_id], groups=None)[0]
             plate_utils.copy_positions(plate, source_plate)
