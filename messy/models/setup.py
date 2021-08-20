@@ -35,6 +35,7 @@ def setup(dbh):
         dbh.Plate(
             code='TEMPLATE-96',
             group=dbh.get_group('PlateMgr'),
+            date=parser.parse('1970'),
             specimen_type='water',
             experiment_type='sample-container',
             user=dbh.get_user('system/_SYSTEM_'),
@@ -42,6 +43,7 @@ def setup(dbh):
         dbh.Plate(
             code='TEMPLATE-384',
             group=dbh.get_group('PlateMgr'),
+            date=parser.parse('1970'),
             specimen_type='water',
             experiment_type='sample-container',
             user=dbh.get_user('system/_SYSTEM_'),
