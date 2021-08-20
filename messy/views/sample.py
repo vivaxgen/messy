@@ -267,7 +267,9 @@ class SampleViewer(BaseViewer):
                                  offset=2, size=2, placeholder='YYYY/MM/DD'),
                     t.input_text(ff('host_severity'), 'Severity',
                                  value=-1 if obj.host_severity is None else obj.host_severity,
-                                 offset=1, size=1),
+                                 offset=1, size=1,
+                                 popover='Severity|Integer value indicating degree of severity, '
+                                         'from 0 (asymptomatic) to consensus max positive value.'),
                 ),
 
                 t.inline_inputs(
