@@ -237,12 +237,12 @@ class PlateViewer(BaseViewer):
 
                 # check every samples in indexes, return error if any sample is invalid
                 values = list(set(values))
-                if len(values) != dbh.get_samples_by_codes(values, groups=None, fetch=False, override_security=True).count():
+                if len(values) != dbh.get_samples_by_codes(values, groups=None, fetch=False, ignore_acl=True).count():
                     return {'success': False}
 
                 for (idx, val) in update_list:
                     print(idx, val)
-                    plate.positions[idx].sample_id = dbh.get_samples_by_codes(val, groups=None, override_security=True)[0].id
+                    plate.positions[idx].sample_id = dbh.get_samples_by_codes(val, groups=None, ignore_acl=True)[0].id
 
                 return {'success': True}
 
@@ -261,7 +261,7 @@ class PlateViewer(BaseViewer):
                     idx = int(row['row'])
                     for _c, value in row['data'].items():
                         if _c == '1':
-                            if len(r := dbh.get_samples_by_codes(value, groups=None, override_security=True)) == 1:
+                            if len(r := dbh.get_samples_by_codes(value, groups=None, ignore_acl=True)) == 1:
                                 plate.positions[idx].sample_id = r[0].id
                             else:
                                 return {'success': False}
