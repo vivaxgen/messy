@@ -119,7 +119,7 @@ class PlateViewer(BaseViewer):
         )
 
         file_html, file_jscode = generate_file_table(self.obj.additional_files, self.request,
-                                                     self.obj.id, 'messy.plate-fileaction')
+                                                     self.obj, 'messy.plate-fileaction')
 
         plate_html.add(file_html)
         plate_jscode += file_jscode

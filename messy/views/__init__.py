@@ -106,9 +106,9 @@ class BaseViewer(BaseViewer):
         raise NotImplementedError()
 
 
-def generate_file_table(files, request, object_id, route_name):
+def generate_file_table(files, request, obj, route_name):
 
-    not_guest = not request.user.has_roles(r.GUEST)
+    not_guest = not request.user.has_roles(r.GUEST) or obj.can_modify(request.user)
 
     table_body = t.tbody()
 
@@ -117,7 +117,7 @@ def generate_file_table(files, request, object_id, route_name):
             t.tr(
                 t.td(t.literal(f'<input type="checkbox" name="file-ids" value="{a_file.id}" />')),
                 t.td(t.a(a_file.filename, href=request.route_url(route_name,
-                                                                 _query={'object_id': object_id,
+                                                                 _query={'object_id': obj.id,
                                                                          'fid': str(a_file.id)}))),
                 t.td(a_file.size / 1000)
             )
@@ -148,7 +148,7 @@ def generate_file_table(files, request, object_id, route_name):
                             name='_method',
                             value='upload_file',
                             type='button'),
-            hiddens=[('object_id', object_id), ]
+            hiddens=[('object_id', obj.id), ]
         )
         html, code = bar.render(file_table)
 
@@ -162,7 +162,7 @@ def generate_file_table(files, request, object_id, route_name):
         upload_form = t.form(name='upload-form', action=request.route_url(route_name),
                              enctype=t.FORM_MULTIPART)[
             popup_content,
-            t.literal(f'<input type="hidden" name="object_id" value="{object_id}">'),
+            t.literal(f'<input type="hidden" name="object_id" value="{obj.id}">'),
             upload_button
         ]
 

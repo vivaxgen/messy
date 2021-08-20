@@ -191,7 +191,7 @@ class CollectionViewer(BaseViewer):
         )
 
         file_html, file_jscode = generate_file_table(self.obj.additional_files, self.request,
-                                                     self.obj.id, 'messy.collection-fileaction')
+                                                     self.obj, 'messy.collection-fileaction')
 
         collection_html.add(file_html)
         collection_jscode += file_jscode
