@@ -18,10 +18,11 @@ alnumdash = set(('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 def validate_code(a_code):
     """ check if a_code only contains alphanumerics and dash"""
 
+    a_code = a_code.strip()
     validation = set((a_code))
     if not validation.issubset(alnumdash):
         raise ValueError('Input can only contain alphanumerics and dash')
-    return True
+    return a_code
 
 
 class BaseViewer(BaseViewer):
