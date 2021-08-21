@@ -3,6 +3,12 @@ import datetime
 
 from messy.lib import adapterindex
 
+complements = dict(a='t', t='a', c='g', g='c', A='T', T='A', C='G', G='C')
+
+
+def reverse_complemented(sequence):
+    return ''.join([complements[x] for x in reversed(sequence)])
+
 
 def generate_samplesheet(sequencingrun):
     """ generate CSV samplesheet for a particular run """
@@ -18,6 +24,7 @@ def generate_samplesheet(sequencingrun):
 
         index_kit = adapterindex.adapter_indexes[runplate.adapterindex]
         indexes = index_kit['indexes']
+        need_revcomp = (revcomp != index_kit['revcomp'])
 
         lane = runplate.lane
 
@@ -26,6 +33,8 @@ def generate_samplesheet(sequencingrun):
                 continue
             if platepos.position != index_item[0]:
                 raise ValueError('Position orders for sample and index are not in sync!')
+            if need_revcomp:
+                index_item = index_item[:-1] + (reverse_complemented(index_item[-1]), )
             data.append((str(lane), platepos.sample.code) + index_item + ('NCOV19-WGS', ))
 
     if len(data[0]) == 8:
