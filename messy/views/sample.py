@@ -1,7 +1,8 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
-                         Response, modal_delete, modal_error, Response, HTTPFound)
+                         Response, modal_delete, modal_error, Response, HTTPFound,
+                         validate_code)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 import dateutil
@@ -20,8 +21,8 @@ class SampleViewer(BaseViewer):
 
     form_fields = {
         'collection_id': ('messy-sample-collection_id', ),
-        'code*': ('messy-sample-code', ),
-        'acc_code': ('messy-sample-acc_code', ),
+        'code*': ('messy-sample-code', validate_code),
+        'acc_code': ('messy-sample-acc_code', validate_code),
         'category_id': ('messy-sample-category_id', ),
         'sequence_name': ('messy-sample-sequence_name', ),
         'location': ('messy-sample-location', ),
@@ -62,9 +63,9 @@ class SampleViewer(BaseViewer):
         'host_nik': ('messy-sample-host_nik', ),
         'host_nar': ('messy-sample-host_nar', ),
         'originating_institution_id*': ('messy-sample-originating_institution_id', ),
-        'originating_code': ('messy-sample-originating_code', ),
+        'originating_code': ('messy-sample-originating_code', validate_code),
         'sampling_institution_id': ('messy-sample-sampling_institution_id', ),
-        'sampling_code': ('messy-sample-sampling_code', ),
+        'sampling_code': ('messy-sample-sampling_code', validate_code),
         'attachment': ('messy-sample-attachment'),
     }
 

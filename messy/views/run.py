@@ -1,7 +1,8 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
-                         Response, modal_delete, modal_error, Response, HTTPFound, AuthError)
+                         Response, modal_delete, modal_error, Response, HTTPFound, AuthError,
+                         validate_code)
 import rhombus.lib.tags_b46 as t
 from rhombus.lib.modals import popup
 from rhombus.lib.exceptions import AuthError
@@ -26,7 +27,7 @@ class RunViewer(BaseViewer):
     attachment_route = 'messy.run-attachment'
 
     form_fields = {
-        'code*': ('messy-run-code', ),
+        'code*': ('messy-run-code', validate_code),
         'serial*': ('messy-run-serial', ),
         'date?': ('messy-run-date', dateutil.parser.parse),
         'group_id': ('messy-run-group_id', int),

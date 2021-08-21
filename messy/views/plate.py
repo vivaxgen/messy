@@ -2,7 +2,7 @@
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
                          Response, modal_delete, modal_error, Response, HTTPFound,
-                         generate_file_table, AuthError)
+                         generate_file_table, AuthError, validate_code)
 import rhombus.lib.tags_b46 as t
 from messy.lib import plate_utils
 
@@ -26,7 +26,7 @@ class PlateViewer(BaseViewer):
     attachment_route = 'messy.plate-attachment'
 
     form_fields = {
-        'code*': ('messy-plate-code', ),
+        'code*': ('messy-plate-code', validate_code),
         'group_id': ('messy-plate-group_id', ),
         'date': ('messy-plate-date', dateutil.parser.parse),
         'specimen_type_id': ('messy-plate-sequencing_kit_id', ),

@@ -1,7 +1,8 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, or_, error_page,
-                         Response, modal_delete, modal_error, HTTPFound, generate_file_table)
+                         Response, modal_delete, modal_error, HTTPFound, generate_file_table,
+                         validate_code)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 import json
@@ -19,7 +20,7 @@ class CollectionViewer(BaseViewer):
     attachment_route = 'messy.collection-attachment'
 
     form_fields = {
-        'code*': ('messy-collection-code',),
+        'code*': ('messy-collection-code', validate_code),
         'group_id': ('messy-collection-group_id', int),
         'description': ('messy-collection-description', ),
         'institution_ids': ('messy-collection-institution_ids', list, int),

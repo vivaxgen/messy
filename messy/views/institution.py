@@ -1,7 +1,7 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, select2_lookup, or_, error_page, modal_delete,
-                         modal_error, Response, HTTPFound)
+                         modal_error, Response, HTTPFound, validate_code)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 
@@ -17,7 +17,7 @@ class InstitutionViewer(BaseViewer):
     view_route = 'messy.institution-view'
 
     form_fields = {
-        'code*': ('messy-institution-code', ),
+        'code*': ('messy-institution-code', validate_code),
         'alt_codes': ('messy-institution-alt_codes', ),
         'name': ('messy-institution-name', ),
         'address': ('messy-institution-address', ),
