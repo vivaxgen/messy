@@ -1,10 +1,13 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
-                         Response, modal_delete, modal_error, Response, HTTPFound)
+                         Response, modal_delete, modal_error, Response, HTTPFound, AuthError)
 import rhombus.lib.tags_b46 as t
 from rhombus.lib.modals import popup
 from rhombus.lib.exceptions import AuthError
+from pyramid import response
+
+from messy.lib.samplesheet_utils import generate_samplesheet
 
 import sqlalchemy.exc
 from pyramid.response import Response, FileIter
@@ -151,6 +154,15 @@ class RunViewer(BaseViewer):
         run_html.add(runplate_html)
         run_jscode += runplate_js
 
+        if len(self.obj.plates) > 0:
+            run_html.add(
+                t.hr,
+                t.a('Generate sample sheet',
+                    href=self.request.route_url('messy.run-action',
+                                                _query={'_method': 'generate_samplesheet',
+                                                        'id': self.obj.id})),
+            )
+
         return self.render_edit_form(run_html, run_jscode)
 
     def lookup_helper(self):
@@ -246,6 +258,27 @@ class RunViewer(BaseViewer):
             return HTTPFound(location=rq.referer)
 
         raise RuntimeError(f'Unknown method name: {_method}')
+
+    def action_get(self):
+
+        rq = self.request
+        method = rq.params.get('_method', None)
+        dbh = self.dbh
+
+        if method == 'generate_samplesheet':
+            seqrun = self.get_object(obj_id=rq.params.get('id'))
+            if not seqrun.can_modify(rq.user):
+                raise AuthError('Your user account is not authorized to generate samplesheet.')
+
+            samplesheet = generate_samplesheet(seqrun)
+            return response.Response(samplesheet,
+                                     content_type='text/csv',
+                                     content_disposition=f'inline; filename="SampleSheet_{seqrun.code}.csv"',
+                                     request=rq)
+
+            raise NotImplementedError('this function has not been enabled yet')
+
+        raise ValueError('unknown method')
 
 
 def generate_run_table(runs, request):
@@ -352,7 +385,7 @@ def generate_runplate_table(run, request):
         popup_content = t.fieldset(
             t.input_select('messy-runplate-plate_id', 'Plate', value=None, offset=3, size=9),
             t.input_select_ek('messy-runplate-adapterindex_id', 'Adapter Index', offset=3, size=9,
-                              value=None, parent_ek=dbh.get_ekey('@ADAPTERINDEX')),
+                              value=None, description=True, parent_ek=dbh.get_ekey('@ADAPTERINDEX')),
             t.input_text('messy-runplate-lane', 'Lane', value='1', offset=3, size=2),
             t.input_text('messy-runplate-note', 'Note', value='', offset=3, size=9),
             name='messy-runplate-fieldset'
