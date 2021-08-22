@@ -155,8 +155,18 @@ class PlateViewer(BaseViewer):
 
         elif not self.request.GET.get('tabular', False):
 
-            plate_html.add(t.p(t.a('View in tabular form', href=self.request.route_url(self.view_route, id=self.obj.id,
-                                                                                       _query={'tabular': 1}))))
+            plate_html.add(
+                t.p(
+                    t.a('View in tabular form',
+                        href=self.request.route_url(self.view_route, id=self.obj.id,
+                                                    _query={'tabular': 1})),
+                    ' | ',
+                    t.a('Print layout',
+                        href=self.request.route_url('messy.plate-action',
+                                                    _query={'id': self.obj.id,
+                                                            '_method': 'print_layout'}))
+                )
+            )
 
             layout = len(self.obj.positions)
             r, c = plate_utils.plate_layouts[layout]
@@ -354,6 +364,20 @@ class PlateViewer(BaseViewer):
 
         raise RuntimeError('No defined action')
 
+    def action_get(self):
+
+        rq = self.request
+        dbh = self.dbh
+        _method = rq.GET.get('_method')
+
+        if _method == 'print_layout':
+            plate = self.get_object(obj_id=rq.params.get('id'))
+            return render_to_response("messy:templates/generic_plainpage.mako", {
+                'html': generate_print_layout(plate, rq)
+            }, request=rq)
+
+        raise ValueError('undefined method')
+
     def lookup_helper(self):
         q = self.request.params.get('q')
         if not q:
@@ -418,6 +442,39 @@ def generate_plate_table(plates, request):
 
     code += template_datatable_js
     return html, code
+
+
+def generate_print_layout(plate, request):
+    """ generate a plain html containing the layout that is suitable for printing """
+
+    N = len(plate.positions)
+    r, c = plate_utils.plate_layouts[N]
+    positions = list(plate.positions)
+
+    tbody = t.tbody()
+    for r_idx in range(r):
+        tr = t.tr(t.td(t.b(chr(65 + r_idx))))
+        for c_idx in range(c):
+            tr.add(t.td(positions[r * c_idx + r_idx].sample.code, t.br, t.br, t.br))
+        tbody.add(tr)
+
+    layout_table = t.table(class_='table table-condensed table-striped', style='width:100%')[
+        t.thead(
+            t.tr(t.th(''))[
+                [t.th(x + 1) for x in range(c)]
+            ]
+        )
+    ]
+
+    layout_table.add(tbody)
+    html = t.div(
+        t.h3(
+            f'Plate Code: {plate.code} / {plate.date} / {plate.experiment_type}'
+        ),
+        layout_table
+    )
+
+    return html
 
 
 def convert_data_to_indexes(a_list, plate_layout):
