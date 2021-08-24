@@ -6,6 +6,7 @@ from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, 
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 import dateutil
+import more_itertools
 
 
 class SampleViewer(BaseViewer):
@@ -75,7 +76,10 @@ class SampleViewer(BaseViewer):
         samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)\
             .order_by(self.dbh.Sample.id.desc())
 
-        html, code = generate_sample_table(samples, self.request)
+        if self.request.params.get('view', None) == 'status':
+            html, code = generate_sample_status_table(samples, self.request)
+        else:
+            html, code = generate_sample_table(samples, self.request)
 
         html = t.div()[t.h2('Samples'), html]
 
@@ -530,6 +534,7 @@ def generate_plateposition_table(sample, request):
                 t.td(platepos.position),
                 t.td(platepos.plate.specimen_type),
                 t.td(platepos.plate.experiment_type),
+                t.td(platepos.plate.remark[:20]),
                 t.td(platepos.note)
             )
         )
@@ -541,7 +546,8 @@ def generate_plateposition_table(sample, request):
                 t.th('Position'),
                 t.th('Specimen'),
                 t.th('Experiment'),
-                t.th('Note'),
+                t.th('Plate Remark'),
+                t.th('Position Note'),
             )
         )
     ]
@@ -586,6 +592,53 @@ def generate_run_table(sample, request):
     return html, ''
 
 
+def generate_sample_status_table(samples, request):
+    """ generate a table with sample code, plate for RNA, plate for DNA and plate for ssDNA """
+
+    table_body = t.tbody()
+    dbh = get_dbhandler()
+
+    specimen_type_ids = [
+        dbh.EK._id(st, grp='@SPECIMEN_TYPE') for st in ['rna', 'dna', 'ssdna']
+    ]
+
+    for sample in samples:
+        if sample.code in ['*', '-', 'NTC1', 'NTC2', 'NTC3', 'NTC4']:
+            continue
+        tr = t.tr(
+            t.td(t.a(sample.code, href=request.route_url('messy.sample-view', id=sample.id))),
+        )
+        for type_id in specimen_type_ids:
+            tr.add(
+                t.td(
+                    * more_itertools.intersperse(
+                        t.br,
+                        [t.span(t.a(plate.code, href=request.route_url('messy.plate-view', id=plate.id)),
+                                f'[{plate.date}/{plate.experiment_type}]')
+                         for pp, plate in
+                         sample.get_related_platepositions(
+                             func=lambda x: x.filter(dbh.Plate.specimen_type_id == type_id))
+                         ]
+                    )
+                )
+            )
+        table_body.add(tr)
+
+    sample_status_table = t.table(id='sample-status-table', class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('Sample Code'),
+                t.th('RNA Extraction'),
+                t.th('DNA Enrichment'),
+                t.th('Libprep'),
+            )
+        )
+    ]
+    sample_status_table.add(table_body)
+
+    return sample_status_table, template_sample_status_datatable_js
+
+
 template_datatable_js = """
 $(document).ready(function() {
     $('#sample-table').DataTable( {
@@ -605,6 +658,18 @@ $(document).ready(function() {
             { },
             { },
         ]
+    } );
+} );
+"""
+
+template_sample_status_datatable_js = """
+$(document).ready(function() {
+    $('#sample-status-table').DataTable( {
+        paging: false,
+        fixedHeader: {
+            headerOffset: $('#fixedNavbar').outerHeight()
+        },
+        orderClasses: false,
     } );
 } );
 """

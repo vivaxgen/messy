@@ -124,6 +124,17 @@ class PlateViewer(BaseViewer):
         plate_html.add(file_html)
         plate_jscode += file_jscode
 
+        if self.obj.get_related_samples(scalar=True) > 0:
+            plate_html.add(
+                t.hr,
+                t.p(
+                    t.a('View sample status',
+                        href=self.request.route_url('messy.plate-action',
+                                                    _query={'id': self.obj.id,
+                                                            '_method': 'view_sample_status'}))
+                )
+            )
+
         plate_html.add(
             t.hr,
             t.h4('Plate Layout'),
@@ -374,6 +385,15 @@ class PlateViewer(BaseViewer):
             plate = self.get_object(obj_id=rq.params.get('id'))
             return render_to_response("messy:templates/generic_plainpage.mako", {
                 'html': generate_print_layout(plate, rq)
+            }, request=rq)
+
+        elif _method == 'view_sample_status':
+            plate = self.get_object(obj_id=rq.params.get('id'))
+            samples = plate.get_related_samples()
+            from messy.views.sample import generate_sample_status_table
+            html, jscode = generate_sample_status_table(samples, rq)
+            return render_to_response("messy:templates/datatablebase.mako", {
+                'html': html, 'code': jscode,
             }, request=rq)
 
         raise ValueError('undefined method')

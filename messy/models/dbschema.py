@@ -437,13 +437,17 @@ class Sample(Base, BaseMixIn):
 
     # aux methods
 
-    def get_related_platepositions(self):
+    def get_related_platepositions(self, func=None):
         """return [ (plate, position), ... ] related to plates"""
         dbsess = object_session(self)
-        return dbsess.execute(
+        q = (
             select(PlatePosition, Plate).
             join(Plate).
-            filter(PlatePosition.sample_id == self.id)).all()
+            filter(PlatePosition.sample_id == self.id)
+        )
+        if func:
+            q = func(q)
+        return dbsess.execute(q).all()
 
     def get_related_runs(self):
         """return [ (run, plateposition, plate), ...]"""
@@ -549,6 +553,21 @@ class Plate(Base, BaseMixIn):
         return object_session(self).query(
             exists().where(PlatePosition.plate_id == self.id)
         ).scalar()
+
+    def get_related_samples(self, scalar=False):
+        if scalar:
+            q = select(func.count(Sample.id))
+        else:
+            q = select(Sample)
+        q = (
+            q.
+            join(PlatePosition).
+            filter(~Sample.code.in_(['-', '*', 'NTC1', 'NTC2', 'NTC3', 'NTC4'])).
+            filter(PlatePosition.plate_id == self.id)
+        )
+        if scalar:
+            return object_session(self).scalar(q)
+        return object_session(self).execute(q).scalars()
 
     def __repr__(self):
         return f"Plate('{self.code}')"
