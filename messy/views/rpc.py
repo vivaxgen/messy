@@ -1,7 +1,5 @@
 
 from rhombus.lib.utils import random_string
-from messy.views import *
-from messy.lib import uploads
 
 import time
 
@@ -12,12 +10,14 @@ import time
 # -d '{"jsonrpc":"2.0","id":234,"method":"check_auth","params":["utkn:YPGIt0lFw4HiN7vLaStOdWQXBGCiph_n"]}' \
 # http://localhost:6543/rpc | python3 -m json.tool
 
+
 def generate_user_token(request):
 
     token = 'utkn:' + random_string(32)
-    payload = { 'create_time': time.time(), 'userinstance': request.user }
+    payload = {'create_time': time.time(), 'userinstance': request.user}
     request.get_ticket(payload, token)
     return token
+
 
 def get_userinstance_by_token(request, token):
     """ return user, errmsg """
@@ -37,8 +37,8 @@ def check_auth(request, token):
 
     userinstance, errmsg = get_userinstance_by_token(request, token)
     if userinstance is None:
-        return { 'auth' : False, 'user':  None, 'errmsg': errmsg }
-    return { 'auth': True, 'user': userinstance.login, 'errmsg': None }
+        return {'auth': False, 'user': None, 'errmsg': errmsg}
+    return {'auth': True, 'user': userinstance.login, 'errmsg': None}
 
 
 def pipeline_upload(request, token, lab_code, data):
@@ -50,3 +50,5 @@ def pipeline_upload(request, token, lab_code, data):
     # parse incoming request
     # https://github.com/trmznt/ncov19-pipeline sends the following dictionary
     #
+
+# EOF
