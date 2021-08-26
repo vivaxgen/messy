@@ -179,7 +179,7 @@ class SampleUploadJob(UploadJob):
 
         samples = {}
         for d in self.dicts:
-            self.fix_fields(d, dbh)
+            self.fix_fields(d, dbh, method)
             samples[d['code']] = d
         code_list = samples.keys()
 
@@ -387,45 +387,52 @@ class SampleUploadJob(UploadJob):
             return [f'{field} error: {str(err)}']
         return []
 
-    def fix_fields(self, d, dbh):
+    def fix_fields(self, d, dbh, method='add'):
         try:
-            return self._fix_fields(d, dbh)
+            return self._fix_fields(d, dbh, method)
 
         except Exception as err:
             raise RuntimeError(f'Error parsing data: {err}\r\nduring processing {d}') from err
 
-    def _fix_fields(self, d, dbh):
+    def _fix_fields(self, d, dbh, method):
 
         err_msgs = []
 
-        d['originating_institution'] = d.get('originating_institution', '') or 'NOT-AVAILABLE'
-        code = d['originating_institution']
-        try:
-            inst = self.get_institution(code, dbh)
-            if inst.code != code:
-                d['originating_institution'] = inst.code
-                d['originating_institution_id'] = inst.id
-                self.institution_translation_table[code] = (inst.code, inst.id)
-        except KeyError:
-            err_msgs.append(f'ERR: Institution code "{code}" not found!')
-            self.institution_translation_table[code] = None
+        if method == 'add' or 'originating_institution' in d:
+            d['originating_institution'] = d.get('originating_institution', '') or 'NOT-AVAILABLE'
+            code = d['originating_institution']
+            try:
+                inst = self.get_institution(code, dbh)
+                if inst.code != code:
+                    d['originating_institution'] = inst.code
+                    d['originating_institution_id'] = inst.id
+                    self.institution_translation_table[code] = (inst.code, inst.id)
+            except KeyError:
+                err_msgs.append(f'ERR: Institution code "{code}" not found!')
+                self.institution_translation_table[code] = None
 
-        code = d.get('sampling_institution', None) or d['originating_institution']
-        d['sampling_institution'] = code
-        try:
-            inst = self.get_institution(code, dbh)
-            if inst.code != code:
-                d['sampling_institution'] = inst.code
-                d['sampling_institution_id'] = inst.id
-                self.institution_translation_table[code] = (inst.code, inst.id)
-        except KeyError:
-            err_msgs.append(f'ERR: Institution code "{code}" not found!')
+        if method == 'add' or 'sampling_institution' in d:
+            code = d.get('sampling_institution', None) or d['originating_institution']
+            d['sampling_institution'] = code
+            try:
+                inst = self.get_institution(code, dbh)
+                if inst.code != code:
+                    d['sampling_institution'] = inst.code
+                    d['sampling_institution_id'] = inst.id
+                    self.institution_translation_table[code] = (inst.code, inst.id)
+            except KeyError:
+                err_msgs.append(f'ERR: Institution code "{code}" not found!')
+
+        if method == 'add':
+            for f, v in sample_defaults.items():
+                if f not in d:
+                    d[f] = v
+
+            d['host_status'] = d.get('host_status', '') or 'unknown'
 
         if 'host_gender' in d:
             gender = d['host_gender']
             d['host_gender'] = gender[0] if gender else None
-
-        d['host_status'] = d.get('host_status', '') or 'unknown'
 
         for f in dbh.Sample.__ek_fields__:
             if f in d:
@@ -437,10 +444,6 @@ class SampleUploadJob(UploadJob):
                     d[f] = c[0](d[f])
                 except Exception:
                     d[f] = c[1]
-
-        for f, v in sample_defaults.items():
-            if f not in d:
-                d[f] = v
 
         return err_msgs
 
@@ -458,6 +461,10 @@ sample_converters = {
     'viral_load': (float, -1),
     'ct_value1': (float, -1),
     'ct_value2': (float, -1),
+    'ct_value3': (float, -1),
+    'ct_value4': (float, -1),
+    'ct_host1': (float, -1),
+    'ct_host2': (float, -1),
 }
 
 
