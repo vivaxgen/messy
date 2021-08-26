@@ -237,7 +237,7 @@ class Sample(Base, BaseMixIn):
     # various code
     code = Column(types.String(16), nullable=False, unique=True)
     uuid = Column(GUID(), nullable=False, unique=True)
-    acc_code = Column(types.String(15), nullable=True, unique=True)
+    acc_code = Column(types.String(31), nullable=True, unique=True)
     received_date = Column(types.Date, nullable=False)
 
     sequence_name = Column(types.String(63), nullable=True, index=True, unique=True)
