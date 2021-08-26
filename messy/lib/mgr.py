@@ -268,7 +268,8 @@ def do_change_sample_codes(args, dbh):
     import pandas as pd
 
     # read infile
-    translate_table = pd.read_table(args.infile)
+    sep = '\t' if args.infile.endswith('.tsv') else ','
+    translate_table = pd.read_table(args.infile, sep=sep)
 
     for _, r in translate_table.iterrows():
         #print(r)
