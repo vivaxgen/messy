@@ -228,6 +228,8 @@ class SampleUploadJob(UploadJob):
                                          'or use correct collection_id')
                     # collection_id has been verified when assigning the number
                     d['collection_id'] = self.collection_id
+                    if 'collection' in d:
+                        del d['collection']
                 else:
                     collection = d['collection']
                     if not self.is_collection_member(collection, user, dbh):
