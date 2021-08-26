@@ -56,6 +56,9 @@ def init_argparser(parser=None):
     p.add_argument('--whoosh_reindex', action='store_true',
                    help='reindex Whoosh search engine')
 
+    p.add_argument('--change_sample_codes', action='store_true',
+                   help='change sample code from old_code to new_code in csv/tsv file')
+
     # options
     p.add_argument('--with_samples', default=False, action='store_true',
                    help='export samples as well when exporting collections')
@@ -125,6 +128,9 @@ def do_mgr(args, settings, dbh=None):
 
     elif args.whoosh_reindex:
         do_whoosh_reindex(args, dbh)
+
+    elif args.change_sample_codes:
+        do_change_sample_codes(args, dbh)
 
     else:
         cerr('Please provide correct operation')
@@ -255,6 +261,22 @@ def do_restore(args, dbh):
 def do_whoosh_reindex(args, dbh):
     from messy.lib import whoosh
     whoosh.reindex()
+
+
+def do_change_sample_codes(args, dbh):
+
+    import pandas as pd
+
+    # read infile
+    translate_table = pd.read_table(args.infile)
+
+    for _, r in translate_table.iterrows():
+        #print(r)
+        #import IPython; IPython.embed()
+        samples = dbh.get_samples_by_codes(r['old_code'], groups=None, ignore_acl=True)
+        if len(samples) == 0:
+            raise ValueError(f"sample with code [{r['old_code']}] is not found!")
+        samples[0].code = r['new_code']
 
 
 def yaml_write(args, data, msg, printout=False):
