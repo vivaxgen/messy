@@ -222,7 +222,7 @@ class SampleUploadJob(UploadJob):
                 if d['code'] in existing_codes:
                     not_added.append(d['code'])
                     continue
-                if 'collection' not in d:
+                if ('collection' not in d) or (not d['collection']):
                     if self.collection_id < 0:
                         raise ValueError('Please either set the collection in the file '
                                          'or use correct collection_id')
