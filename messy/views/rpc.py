@@ -1,5 +1,5 @@
 
-from rhombus.lib.utils import random_string
+from rhombus.lib.utils import random_string, get_dbhandler
 
 import time
 
@@ -41,14 +41,34 @@ def check_auth(request, token):
     return {'auth': True, 'user': userinstance.login, 'errmsg': None}
 
 
-def pipeline_upload(request, token, lab_code, data):
+def pipeline_upload(request, token, run_code, sample_code, data):
 
     userinstance, errmsg = get_userinstance_by_token(request, token)
     if userinstance is None:
         return {'auth': False, 'user': None, 'errmsg': errmsg}
 
+    dbh = get_dbhandler()
+
     # parse incoming request
     # https://github.com/trmznt/ncov19-pipeline sends the following dictionary
-    #
+
+    # either get the Sequence or create a new Sequence
+
+    try:
+        sq = dbh.get_sequences(
+            groups=None,
+            specs=[{'run_code': run_code, 'sample_code': sample_code}],
+            user=userinstance,
+            raise_if_empty=True
+        )
+
+    except dbh.NoResultFound:
+        sq = dbh.Sequence(
+            sequencingrun=run_code,
+            sample=sample_code
+        )
+        dbh.session().add(sq)
+
+    sq.update(data)
 
 # EOF
