@@ -57,7 +57,7 @@ class SampleViewer(BaseViewer):
         'viral_load': ('messy-sample-viral_load', float),
         'treatment': ('messy-sample-treatment', ),
         'last_vaccinated_date?': ('messy-sample-last_vaccinated_date', dateutil.parser.parse),
-        'last_vaccinated_dose': ('messy-sample-last_vaccinated_dose', float),
+        'last_vaccinated_dose?': ('messy-sample-last_vaccinated_dose', float),
         'last_vaccinated_info': ('messy-sample-last_vaccinated_info', ),
         'outbreak': ('messy-sample-outbreak', ),
         'host_dob?': ('messy-sample-host_dob', dateutil.parser.parse),
@@ -306,7 +306,8 @@ class SampleViewer(BaseViewer):
                 ),
 
                 t.inline_inputs(
-                    t.input_text(ff('last_vaccinated_dose'), 'Last Vaccination Dose', value=obj.last_vaccinated_dose,
+                    t.input_text(ff('last_vaccinated_dose?'), 'Last Vaccination Dose',
+                                 value=-1 if obj.last_vaccinated_dose is None else obj.last_vaccinated_dose,
                                  offset=2, size=1),
                     t.input_text(ff('last_vaccinated_date?'), 'On Date', value=obj.last_vaccinated_date,
                                  offset=1, size=2, placeholder='YYYY/MM/DD'),
