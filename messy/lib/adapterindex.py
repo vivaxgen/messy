@@ -1,11 +1,15 @@
 
 # list of index-adapter sequences
 
-# [(pos, name, index1, name, index2)]
+# [(pos, name, index1/index7, name, index2/index5)]
 #
 
 # revcomp: True indicates that the index2 sequences has been reversedcomplemented, hence
 # the sequences are already suitable for NextSeq and NovaSeq v1.5
+
+# how to create the format:
+# 1. Create a text containing index1_id, index1, index2_id, index2
+# 2. Run messy-shell
 
 adapter_indexes = {
 
@@ -839,6 +843,112 @@ adapter_indexes = {
             ('F12', '7-391', 'CCTCCTTT', '5-342', 'CTTTCGCG'),
             ('G12', '7-392', 'CAGTTCCC', '5-343', 'AGTGGCAA'),
             ('H12', '7-393', 'TACCTTGT', '5-344', 'TCCACGAA')
+        ],
+    },
+
+    # QIAGEN QIASeq DIRECT
+
+    'qiaseq-direct-A': {
+        'catalog': '',
+        'adapter': '',
+        'revcomp': True,
+        'indexes': [
+            ('A01', 'I7RUDI-001', 'TGAACGTTGT', 'i5RUDI-001', 'AGTCGGCCAT'),
+            ('B01', 'i7RUDI-002', 'ACCAGACTTG', 'i5RUDI-002', 'GTGCTCATCG'),
+            ('C01', 'i7RUDI-003', 'ACTGGCGAAC', 'i5RUDI-003', 'TCGACTTATC'),
+            ('D01', 'i7RUDI-004', 'GCGTTAGGCA', 'i5RUDI-004', 'CAAGGCGTGA'),
+            ('E01', 'i7RUDI-005', 'TTATCGGCCT', 'i5RUDI-005', 'TTGTGTTCCT'),
+            ('F01', 'i7RUDI-006', 'GAGGTATAAG', 'i5RUDI-006', 'GCCTACTGAG'),
+            ('G01', 'i7RUDI-007', 'TCAAGGATTC', 'i5RUDI-007', 'CAGGCACTTC'),
+            ('H01', 'i7RUDI-008', 'CGAACCGAGA', 'i5RUDI-008', 'AGGCGAGAGA'),
+            ('A02', 'i7RUDI-009', 'GAGCCAAGTT', 'i5RUDI-009', 'GAAGGTGCCT'),
+            ('B02', 'i7RUDI-010', 'AAGGCCGTAG', 'i5RUDI-010', 'TTACCAACAG'),
+            ('C02', 'i7RUDI-011', 'TTAGAGAAGC', 'i5RUDI-011', 'AGGTACCAGC'),
+            ('D02', 'i7RUDI-012', 'TCTAAGACCA', 'i5RUDI-012', 'CCGCTCCTTA'),
+            ('E02', 'i7RUDI-013', 'TGTAACCACT', 'i5RUDI-013', 'TGGAGCGATT'),
+            ('F02', 'i7RUDI-014', 'CCGACACAAG', 'i5RUDI-014', 'CAATTAGGAG'),
+            ('G02', 'i7RUDI-015', 'CTCTGATGGC', 'i5RUDI-015', 'ATTATGAGGC'),
+            ('H02', 'i7RUDI-016', 'CGGCCTGTTA', 'i5RUDI-016', 'GCTCAATACA'),
+            ('A03', 'i7RUDI-017', 'TGCATAGCTT', 'i5RUDI-017', 'TGTTATGGCT'),
+            ('B03', 'i7RUDI-018', 'AACCTTCTCG', 'i5RUDI-018', 'CCACTTGTGG'),
+            ('C03', 'i7RUDI-019', 'AAGAGATCAC', 'i5RUDI-019', 'GTGTGATAAC'),
+            ('D03', 'i7RUDI-020', 'GCCTGAAGGA', 'i5RUDI-020', 'AAGAACGGTA'),
+            ('E03', 'i7RUDI-021', 'ATTGTGCCTT', 'i5RUDI-021', 'CCTAACGCCT'),
+            ('F03', 'i7RUDI-022', 'TCCTCTACCG', 'i5RUDI-022', 'GACGTTACGG'),
+            ('G03', 'i7RUDI-023', 'TACCATGAAC', 'i5RUDI-023', 'TGGCTATTAC'),
+            ('H03', 'i7RUDI-024', 'CATTGGCAGA', 'i5RUDI-024', 'ATCGGCGCTA'),
+            ('A04', 'i7RUDI-025', 'CACTGCTATT', 'i5RUDI-025', 'TCCAAGAATG'),
+            ('B04', 'i7RUDI-026', 'AATGGTAGGT', 'i5RUDI-026', 'AACCTTGCAT'),
+            ('C04', 'i7RUDI-027', 'GATACCTATG', 'i5RUDI-027', 'TTGTCTGGCG'),
+            ('D04', 'i7RUDI-028', 'CACTAGGTAC', 'i5RUDI-028', 'GCCAACCTTC'),
+            ('E04', 'i7RUDI-029', 'AGCTCGTTCA', 'i5RUDI-029', 'CGTGATGCGA'),
+            ('F04', 'i7RUDI-030', 'TGTCAGTCTT', 'i5RUDI-030', 'TCATGACCGG'),
+            ('G04', 'i7RUDI-031', 'GATGAACAGT', 'i5RUDI-031', 'GCTTGTGAAT'),
+            ('H04', 'i7RUDI-032', 'ACAATCGGCG', 'i5RUDI-032', 'TTACAGGTTG'),
+            ('A05', 'i7RUDI-033', 'GATTGAGTTC', 'i5RUDI-033', 'AACGACTGGC'),
+            ('B05', 'i7RUDI-034', 'GTAATGCCAA', 'i5RUDI-034', 'CGACAAGGCA'),
+            ('C05', 'i7RUDI-035', 'TCGTTGCGCT', 'i5RUDI-035', 'CAGCGGATAG'),
+            ('D05', 'i7RUDI-036', 'AGGTGAGTAT', 'i5RUDI-036', 'TTCCGGCATT'),
+            ('E05', 'i7RUDI-037', 'TCGATAATGG', 'i5RUDI-037', 'CGGATAACCG'),
+            ('F05', 'i7RUDI-038', 'GCGTCTCTTC', 'i5RUDI-038', 'ACTCTTCCGC'),
+            ('G05', 'i7RUDI-039', 'GTCTCCTGCA', 'i5RUDI-039', 'GACTAACCAA'),
+            ('H05', 'i7RUDI-040', 'GAGCTTCATT', 'i5RUDI-040', 'TCACACTGAA'),
+            ('A06', 'i7RUDI-041', 'AGGCCTACAT', 'i5RUDI-041', 'CCAGAATTCT'),
+            ('B06', 'i7RUDI-042', 'TGTGGAACCG', 'i5RUDI-042', 'AGAGTCAATG'),
+            ('C06', 'i7RUDI-043', 'CGTATTAAGC', 'i5RUDI-043', 'TTGAAGCCGC'),
+            ('D06', 'i7RUDI-044', 'CCAGTGGTTA', 'i5RUDI-044', 'GAGACCATAA'),
+            ('E06', 'i7RUDI-045', 'GCGTTCGAGT', 'i5RUDI-045', 'CCTGGTTACG'),
+            ('F06', 'i7RUDI-046', 'CCTTCCGGTT', 'i5RUDI-046', 'TATCTGAGCT'),
+            ('G06', 'i7RUDI-047', 'CACAAGACGG', 'i5RUDI-047', 'GTAACACCGG'),
+            ('H06', 'i7RUDI-048', 'GCTTACACAC', 'i5RUDI-048', 'AGGTTAGGTC'),
+            ('A07', 'i7RUDI-049', 'AGGATGTCCA', 'i5RUDI-049', 'CCTTCTACAA'),
+            ('B07', 'i7RUDI-050', 'CACCTTATGT', 'i5RUDI-050', 'TAGTGCTAGG'),
+            ('C07', 'i7RUDI-051', 'AAGCGGCTGT', 'i5RUDI-051', 'AGAACACGAT'),
+            ('D07', 'i7RUDI-052', 'TTCCTGTGAG', 'i5RUDI-052', 'GATAAGTTGG'),
+            ('E07', 'i7RUDI-053', 'AGTACAGTTC', 'i5RUDI-053', 'CCTTGGCTTC'),
+            ('F07', 'i7RUDI-054', 'TACAGCCTCA', 'i5RUDI-054', 'TTGAACTCCA'),
+            ('G07', 'i7RUDI-055', 'GTTCTATTGG', 'i5RUDI-055', 'AGGATTGAAG'),
+            ('H07', 'i7RUDI-056', 'ATATACCGGT', 'i5RUDI-056', 'CACGCAAGAT'),
+            ('A08', 'i7RUDI-057', 'CCTCGGAATG', 'i5RUDI-057', 'ACCTTAGACG'),
+            ('B08', 'i7RUDI-058', 'GTTCTGGAAC', 'i5RUDI-058', 'TGTTCACCTC'),
+            ('C08', 'i7RUDI-059', 'AGATTCACCA', 'i5RUDI-059', 'GTAGTTCTGA'),
+            ('D08', 'i7RUDI-060', 'TCGGTCAGAT', 'i5RUDI-060', 'TCAATATCCG'),
+            ('E08', 'i7RUDI-061', 'CACTCTCGCT', 'i5RUDI-061', 'ATCTACTCCT'),
+            ('F08', 'i7RUDI-062', 'GTTGGTCCAG', 'i5RUDI-062', 'TATTCGGCGG'),
+            ('G08', 'i7RUDI-063', 'AGCTCGAAGC', 'i5RUDI-063', 'GTATAGACTC'),
+            ('H08', 'i7RUDI-064', 'AGAGGTTCTA', 'i5RUDI-064', 'CCGGTAATAA'),
+            ('A09', 'i7RUDI-065', 'ATGACTCGAA', 'i5RUDI-065', 'CTAACGAGCG'),
+            ('B09', 'i7RUDI-066', 'GAACAATCCT', 'i5RUDI-066', 'CAGCGTTGTT'),
+            ('C09', 'i7RUDI-067', 'TGGCAAGGAG', 'i5RUDI-067', 'AATAGCCGCG'),
+            ('D09', 'i7RUDI-068', 'GAATATTGGC', 'i5RUDI-068', 'TGTGTCGAGC'),
+            ('E09', 'i7RUDI-069', 'CCGGAACCTA', 'i5RUDI-069', 'GTTGGAAGAA'),
+            ('F09', 'i7RUDI-070', 'ACTTGTTCGG', 'i5RUDI-070', 'CAACCGCCAA'),
+            ('G09', 'i7RUDI-071', 'CAAGTCCAAT', 'i5RUDI-071', 'ATTGCCTGTT'),
+            ('H09', 'i7RUDI-072', 'AACCGCAAGG', 'i5RUDI-072', 'CGCCATTCTG'),
+            ('A10', 'i7RUDI-073', 'ACGTTGACTC', 'i5RUDI-073', 'GAATCTCAAC'),
+            ('B10', 'i7RUDI-074', 'CCACTTAACA', 'i5RUDI-074', 'TCCGCACACA'),
+            ('C10', 'i7RUDI-075', 'AGCAGTTCCT', 'i5RUDI-075', 'TTCGCCGAAC'),
+            ('D10', 'i7RUDI-076', 'TCGCCTTCGT', 'i5RUDI-076', 'CAATACAGCT'),
+            ('E10', 'i7RUDI-077', 'TAGGACTGCG', 'i5RUDI-077', 'TCATCCGCTG'),
+            ('F10', 'i7RUDI-078', 'TCCGAGCGAA', 'i5RUDI-078', 'ATCCAAGGAC'),
+            ('G10', 'i7RUDI-079', 'TTCGGTTGTT', 'i5RUDI-079', 'AGCATCTAGA'),
+            ('H10', 'i7RUDI-080', 'ACAGGAGGAA', 'i5RUDI-080', 'ATGTGGCTCG'),
+            ('A11', 'i7RUDI-081', 'CCTCCATTAA', 'i5RUDI-081', 'TCCATTCCAT'),
+            ('B11', 'i7RUDI-082', 'AGTCGCGGTT', 'i5RUDI-082', 'GTGAGGAATG'),
+            ('C11', 'i7RUDI-083', 'CTCATCCAGG', 'i5RUDI-083', 'CTTCCTATGC'),
+            ('D11', 'i7RUDI-084', 'TGTGGTTGAA', 'i5RUDI-084', 'AACACGAACA'),
+            ('E11', 'i7RUDI-085', 'TTATGCGTGG', 'i5RUDI-085', 'AACGGTCTTA'),
+            ('F11', 'i7RUDI-086', 'GCGAATGTAT', 'i5RUDI-086', 'CTGGTACCAT'),
+            ('G11', 'i7RUDI-087', 'GTCAAGCTCG', 'i5RUDI-087', 'AAGCTGTCGG'),
+            ('H11', 'i7RUDI-088', 'TAGAGTTGGA', 'i5RUDI-088', 'TCATATCGTC'),
+            ('A12', 'i7RUDI-089', 'CTGATGATCT', 'i5RUDI-089', 'TGGAGTACAA'),
+            ('B12', 'i7RUDI-090', 'ACTAGGTGTT', 'i5RUDI-090', 'TTATGTGCAC'),
+            ('C12', 'i7RUDI-091', 'CTGTTAGCGG', 'i5RUDI-091', 'TACTTGTCCT'),
+            ('D12', 'i7RUDI-092', 'ATCGCACCAA', 'i5RUDI-092', 'CTCGAATCGG'),
+            ('E12', 'i7RUDI-093', 'CTTACTTGGT', 'i5RUDI-093', 'AAGTTCCTAC'),
+            ('F12', 'i7RUDI-094', 'CCTTAATGCG', 'i5RUDI-094', 'TCGTAGTGTA'),
+            ('G12', 'i7RUDI-095', 'TCTCGCCTAG', 'i5RUDI-095', 'TCAAGGTCAT'),
+            ('H12', 'i7RUDI-096', 'TCTTCAGAGA', 'i5RUDI-096', 'CGTCACGTAG')
         ],
     },
 
