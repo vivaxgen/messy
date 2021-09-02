@@ -853,11 +853,13 @@ class Sequence(Base, BaseMixIn):
 
             dbh = get_dbhandler()
 
-            if 'sequencingrun' in obj:
-                self.sample_id = dbh.get_sequencingrun_by_code(obj['sequencingrun']).id
+            if type(sequencingrun := obj.get('sequencingrun', None)) == str:
+                self.sequencingrun_id = dbh.get_sequencingruns_by_codes(obj['sequencingrun'])[0].id
+                del obj['sequencingrun']
 
-            if 'sample' in obj:
-                self.sample_id = dbh.get_samples_by_lab_code(obj['sample']).id
+            if type(sample := obj.get('sample', None)) == str:
+                self.sample_id = dbh.get_samples_by_codes(obj['sample'])[0].id
+                del obj['sample']
 
             convert_date(obj, 'submission_date')
 
