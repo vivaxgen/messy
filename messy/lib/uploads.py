@@ -50,7 +50,7 @@ class UploadJob(object):
         if ext == '.tsv':
             df = pd.read_table(instream, sep='\t', dtype=str, na_filter=False)
         elif ext == '.csv':
-            df = pd.read_table(instream, sep=',', dtype=str)
+            df = pd.read_table(instream, sep=',', dtype=str, na_filter=False)
         elif ext == '.jsonl':
             dicts = []
             for line in instream:
@@ -392,6 +392,9 @@ class SampleUploadJob(UploadJob):
             return self._fix_fields(d, dbh, method)
 
         except Exception as err:
+            if isinstance(err, AssertionError):
+                # reraise assert for easier debugging
+                raise
             raise RuntimeError(f'Error parsing data: {err}\r\nduring processing {d}') from err
 
     def _fix_fields(self, d, dbh, method):
