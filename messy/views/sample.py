@@ -2,10 +2,11 @@
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
                          Response, modal_delete, modal_error, Response, HTTPFound,
-                         validate_code)
+                         validate_code, AuthError)
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 import dateutil
+import json
 import more_itertools
 
 
@@ -73,17 +74,24 @@ class SampleViewer(BaseViewer):
     @m_roles(r.PUBLIC)
     def index(self):
 
+        custom_template = None
+
         samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)\
             .order_by(self.dbh.Sample.id.desc())
 
         if self.request.params.get('view', None) == 'status':
             html, code = generate_sample_status_table(samples, self.request)
+        if self.request.params.get('view', None) == 'grid':
+            if not self.request.user.has_roles(r.SAMPLE_MANAGE, r.DATAADM, r.SYSADM):
+                raise AuthError('You user account does not have authorization to view in grid mode.')
+            html, code = generate_sample_grid(samples, self.request)
+            custom_template = "messy:templates/gridbase.mako"
         else:
             html, code = generate_sample_table(samples, self.request)
 
         html = t.div()[t.h2('Samples'), html]
 
-        return render_to_response("messy:templates/datatablebase.mako",
+        return render_to_response(custom_template or "messy:templates/datatablebase.mako",
                                   {
                                       'html': html,
                                       'code': code,
@@ -441,6 +449,32 @@ class SampleViewer(BaseViewer):
 
         return error_page(request, 'action post not implemented')
 
+    @m_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE)
+    def grid(self):
+        """ sample REST interface """
+
+        rq = self.request
+        _m = rq.method
+        dbh = get_dbhandler()
+
+        if _m == t.POST:
+            """
+            request.POST is MultiDict([('data', '[{"row":"3", "col0": 1234, "data":{"code":"def"}}]'), ('name', '')])
+            """
+            # update the samples
+            updates = json.loads(rq.POST.get('data'))
+
+            for vals in updates:
+                sample_id = vals['col0']
+                d = vals['data']
+                sample = dbh.get_samples_by_ids([sample_id], groups=None, ignore_acl=True)[0]
+                sample.update(d)
+                return {'success': True}
+
+            raise NotImplementedError
+
+        raise ValueError('unregistered method')
+
     def get_object(self):
         """obj_id either integer or 'code=?'"""
         rq = self.request
@@ -640,6 +674,40 @@ def generate_sample_status_table(samples, request):
     return sample_status_table, template_sample_status_datatable_js
 
 
+def generate_sample_grid(samples, request):
+    """ use grid to show samples """
+
+    html = t.div()[
+        t.h5('With great power comes great responsibility!'),
+        t.div(id='sample_grid')
+    ]
+
+    data = list([[
+        s.id,
+        s.code,
+        s.acc_code,
+        str(s.collection),
+        s.location,
+        str(s.collection_date),
+        str(s.originating_institution),
+        s.originating_code,
+        str(s.sampling_institution),
+        s.sampling_code,
+        s.sequence_name,
+        s.category,
+    ] for s in samples])
+
+    grid_js = 'data = ' + json.dumps(data, indent=4) + ';\n'
+
+    grid_js += template_grid_js.format(
+        name='sample_grid',
+        column=2,
+        row=1,
+    )
+
+    return html, grid_js
+
+
 template_datatable_js = """
 $(document).ready(function() {
     $('#sample-table').DataTable( {
@@ -674,4 +742,40 @@ $(document).ready(function() {
     } );
 } );
 """
+
+template_grid_js = """
+{name} = jspreadsheet(document.getElementById('{name}'), {{
+    allowInsertRow:false,
+    allowInsertColumn:false,
+    allowDeleteRow:false,
+    allowDeleteColumn:false,
+    allowRenameColumn:false,
+    allowComments:false,
+    columnSorting:true,
+    name:'{name}',
+    data: data,
+    persistance:'/sample/@@grid',
+    freezeColumns: 3,
+    tableOverflow: true,
+    tableWidth: '1800px',
+    tableHeight: '960px',
+    columns: [
+        {{ title: 'id', name: 'id', align: 'left', width:80, readOnly: true, }},
+        {{ title: 'code', name: 'code', align: 'left', width: 100, }},
+        {{ title: 'acc_code', name: 'acc_code', align: 'left', width: 120, }},
+        {{ title: 'collection', name: 'collection', align: 'left', width: 120, }},
+        {{ title: 'location', name: 'location', align: 'left', width: 300, }},
+        {{ title: 'collection_date', name: 'collection_date', width: 120, }},
+        {{ title: 'originating_institution', name: 'originating_institution', align: 'left', width: 180, }},
+        {{ title: 'originating_code', name: 'originating_code', align: 'left', width: 120, }},
+        {{ title: 'sampling_institution', name: 'sampling_institution', align: 'left', width: 180, }},
+        {{ title: 'sampling_code', name: 'sampling_code', align: 'left', width: 120, }},
+        {{ title: 'sequence_name', name: 'sequence_name', align: 'left', width: 300, }},
+        {{ title: 'category', name: 'category', align: 'left', width: 80, }},
+    ],
+}}
+)
+
+"""
+
 # EOF
