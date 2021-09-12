@@ -711,7 +711,9 @@ def generate_sample_grid(samples, request):
 template_datatable_js = """
 $(document).ready(function() {
     $('#sample-table').DataTable( {
-        paging: false,
+        paging: true,
+        pageLength: 250,
+        lengthMenu: [ [100, 250, 500, 1000, -1], [100, 250, 500, 1000, "All"] ],
         fixedHeader: {
             headerOffset: $('#fixedNavbar').outerHeight()
         },
@@ -759,6 +761,9 @@ template_grid_js = """
     tableOverflow: true,
     tableWidth: '1800px',
     tableHeight: '960px',
+    search: true,
+    pagination: 250,
+    paginationOptions: [100, 250, 500, 1000],
     columns: [
         {{ title: 'id', name: 'id', align: 'left', width:80, readOnly: true, }},
         {{ title: 'code', name: 'code', align: 'left', width: 100, }},
