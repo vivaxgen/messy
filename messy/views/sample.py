@@ -74,24 +74,32 @@ class SampleViewer(BaseViewer):
     @m_roles(r.PUBLIC)
     def index(self):
 
-        custom_template = None
-
         samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)\
             .order_by(self.dbh.Sample.id.desc())
 
         if self.request.params.get('view', None) == 'status':
             html, code = generate_sample_status_table(samples, self.request)
-        if self.request.params.get('view', None) == 'grid':
-            if not self.request.user.has_roles(r.SAMPLE_MANAGE, r.DATAADM, r.SYSADM):
-                raise AuthError('You user account does not have authorization to view in grid mode.')
-            html, code = generate_sample_grid(samples, self.request)
-            custom_template = "messy:templates/gridbase.mako"
         else:
             html, code = generate_sample_table(samples, self.request)
 
         html = t.div()[t.h2('Samples'), html]
 
-        return render_to_response(custom_template or "messy:templates/datatablebase.mako",
+        return render_to_response("messy:templates/datatablebase.mako",
+                                  {
+                                      'html': html,
+                                      'code': code,
+                                  },
+                                  request=self.request)
+
+    @m_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE)
+    def gridview(self):
+
+        samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)\
+            .order_by(self.dbh.Sample.id.desc())
+
+        html, code = generate_sample_grid(samples, self.request)
+        html = t.div()[t.h2('Samples: raw view'), html]
+        return render_to_response("messy:templates/gridbase.mako",
                                   {
                                       'html': html,
                                       'code': code,
@@ -549,6 +557,10 @@ def generate_sample_table(samples, request):
     else:
         html = t.div(sample_table)
         code = ''
+
+    if request.user.has_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE):
+        html = t.div(t.a('View in grid mode', href=request.route_url('messy.sample-gridview')),
+                     html)
 
     code += template_datatable_js
     return html, code

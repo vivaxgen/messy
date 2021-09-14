@@ -75,6 +75,7 @@ def includeme(config):
         '/sample/@@action',
         '/sample/@@add',
         ('/sample/@@lookup', 'lookup', 'json'),
+        '/sample/@@gridview',
         ('/sample/@@grid', 'grid', 'json'),
         '/sample/{id}@@edit',
         '/sample/{id}@@save',
