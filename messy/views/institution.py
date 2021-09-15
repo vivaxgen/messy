@@ -39,7 +39,7 @@ class InstitutionViewer(BaseViewer):
 
         html = t.div()[t.h2('Institutions')].add(html)
 
-        return render_to_response("messy:templates/generic_page.mako", {
+        return render_to_response("messy:templates/datatablebase.mako", {
             'html': html,
             'code': code,
         }, request=self.request)
@@ -212,7 +212,7 @@ def generate_institution_table(institutions, request):
             )
         )
 
-    institution_table = t.table(class_='table table-condensed table-striped')[
+    institution_table = t.table(id='institution-table', class_='table table-condensed table-striped')[
         t.thead(
             t.tr(
                 t.th('', style="width: 2em"),
@@ -238,6 +238,27 @@ def generate_institution_table(institutions, request):
         html = t.div(institution_table)
         code = ''
 
+    code += template_datatable_js
     return html, code
+
+
+template_datatable_js = """
+$(document).ready(function() {
+    $('#institution-table').DataTable( {
+        paging: false,
+        fixedHeader: {
+            headerOffset: $('#fixedNavbar').outerHeight()
+        },
+        orderClasses: false,
+        columns: [
+            { title: ' ', orderable: false, width: '12px' },
+            { },
+            { },
+            { },
+            { },
+        ]
+    } );
+} );
+"""
 
 # EOF
