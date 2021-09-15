@@ -339,7 +339,7 @@ class SampleViewer(BaseViewer):
                     t.input_select(ff('sampling_institution_id'), 'Sampling Institution',
                                    value=samp_inst.id if samp_inst else None, offset=2, size=5,
                                    options=[(samp_inst.id, f'{samp_inst.code} | {samp_inst.name}')] if samp_inst else [],
-                                   popover='Sampling institution|Institution that collected the sample, leave empty for '
+                                   popover='Sampling institution|Institution that directly collected the sample from the patient, leave empty for '
                                            'the same as originating institution'),
                     t.input_text(ff('sampling_code'), 'Sampling Code', value=obj.sampling_code,
                                  offset=2, size=3),
@@ -691,7 +691,8 @@ def generate_sample_grid(samples, request):
 
     html = t.div()[
         t.h5('With great power comes great responsibility!'),
-        t.div(id='sample_grid')
+        t.div(id='sample_grid'),
+        t.button('Fullscreen', onclick='toggle(this)'),
     ]
 
     data = list([[
@@ -707,6 +708,10 @@ def generate_sample_grid(samples, request):
         s.sampling_code,
         s.sequence_name,
         s.category,
+        s.host_age,
+        s.host_gender,
+        s.host_status,
+        s.species,
     ] for s in samples])
 
     grid_js = 'data = ' + json.dumps(data, indent=4) + ';\n'
@@ -758,7 +763,12 @@ $(document).ready(function() {
 """
 
 template_grid_js = """
-{name} = jspreadsheet(document.getElementById('{name}'), {{
+
+var toggle = function(b) {{
+    {name}.fullscreen(true);
+}}
+
+var {name} = jspreadsheet(document.getElementById('{name}'), {{
     allowInsertRow:false,
     allowInsertColumn:false,
     allowDeleteRow:false,
@@ -788,7 +798,11 @@ template_grid_js = """
         {{ title: 'sampling_institution', name: 'sampling_institution', align: 'left', width: 180, }},
         {{ title: 'sampling_code', name: 'sampling_code', align: 'left', width: 120, }},
         {{ title: 'sequence_name', name: 'sequence_name', align: 'left', width: 300, }},
-        {{ title: 'category', name: 'category', align: 'left', width: 80, }},
+        {{ title: 'category', name: 'category', align: 'left', width: 70, }},
+        {{ title: 'host_age', name: 'host_age', align: 'right', width: 70, }},
+        {{ title: 'host_gender', name: 'host_gender', align: 'left', width: 70, }},
+        {{ title: 'host_status', name: 'host_status', align: 'left', width: 80, }},
+        {{ title: 'species', name: 'species', align: 'left', width: 120, }},
     ],
 }}
 )
