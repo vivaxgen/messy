@@ -46,3 +46,7 @@ body {
 	padding-top: 4px !important;
 	padding-bottom: 4px !important;
 }
+
+.jexcel tbody tr:nth-child(even) {
+  background-color: #EEE9F1 !important;
+}
