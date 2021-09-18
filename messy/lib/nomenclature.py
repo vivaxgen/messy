@@ -23,7 +23,7 @@ def create_name(species, host, location, acc_code, collection_date):
         if host == 'human':
             prefix = 'hCov19'
     else:
-        raise RuntimeError('combination of species/host has not been set')
+        return ''
 
     abbr, country = get_location_abbr(location)
     if not (abbr and country):
