@@ -477,6 +477,8 @@ class SampleViewer(BaseViewer):
                 d = vals['data']
                 sample = dbh.get_samples_by_ids([sample_id], groups=None, ignore_acl=True)[0]
                 sample.update(d)
+                if ({'acc_code', 'location', 'collection_date', 'species', 'host'} & set(d.keys())):
+                    sample.update_sequence_name()
                 return {'success': True}
 
             raise NotImplementedError
