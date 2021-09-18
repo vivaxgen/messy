@@ -417,13 +417,11 @@ class Sample(Base, BaseMixIn):
 
     def update_sequence_name(self):
         if self.species and self.host and self.location and self.acc_code and self.collection_date:
-            # only update sequence_name if all fields are filled
+            # only update sequence_name if all fields are filled, otherwise leave as it is
             if sequence_name := nomenclature.create_name(self.species, self.host, self.location,
                                                          self.acc_code, self.collection_date):
                 # # only update if sequence_name is constructed properly
                 self.sequence_name = sequence_name
-            else:
-                self.sequence_name = None
         return self.sequence_name
 
     # access control
