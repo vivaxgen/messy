@@ -112,40 +112,46 @@ def export_gisaid(samples):
         sample_collection[s.code] = s
 
     for k in sorted(sample_collection.keys()):
-        s = sample_collection[k]
-        d = {
-            'submitter': s.collection.data['submitter'],
-            'fn': s.code,
-            'covv_virus_name': s.sequence_name,
-            'covv_type': s.species.split('-')[0],
-            'covv_passage': s.passage,
-            'covv_collection_date': str(s.collection_date),
-            'covv_location': s.location,
-            'covv_add_location': s.location_info,
-            'covv_host': s.host,
-            'covv_add_host_info': s.host_info,
-            'covv_gender': gender[s.host_gender],
-            'covv_patient_age': s.host_age,
-            'covv_patient_status': s.host_status,
-            'covv_specimen': dbh.EK.get(s.specimen_type_id, sess).desc,
-            'covv_outbreak': s.outbreak,
-            'covv_last_vaccinated': '',
-            'covv_treatment': '',
-            'covv_seq_technology': '',
-            'covv_assembly_method': '',
-            'covv_coverage': '',
-            'covv_orig_lab': s.sampling_institution.name,
-            'covv_orig_lab_addr': s.sampling_institution.address,
-            'covv_provider_sample_id': '',
-            'covv_subm_lab': s.collection.get_submitting_institution_name(),
-            'covv_subm_lab_addr': s.collection.get_submitting_institution_addr(),
-            'covv_subm_sample_id': s.acc_code,
-            'covv_authors': authors.create_authors(s),
-            'covv_comment': '',
-            'comment_type': '',
-        }
 
-        gisaid_dict[s.code] = d
+        try:
+            s = sample_collection[k]
+            d = {
+                'submitter': s.collection.data['submitter'],
+                'fn': s.code,
+                'covv_virus_name': s.sequence_name,
+                'covv_type': s.species.split('-')[0],
+                'covv_passage': s.passage,
+                'covv_collection_date': str(s.collection_date),
+                'covv_location': s.location,
+                'covv_add_location': s.location_info,
+                'covv_host': s.host,
+                'covv_add_host_info': s.host_info,
+                'covv_gender': gender[s.host_gender],
+                'covv_patient_age': s.host_age,
+                'covv_patient_status': s.host_status,
+                'covv_specimen': dbh.EK.get(s.specimen_type_id, sess).desc,
+                'covv_outbreak': s.outbreak,
+                'covv_last_vaccinated': '',
+                'covv_treatment': '',
+                'covv_seq_technology': '',
+                'covv_assembly_method': '',
+                'covv_coverage': '',
+                'covv_orig_lab': s.sampling_institution.name,
+                'covv_orig_lab_addr': s.sampling_institution.address,
+                'covv_provider_sample_id': '',
+                'covv_subm_lab': s.collection.get_submitting_institution_name(),
+                'covv_subm_lab_addr': s.collection.get_submitting_institution_addr(),
+                'covv_subm_sample_id': s.acc_code,
+                'covv_authors': authors.create_authors(s),
+                'covv_comment': '',
+                'comment_type': '',
+            }
+
+            gisaid_dict[s.code] = d
+
+        except Exception as err:
+            print(f'Error processing sample: {k}')
+            raise
 
     return gisaid_dict
 
