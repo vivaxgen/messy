@@ -479,9 +479,8 @@ class SampleViewer(BaseViewer):
                 sample.update(d)
                 if ({'acc_code', 'location', 'collection_date', 'species', 'host'} & set(d.keys())):
                     sample.update_sequence_name()
-                return {'success': True}
 
-            raise NotImplementedError
+            return {'success': True}
 
         raise ValueError('unregistered method')
 
