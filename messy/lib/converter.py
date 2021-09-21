@@ -126,7 +126,7 @@ def export_gisaid(samples):
                 'covv_add_location': s.location_info,
                 'covv_host': s.host,
                 'covv_add_host_info': s.host_info,
-                'covv_gender': gender[s.host_gender],
+                'covv_gender': gender[s.host_gender.upper()],
                 'covv_patient_age': s.host_age,
                 'covv_patient_status': s.host_status,
                 'covv_specimen': dbh.EK.get(s.specimen_type_id, sess).desc,
