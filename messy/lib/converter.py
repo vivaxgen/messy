@@ -1,5 +1,7 @@
 
 import pandas as pd
+from collections import deque
+from rhombus.lib.utils import get_dbhandler
 
 # all CSV to dict converter
 
@@ -38,7 +40,7 @@ def import_gisaid_csv(filename):
             last_vaccinated_info=r['covv_last_vaccinated'],
             treatment=r['covv_treatment'],
 
-            #originating_code = r['covv_provider_sample_id'] or r['fn'],
+            # originating_code = r['covv_provider_sample_id'] or r['fn'],
             originating_institution=r['covv_orig_lab'],
             sampling_institution=r['covv_orig_lab'],
 
@@ -88,5 +90,84 @@ def import_fasta(filename, label='lab_code'):
 def export_institution(filename):
 
     pass
+
+
+def export_gisaid(samples):
+    """ return a dict with sample code as key with gisaid fields """
+
+    dbh = get_dbhandler()
+    sess = dbh.session()
+
+    # gender
+    gender = {'F': 'Female', 'M': 'Male', 'U': 'Unknown'}
+
+    # set for rotating authors
+    authors = AuthorHelper()
+
+    gisaid_dict = {}
+
+    # to create consistent and predictable data set, we ordered the samples by code
+    sample_collection = {}
+    for s in samples:
+        sample_collection[s.code] = s
+
+    for k in sorted(sample_collection.keys()):
+        s = sample_collection[k]
+        d = {
+            'submitter': s.collection.data['submitter'],
+            'fn': s.code,
+            'covv_virus_name': s.sequence_name,
+            'covv_type': s.species.split('-')[0],
+            'covv_passage': s.passage,
+            'covv_collection_date': str(s.collection_date),
+            'covv_location': s.location,
+            'covv_add_location': s.location_info,
+            'covv_host': s.host,
+            'covv_add_host_info': s.host_info,
+            'covv_gender': gender[s.host_gender],
+            'covv_patient_age': s.host_age,
+            'covv_patient_status': s.host_status,
+            'covv_specimen': dbh.EK.get(s.specimen_type_id, sess).desc,
+            'covv_outbreak': s.outbreak,
+            'covv_last_vaccinated': '',
+            'covv_treatment': '',
+            'covv_seq_technology': '',
+            'covv_assembly_method': '',
+            'covv_coverage': '',
+            'covv_orig_lab': s.sampling_institution.name,
+            'covv_orig_lab_addr': s.sampling_institution.address,
+            'covv_provider_sample_id': '',
+            'covv_subm_lab': s.collection.get_submitting_institution_name(),
+            'covv_subm_lab_addr': s.collection.get_submitting_institution_addr(),
+            'covv_subm_sample_id': s.acc_code,
+            'covv_authors': authors.create_authors(s),
+            'covv_comment': '',
+            'comment_type': '',
+        }
+
+        gisaid_dict[s.code] = d
+
+    return gisaid_dict
+
+
+class AuthorHelper(object):
+
+    def __init__(self):
+        self.rotating_authors = {}
+        self.last_authors = {}
+
+    def create_authors(self, sample):
+        coll_code = sample.collection.code
+        if coll_code not in self.last_authors:
+            self.prepare_authorship(sample.collection)
+        authors = list(self.rotating_authors[coll_code]) + self.last_authors[coll_code]
+        self.rotating_authors[coll_code].rotate(-1)
+        return ', '.join(authors)
+
+    def prepare_authorship(self, collection):
+        authorship = collection.get_authors()
+        self.last_authors[collection.code] = authorship.get('fixed', [])
+        self.rotating_authors[collection.code] = deque(authorship.get('rotating', []))
+
 
 # EOF

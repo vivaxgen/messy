@@ -9,10 +9,12 @@ from rhombus.lib.exceptions import AuthError
 from pyramid import response
 
 from messy.lib.samplesheet_utils import generate_samplesheet
+from messy.lib.converter import export_gisaid
 
 import sqlalchemy.exc
 from pyramid.response import Response, FileIter
 import dateutil
+import pandas as pd
 
 
 class RunViewer(BaseViewer):
@@ -162,6 +164,11 @@ class RunViewer(BaseViewer):
                     href=self.request.route_url('messy.run-action',
                                                 _query={'_method': 'generate_samplesheet',
                                                         'id': self.obj.id})),
+                '|',
+                t.a('Generate GISAID csv',
+                    href=self.request.route_url('messy.run-action',
+                                                _query={'_method': 'generate_gisaidcsv',
+                                                        'id': self.obj.id})),
             )
 
         return self.render_edit_form(run_html, run_jscode)
@@ -277,7 +284,20 @@ class RunViewer(BaseViewer):
                                      content_disposition=f'inline; filename="SampleSheet_{seqrun.code}.csv"',
                                      request=rq)
 
-            raise NotImplementedError('this function has not been enabled yet')
+        if method == 'generate_gisaidcsv':
+            seqrun = self.get_object(obj_id=rq.params.get('id'))
+
+            data = []
+            gisaid_csv = export_gisaid(seqrun.get_related_samples())
+            for k in sorted(gisaid_csv.keys()):
+                data.append(gisaid_csv[k])
+            df = pd.DataFrame.from_records(data)
+            df['covv_seq_technology'] = dbh.EK.get(seqrun.sequencing_kit_id, dbh.session()).key.split('-', 1)[0]
+            csv = df.to_csv(index=False)
+            return response.Response(csv,
+                                     content_type='text/csv',
+                                     content_disposition=f'inline; filename="Submission_{seqrun.code}.csv"',
+                                     request=rq)
 
         raise ValueError('unknown method')
 

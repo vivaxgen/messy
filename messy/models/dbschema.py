@@ -214,6 +214,20 @@ class Collection(Base, BaseMixIn):
                 dbh.Sample.from_dict(samp, dbh)
         return coll
 
+    def get_submitting_institution_name(self):
+        return '; '.join(inst.name for inst in self.institutions)
+
+    def get_submitting_institution_addr(self):
+        return '; '.join(inst.address for inst in self.institutions)
+
+    # JSON data access
+
+    def get_submitter(self):
+        return self.data.get('submitter', '') if self.data else ''
+
+    def get_authors(self):
+        return self.data.get('authors', {}) if self.data else {}
+
 
 collection_file_table = Table(
     'collections_files', metadata,
@@ -701,6 +715,23 @@ class SequencingRun(Base, BaseMixIn):
 
     def __repr__(self):
         return f"SequencingRun('{self.code}')"
+
+    def get_related_samples(self, scalar=False):
+        if scalar:
+            q = select(func.count(Sample.id))
+        else:
+            q = select(Sample)
+        q = (
+            q.
+            join(PlatePosition).
+            join(Plate).
+            join(SequencingRunPlate).
+            filter(SequencingRunPlate.sequencingrun_id == self.id).
+            filter(~Sample.code.in_(['-', '*', 'NTC1', 'NTC2', 'NTC3', 'NTC4']))
+        )
+        if scalar:
+            return object_session(self).scalar(q)
+        return object_session(self).execute(q).scalars()
 
     def update(self, obj):
 
