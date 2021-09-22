@@ -21,7 +21,7 @@ def get_location_abbr(location):
 def create_name(species, host, location, acc_code, collection_date):
     if species == 'betacoronavirus-ncov19':
         if host == 'human':
-            prefix = 'hCov19'
+            prefix = 'hCoV-19'
     else:
         return ''
 
