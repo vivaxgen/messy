@@ -296,7 +296,7 @@ class RunViewer(BaseViewer):
             csv = df.to_csv(index=False)
             return response.Response(csv,
                                      content_type='text/csv',
-                                     content_disposition=f'inline; filename="Submission_{seqrun.code}.csv"',
+                                     content_disposition=f'inline; filename="Metadata_{seqrun.code}.csv"',
                                      request=rq)
 
         raise ValueError('unknown method')
