@@ -99,7 +99,7 @@ def export_gisaid(samples):
     sess = dbh.session()
 
     # gender
-    gender = {'F': 'Female', 'M': 'Male', 'U': 'Unknown'}
+    gender = {'F': 'Female', 'M': 'Male', 'U': 'Unknown', 'X': 'Unknown'}
 
     # set for rotating authors
     authors = AuthorHelper()
@@ -127,7 +127,7 @@ def export_gisaid(samples):
                 'covv_host': s.host,
                 'covv_add_host_info': s.host_info,
                 'covv_gender': gender[s.host_gender.upper()],
-                'covv_patient_age': s.host_age,
+                'covv_patient_age': s.host_age if s.host_age >= 0 else 'unknown',
                 'covv_patient_status': s.host_status,
                 'covv_specimen': dbh.EK.get(s.specimen_type_id, sess).desc,
                 'covv_outbreak': s.outbreak,
