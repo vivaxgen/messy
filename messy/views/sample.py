@@ -3,6 +3,7 @@ from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, 
                          render_to_response, form_submit_bar, select2_lookup, error_page,
                          Response, modal_delete, modal_error, Response, HTTPFound,
                          validate_code, AuthError)
+from messy.lib.nomenclature import fix_location_data
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
 import dateutil
@@ -27,7 +28,7 @@ class SampleViewer(BaseViewer):
         'acc_code': ('messy-sample-acc_code', validate_code),
         'category_id': ('messy-sample-category_id', ),
         'sequence_name': ('messy-sample-sequence_name', ),
-        'location': ('messy-sample-location', ),
+        'location': ('messy-sample-location', fix_location_data),
         'location_info': ('messy-sample-location_info', ),
         'collection_date': ('messy-sample-collection_date', dateutil.parser.parse),
         'received_date': ('messy-sample-received_date', dateutil.parser.parse),
@@ -65,9 +66,9 @@ class SampleViewer(BaseViewer):
         'host_nik': ('messy-sample-host_nik', ),
         'host_nar': ('messy-sample-host_nar', ),
         'originating_institution_id*': ('messy-sample-originating_institution_id', ),
-        'originating_code': ('messy-sample-originating_code', validate_code),
+        'originating_code': ('messy-sample-originating_code', validate_code_ext),
         'sampling_institution_id': ('messy-sample-sampling_institution_id', ),
-        'sampling_code': ('messy-sample-sampling_code', validate_code),
+        'sampling_code': ('messy-sample-sampling_code', validate_code_ext),
         'attachment': ('messy-sample-attachment'),
     }
 

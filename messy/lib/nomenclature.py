@@ -11,6 +11,10 @@ def load_location_data(infile):
     return __locations__
 
 
+def fix_location_data(location):
+    return '/'.join(list(x.strip() for x in location.split('/')))
+
+
 def get_location_abbr(location):
     tokens = list(x.strip() for x in location.split('/'))
     if len(tokens) >= 3:
@@ -30,3 +34,5 @@ def create_name(species, host, location, acc_code, collection_date):
         return ''
 
     return f'{prefix}/{country}/{abbr}-{acc_code}/{collection_date.year}'
+
+# EOF

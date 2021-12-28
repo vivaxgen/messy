@@ -13,16 +13,25 @@ import mimetypes
 
 
 alnumdash = set(('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-'))
+alnumdash_ext = alnumdast + set(('./'))
 
 
-def validate_code(a_code):
+def validate_code(a_code, charset = alnumdash):
     """ check if a_code only contains alphanumerics and dash"""
 
     a_code = a_code.strip()
     validation = set((a_code))
-    if not validation.issubset(alnumdash):
+    if not validation.issubset(charset):
         raise ValueError('Input can only contain alphanumerics and dash')
     return a_code
+
+
+def validate_code_ext(a_code):
+    """ check if a code only contains aphanumerics, dash, dot and slash
+        which is suitable for code not related to pipeline processing
+    """
+
+    return validate_code_ext(a_code, alnumdash_ext)
 
 
 class BaseViewer(BaseViewer):
