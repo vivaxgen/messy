@@ -13,7 +13,7 @@ import mimetypes
 
 
 alnumdash = set(('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-'))
-alnumdash_ext = alnumdast + set(('./'))
+alnumdash_ext = alnumdash | set(('./'))
 
 
 def validate_code(a_code, charset = alnumdash):
@@ -31,7 +31,7 @@ def validate_code_ext(a_code):
         which is suitable for code not related to pipeline processing
     """
 
-    return validate_code_ext(a_code, alnumdash_ext)
+    return validate_code(a_code, alnumdash_ext)
 
 
 class BaseViewer(BaseViewer):

@@ -2,7 +2,7 @@
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
                          Response, modal_delete, modal_error, Response, HTTPFound,
-                         validate_code, AuthError)
+                         validate_code, validate_code_ext, AuthError)
 from messy.lib.nomenclature import fix_location_data
 import rhombus.lib.tags_b46 as t
 import sqlalchemy.exc
