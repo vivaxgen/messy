@@ -1,7 +1,7 @@
 MESSy README
 ============
 
-MESSy - Molecular Epidemiology by Sequence database management System
+MESSy - Molecular Epidemiology and Surveillance System
 
 Getting Started
 ---------------

@@ -1,2 +1,2 @@
 # messy
-MESSy: Molecular Epidemiology by Sequencing database management System
+MESSy: Molecular Epidemiology and Surveillance System
