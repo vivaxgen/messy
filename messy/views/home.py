@@ -18,7 +18,7 @@ def index(request):
     dbsession = dbh.session()
 
     html = t.div()[
-        t.h2('MESSy: Molecular Epidemiology and Surveillance System'),
+        t.h2('Data Status'),
         t.div(class_='row')[
             t.div('Total collection:', class_='col-3 offset-1'),
             t.div(str(dbh.Collection.query(dbsession).count()), class_='col'),
@@ -27,10 +27,10 @@ def index(request):
             t.div('Total samples:', class_='col-3 offset-1'),
             t.div(str(dbh.Sample.query(dbsession).count()), class_='col'),
         ],
-        t.div(class_='row')[
-            t.div('Total sequences:', class_='col-3 offset-1'),
-            t.div(str(dbh.Sequence.query(dbsession).count()), class_='col'),
-        ]
+        #t.div(class_='row')[
+        #    t.div('Total sequences:', class_='col-3 offset-1'),
+        #    t.div(str(dbh.Sequence.query(dbsession).count()), class_='col'),
+        #]
     ]
 
     return render_to_response(

@@ -4,7 +4,7 @@ from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, 
                          Response, modal_delete, modal_error, Response, HTTPFound,
                          validate_code, validate_code_ext, AuthError)
 from messy.lib.nomenclature import fix_location_data
-import rhombus.lib.tags_b46 as t
+import rhombus.lib.tags as t
 import sqlalchemy.exc
 import dateutil
 import json
@@ -198,10 +198,10 @@ class SampleViewer(BaseViewer):
                     t.input_text(ff('received_date'), '* Received Date', value=obj.received_date,
                                  offset=2, size=2, placeholder='YYYY/MM/DD'),
                     t.input_select_ek(ff('category_id'), 'Category', description=True,
-                                      value=obj.category_id or dbh.get_ekey('R-RA').id,
+                                      value=obj.category_id or dbh.get_ekey('RS').id,
                                       offset=1, size=3, parent_ek=dbh.get_ekey('@CATEGORY')),
                     t.input_select_ek(ff('species_id'), 'Species',
-                                      value=obj.species_id or dbh.get_ekey('betacoronavirus-ncov19').id,
+                                      value=obj.species_id or dbh.get_ekey('pv').id,
                                       offset=1, size=3, parent_ek=dbh.get_ekey('@SPECIES')),
                 ),
 
@@ -226,45 +226,45 @@ class SampleViewer(BaseViewer):
 
                 t.hr,
 
-                t.input_text(ff('sequence_name'), 'Sequence name', value=obj.sequence_name, readonly=True,
-                             offset=2, size=10, placeholder='Sequence name will be automatically-generated'),
+                #t.input_text(ff('sequence_name'), 'Sequence name', value=obj.sequence_name, readonly=True,
+                #             offset=2, size=10, placeholder='Sequence name will be automatically-generated'),
 
                 t.inline_inputs(
                     t.input_select_ek(ff('specimen_type_id'), 'Specimen type',
-                                      value=obj.specimen_type_id or dbh.get_ekey('np+op').id,
+                                      value=obj.specimen_type_id or dbh.get_ekey('blood').id,
                                       offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
 
-                    t.input_select_ek(ff('passage_id'), 'Passage',
-                                      value=obj.passage_id or dbh.get_ekey('original').id,
-                                      offset=1, size=2, parent_ek=dbh.get_ekey('@PASSAGE')),
-                    t.input_text(ff('ct_host1'), 'Ct host 1, 2',
-                                 value=-1 if obj.ct_host1 is None else obj.ct_host1, offset=1, size=1,
-                                 popover='Ct value control or host 1 & 2|Ct value for host control region 1 '
-                                         'and region 2, and others. Please refer to the kit '
-                                         'being used and describe the kit in *Ct Info* field'),
-                    t.input_text(ff('ct_host2'), None,
-                                 value=-1 if obj.ct_host2 is None else obj.ct_host2, offset=1, size=1),
-                    t.input_text(ff('viral_load'), 'Viral Load',
-                                 value=-1 if obj.viral_load is None else obj.viral_load, offset=1, size=1),
+                    #t.input_select_ek(ff('passage_id'), 'Passage',
+                    #                  value=obj.passage_id or dbh.get_ekey('original').id,
+                    #                  offset=1, size=2, parent_ek=dbh.get_ekey('@PASSAGE')),
+                    #t.input_text(ff('ct_host1'), 'Ct host 1, 2',
+                    #             value=-1 if obj.ct_host1 is None else obj.ct_host1, offset=1, size=1,
+                    #             popover='Ct value control or host 1 & 2|Ct value for host control region 1 '
+                    #                     'and region 2, and others. Please refer to the kit '
+                    #                     'being used and describe the kit in *Ct Info* field'),
+                    #t.input_text(ff('ct_host2'), None,
+                    #             value=-1 if obj.ct_host2 is None else obj.ct_host2, offset=1, size=1),
+                    #t.input_text(ff('viral_load'), 'Viral Load',
+                    #             value=-1 if obj.viral_load is None else obj.viral_load, offset=1, size=1),
                 ),
 
-                t.inline_inputs(
-                    t.input_text(ff('ct_target1'), 'Ct target 1, 2, 3, 4',
-                                 value=-1 if obj.ct_target1 is None else obj.ct_target1, offset=2, size=1,
-                                 popover='Ct value target 1, 2, 3 and 4|Ct value for target 1 (usually RdRp/ORF1) '
-                                         'and target 2 (usually E), and others. Please refer to the kit '
-                                         'being used and describe the kit in *Ct Info* field'),
-                    t.input_text(ff('ct_target2'), None,
-                                 value=-1 if obj.ct_target2 is None else obj.ct_target2, offset=1, size=1),
-                    t.input_text(ff('ct_target3'), None,
-                                 value=-1 if obj.ct_target3 is None else obj.ct_target2, offset=1, size=1),
-                    t.input_text(ff('ct_target4'), None,
-                                 value=-1 if obj.ct_target4 is None else obj.ct_target2, offset=1, size=1),
-                    t.input_select_ek(ff('ct_method_id'), None,
-                                      value=obj.ct_method_id or dbh.get_ekey('rtpcr').id,
-                                      offset=1, size=2, parent_ek=dbh.get_ekey('@CT_METHOD')),
-                    t.input_text(ff('ct_info'), 'Ct Info', value=obj.ct_info, offset=1, size=3),
-                ),
+                #t.inline_inputs(
+                #    t.input_text(ff('ct_target1'), 'Ct target 1, 2, 3, 4',
+                #                 value=-1 if obj.ct_target1 is None else obj.ct_target1, offset=2, size=1,
+                #                 popover='Ct value target 1, 2, 3 and 4|Ct value for target 1 (usually RdRp/ORF1) '
+                #                         'and target 2 (usually E), and others. Please refer to the kit '
+                #                         'being used and describe the kit in *Ct Info* field'),
+                #    t.input_text(ff('ct_target2'), None,
+                #                 value=-1 if obj.ct_target2 is None else obj.ct_target2, offset=1, size=1),
+                #    t.input_text(ff('ct_target3'), None,
+                #                 value=-1 if obj.ct_target3 is None else obj.ct_target2, offset=1, size=1),
+                #    t.input_text(ff('ct_target4'), None,
+                #                 value=-1 if obj.ct_target4 is None else obj.ct_target2, offset=1, size=1),
+                #    t.input_select_ek(ff('ct_method_id'), None,
+                #                      value=obj.ct_method_id or dbh.get_ekey('rtpcr').id,
+                #                      offset=1, size=2, parent_ek=dbh.get_ekey('@CT_METHOD')),
+                #    t.input_text(ff('ct_info'), 'Ct Info', value=obj.ct_info, offset=1, size=3),
+                #),
 
                 t.inline_inputs(
 
@@ -304,14 +304,14 @@ class SampleViewer(BaseViewer):
                                  offset=2, size=10, placeholder='List of space-delimited comorbids')
                 ),
 
-                t.inline_inputs(
-                    t.input_text(ff('last_infection_date?'), 'Last Infection Date',
-                                 value=obj.last_infection_date, placeholder='YYYY/MM/DD',
-                                 offset=2, size=2),
-                    t.input_text(ff('last_infection_info'), 'Last Infection Info',
-                                 value=obj.last_infection_info, offset=2, size=6,
-                                 placeholder='YYYY/MM/DD of previous infection; previous status;'),
-                ),
+                #t.inline_inputs(
+                #    t.input_text(ff('last_infection_date?'), 'Last Infection Date',
+                #                 value=obj.last_infection_date, placeholder='YYYY/MM/DD',
+                #                 offset=2, size=2),
+                #    t.input_text(ff('last_infection_info'), 'Last Infection Info',
+                #                 value=obj.last_infection_info, offset=2, size=6,
+                #                 placeholder='YYYY/MM/DD of previous infection; previous status;'),
+                #),
 
                 t.inline_inputs(
                     t.input_text(ff('host_age?'), 'Host Age', value=obj.host_age, offset=2, size=1),
@@ -322,16 +322,16 @@ class SampleViewer(BaseViewer):
                                       offset=1, size=4, parent_ek=dbh.get_ekey('@HOST_OCCUPATION')),
                 ),
 
-                t.inline_inputs(
-                    t.input_text(ff('last_vaccinated_dose?'), 'Last Vaccination Dose',
-                                 value=-1 if obj.last_vaccinated_dose is None else obj.last_vaccinated_dose,
-                                 offset=2, size=1),
-                    t.input_text(ff('last_vaccinated_date?'), 'On Date', value=obj.last_vaccinated_date,
-                                 offset=1, size=2, placeholder='YYYY/MM/DD'),
-                    t.input_text(ff('last_vaccinated_info'), 'With Info', value=obj.last_vaccinated_info,
-                                 offset=1, size=5,
-                                 placeholder='YYYY/MM/DD of previous vaccination; brand of vaccine'),
-                ),
+                #t.inline_inputs(
+                #    t.input_text(ff('last_vaccinated_dose?'), 'Last Vaccination Dose',
+                #                 value=-1 if obj.last_vaccinated_dose is None else obj.last_vaccinated_dose,
+                #                 offset=2, size=1),
+                #    t.input_text(ff('last_vaccinated_date?'), 'On Date', value=obj.last_vaccinated_date,
+                #                 offset=1, size=2, placeholder='YYYY/MM/DD'),
+                #    t.input_text(ff('last_vaccinated_info'), 'With Info', value=obj.last_vaccinated_info,
+                #                 offset=1, size=5,
+                #                 placeholder='YYYY/MM/DD of previous vaccination; brand of vaccine'),
+                #),
 
                 t.input_text(ff('outbreak'), 'Outbreak info', value=obj.outbreak,
                              offset=2, size=10),
@@ -346,11 +346,11 @@ class SampleViewer(BaseViewer):
                                  offset=2, size=3),
                 ),
 
-                t.inline_inputs(
-                    t.input_text(ff('host_dob?'), 'Host Date of Birth', value=obj.host_dob, offset=2, size=2),
-                    t.input_text(ff('host_nik'), 'NIK', value=obj.host_nik, offset=1, size=3),
-                    t.input_text(ff('host_nar'), 'NAR', value=obj.host_nar, offset=1, size=3),
-                ),
+                #t.inline_inputs(
+                #    t.input_text(ff('host_dob?'), 'Host Date of Birth', value=obj.host_dob, offset=2, size=2),
+                #    t.input_text(ff('host_nik'), 'NIK', value=obj.host_nik, offset=1, size=3),
+                #    t.input_text(ff('host_nar'), 'NAR', value=obj.host_nar, offset=1, size=3),
+                #),
 
                 t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'attachment')),

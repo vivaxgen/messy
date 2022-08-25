@@ -1,12 +1,13 @@
 
 from messy.views import (m_roles, get_dbhandler, error_page, render_to_response, HTTPFound,
                          select2_lookup)
-from messy.views.rpc import generate_user_token
 from messy.lib import uploads
 from messy.lib import roles as r
 from rhombus.views.generics import forwarding_page
 from rhombus.lib import tags_b46 as t
 from rhombus.lib.utils import random_string
+from rhombus.lib.rpc import generate_user_token
+
 import joblib
 import pandas as pd
 import os
@@ -353,11 +354,11 @@ def sample_upload_form(request):
                          offset=2, size=6,
                          info='Click <a href="/help/templates/index.rst" target="_blank">here</a>'
                               ' to see templates.'),
-            t.div('or', offset=2),
-            t.input_file('messy-sample/gisaidfile', 'GISAID CSV file',
-                         offset=2, size=6,
-                         info='Click <a href="/help/templates/index.rst" target="_blank">here</a>'
-                              ' to see templates.'),
+            #t.div('or', offset=2),
+            #t.input_file('messy-sample/gisaidfile', 'GISAID CSV file',
+            #             offset=2, size=6,
+            #             info='Click <a href="/help/templates/index.rst" target="_blank">here</a>'
+            #                  ' to see templates.'),
             t.input_select('messy-sample/collection_id', 'Collection',
                            value=None, offset=1, size=2,
                            options=[('-1', 'Set in file')] + [(c.id, c.code)
