@@ -1,7 +1,11 @@
 from messy.lib.whoosh import IndexService, set_index_service
 
-from rhombus import add_route_view, add_route_view_class
+from rhombus.routes import add_route_view, add_route_view_class
 from rhombus.lib.utils import cerr, cout
+
+from pyramid.renderers import JSON
+import simplejson
+import datetime
 
 
 def includeme(config):
@@ -32,10 +36,11 @@ def includeme(config):
 
     # config.add_route('rpc', '/rpc')
     # config.add_view('messy.views.rpc.do_rpc', route_name='rpc')
-    config.include("pyramid_rpc.jsonrpc")
-    config.add_jsonrpc_endpoint('rpc', '/rpc')
-    config.add_jsonrpc_method('messy.views.rpc.check_auth', endpoint='rpc', method='check_auth')
-    config.add_jsonrpc_method("messy.views.rpc.pipeline_upload", endpoint="rpc", method="pipeline_upload")
+    #config.include("pyramid_rpc.jsonrpc")
+    include_rpc(config)
+    #config.add_jsonrpc_endpoint('rpc-rb-v1', '/rpc/rb/v1')
+    #config.add_jsonrpc_method('messy.views.rpc.check_auth', endpoint='rpc', method='check_auth')
+    #onfig.add_jsonrpc_method("messy.views.rpc.pipeline_upload", endpoint="rpc", method="pipeline_upload")
 
     config.add_route('upload', '/upload')
     config.add_view('messy.views.upload.UploadViewer', attr='index', route_name='upload')
@@ -136,5 +141,24 @@ def includeme(config):
     set_index_service(IndexService(config.registry.settings['messy.whoosh.path']))
 
     # add addtional setup here
+
+
+def datetime_adapter(obj, request):
+    return obj.isoformat()
+
+
+def include_rpc(config):
+
+    json_renderer = JSON()
+    # import IPython; IPython.embed()
+
+    json_renderer.add_adapter(datetime.datetime, datetime_adapter)
+    config.add_renderer('jsonrenderer', json_renderer)
+    config.add_jsonrpc_endpoint('rpc-msy-v1', '/rpc/v1', default_renderer='jsonrenderer')
+    #config.add_jsonrpc_endpoint('rpc-msy-v1', '/rpc/v1')
+
+    config.add_jsonrpc_method('messy.lib.rpc.list_institutions', endpoint='rpc-msy-v1', method='list_institutions')
+    config.add_jsonrpc_method('messy.lib.rpc.data_status', endpoint='rpc-msy-v1', method='data_status')
+
 
 # EOF
