@@ -2,7 +2,7 @@
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, select2_lookup, or_, error_page, modal_delete,
                          modal_error, Response, HTTPFound, validate_code)
-import rhombus.lib.tags_b46 as t
+import rhombus.lib.tags as t
 import sqlalchemy.exc
 
 
@@ -30,8 +30,7 @@ class InstitutionViewer(BaseViewer):
         super().__init__(request)
         self.institution = None
 
-    @m_roles(r.PUBLIC)
-    def index(self):
+    def index_helper(self):
 
         institutions = self.dbh.get_institutions()
 
