@@ -3,7 +3,7 @@ from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, 
                          render_to_response, form_submit_bar, select2_lookup, or_, error_page,
                          Response, modal_delete, modal_error, HTTPFound, generate_file_table,
                          validate_code)
-import rhombus.lib.tags_b46 as t
+import rhombus.lib.tags as t
 import sqlalchemy.exc
 import json
 
@@ -20,13 +20,13 @@ class CollectionViewer(BaseViewer):
     attachment_route = 'messy.collection-attachment'
 
     form_fields = {
-        'code*': ('messy-collection-code', validate_code),
+        'code!': ('messy-collection-code', validate_code),
         'group_id': ('messy-collection-group_id', int),
         'description': ('messy-collection-description', ),
         'institution_ids': ('messy-collection-institution_ids', list, int),
         'contact': ('messy-collection-contact', ),
         'remark': ('messy-collection-remark', ),
-        'attachment': ('messy-collection-attachment', ),
+        'attachment@': ('messy-collection-attachment', ),
         'data': ('messy-collection-data', json.loads),
     }
 
@@ -101,7 +101,7 @@ class CollectionViewer(BaseViewer):
         eform.add(
             self.hidden_fields(obj),
             t.fieldset(
-                t.input_text(ff('code*'), 'Code', value=obj.code, offset=2),
+                t.input_text(ff('code!'), 'Code', value=obj.code, offset=2),
                 t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=2,
                                options=[(g.id, g.name) for g in dbh.get_group(user_id=rq.user)]),
                 t.input_text(ff('description'), 'Description', value=obj.description,
@@ -110,7 +110,7 @@ class CollectionViewer(BaseViewer):
                                size=3, multiple=True, options=institution_options),
                 t.input_text(ff('contact'), 'Contact', value=obj.contact, offset=2),
                 t.input_textarea(ff('remark'), 'Remark', value=obj.remark, offset=2),
-                t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
+                t.input_file_attachment(ff('attachment@'), 'Attachment', value=obj.attachment, offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'attachment')),
                 t.input_textarea(ff('data'), 'Data', value=json.dumps(obj.data, indent=2), offset=2),
                 name="messy-collection-fieldset"
@@ -246,3 +246,5 @@ def generate_collection_table(collections, request):
         code = ''
 
     return html, code
+
+# EOF
