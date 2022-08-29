@@ -170,7 +170,7 @@ class InstitutionViewer(BaseViewer):
             ),
         )
 
-        jscode = """$(function () {$('[data-toggle="popover"]').popover()});"""
+        jscode = """$(function () {$('[data-bs-toggle="popover"]').popover()});"""
 
         div = t.div()[t.h2('Institution'), eform]
 
