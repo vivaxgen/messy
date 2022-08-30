@@ -16,8 +16,6 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
                         Identity, select)
 
-import io
-import uuid
 
 __version__ = '20210817'
 
@@ -32,8 +30,6 @@ __version__ = '20210817'
 # Collection: managed by Data Administrator role (eg database manager)
 # Sample: metadata managed by Sample Manager role (eg surveillance team)
 # Plate: managed by Plate Manager role (eg wet-lab team)
-# SequencingRun: managed by Sequencing Manager role (eg sequencing lab staff)
-# Sequence: managed by Sequence Manager (eg bioinformaticist, sequence analyst)
 #
 
 
@@ -58,7 +54,7 @@ def convert_date(obj, field, now=None):
         obj[field] = date_value
 
 
-class Institution(Base, BaseMixIn):
+class Institution(BaseMixIn, Base):
 
     __tablename__ = 'institutions'
 
@@ -116,7 +112,7 @@ collection_institution_table = Table(
 )
 
 
-class Collection(Base, BaseMixIn):
+class Collection(BaseMixIn, Base):
 
     __tablename__ = 'collections'
 
@@ -125,6 +121,7 @@ class Collection(Base, BaseMixIn):
     description = Column(types.String(256), nullable=False, server_default='')
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     data = deferred(Column(types.JSON, nullable=False, server_default='null'))
+    public = Column(types.Boolean, nullable=False, server_default='FALSE')
 
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
     group = relationship(Group, uselist=False, foreign_keys=group_id)
@@ -240,7 +237,7 @@ collection_file_table = Table(
 )
 
 
-class Sample(Base, BaseMixIn):
+class Sample(BaseMixIn, Base):
 
     __tablename__ = 'samples'
 
@@ -248,16 +245,17 @@ class Sample(Base, BaseMixIn):
                            nullable=False, index=True)
     collection = relationship('Collection', uselist=False, back_populates='samples')
 
+    type = Column(types.Integer, nullable=False, server_default='0')
+
     # various code
-    code = Column(types.String(16), nullable=False, unique=True)
+    code = Column(types.String(16), nullable=False)
     uuid = Column(GUID(), nullable=False, unique=True)
     acc_code = Column(types.String(31), nullable=True, unique=True)
-    received_date = Column(types.Date, nullable=False)
 
-    sequence_name = Column(types.String(63), nullable=True, index=True, unique=True)
+    related_sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=True)
 
     species_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    species = EK.proxy('species_id', '@SPECIES')
+    species = EK.proxy('species_id', '@SPECIES', 'no-species')
 
     passage_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     passage = EK.proxy('passage_id', '@PASSAGE')
@@ -266,29 +264,11 @@ class Sample(Base, BaseMixIn):
     location = Column(types.String(64), nullable=False, index=True, server_default='')
     location_info = Column(types.String(128), nullable=False, server_default='')
 
-    host_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    host = EK.proxy('host_id', '@SPECIES')
+    latitude = Column(types.Float, nullable=True)
+    longitude = Column(types.Float, nullable=True)
+    altitude = Column(types.Float, nullable=True)
 
-    host_info = Column(types.String(64), nullable=False, server_default='')
-    host_gender = Column(types.String(1), nullable=False, server_default='X')
-    host_age = Column(types.Float, nullable=False, server_default='-1')
-
-    host_occupation_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    host_occupation = EK.proxy('host_occupation_id', '@HOST_OCCUPATION')
-
-    host_status_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    host_status = EK.proxy('host_status_id', '@HOST_STATUS')
-
-    host_severity = Column(types.Integer, nullable=False, server_default='-1')
-
-    infection_date = Column(types.Date, nullable=True)
-    symptom_date = Column(types.Date, nullable=True)
-    # space-delimited symptom list
-    symptoms = Column(types.String(128), nullable=False, server_default='')
-    # space-delimited comorbid list
-    comorbids = Column(types.String(128), nullable=False, server_default='')
-    last_infection_date = Column(types.Date, nullable=True)
-    last_infection_info = Column(types.String(64), nullable=False, server_default='')
+    day = Column(types.Integer, nullable=False, server_default='0')
 
     category_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     category = EK.proxy('category_id', '@CATEGORY')
@@ -296,45 +276,48 @@ class Sample(Base, BaseMixIn):
     specimen_type_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     specimen_type = EK.proxy('specimen_type_id', '@SPECIMEN_TYPE')
 
-    outbreak = Column(types.String(64), nullable=False, server_default='')
-    last_vaccinated_date = Column(types.Date, nullable=True)
-    last_vaccinated_dose = Column(types.Integer, nullable=False, server_default='-1')
-    last_vaccinated_info = Column(types.String(64), nullable=False, server_default='')
-    treatment = Column(types.String(64), nullable=False, server_default='')
+    # ct_method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
+    # ct_method = EK.proxy('ct_method_id', '@CT_METHOD')
 
-    viral_load = Column(types.Float, nullable=False, server_default='-1')
-    ct_target1 = Column(types.Float, nullable=False, server_default='-1')
-    ct_target2 = Column(types.Float, nullable=False, server_default='-1')
-    ct_target3 = Column(types.Float, nullable=False, server_default='-1')
-    ct_target4 = Column(types.Float, nullable=False, server_default='-1')
-    ct_host1 = Column(types.Float, nullable=False, server_default='-1')
-    ct_host2 = Column(types.Float, nullable=False, server_default='-1')
+    # ct_info = Column(types.String(64), nullable=False, server_default='')
 
-    ct_method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    ct_method = EK.proxy('ct_method_id', '@CT_METHOD')
-
-    ct_info = Column(types.String(64), nullable=False, server_default='')
+    received_date = Column(types.Date, nullable=True)
 
     # originating lab, where diagnostic tests were performed or samples were prepared
     originating_code = Column(types.String(32), nullable=True)
-
     originating_institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     originating_institution = relationship(Institution, uselist=False, foreign_keys=originating_institution_id)
 
     # sampling institution, where the samples were initially taken, usually hospital
     # or health facility.
     sampling_code = Column(types.String(32), nullable=True)
-
     sampling_institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
     sampling_institution = relationship(Institution, uselist=False, foreign_keys=sampling_institution_id)
 
-    related_sample_id = Column(types.Integer, ForeignKey('samples.id'), nullable=True)
+    # host related information
+    host_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
+    host = EK.proxy('host_id', '@SPECIES')
 
-    # sample identification
+    host_info = Column(types.String(64), nullable=False, server_default='')
 
-    host_dob = Column(types.Date, nullable=True)
-    host_nik = Column(types.String(24), nullable=False, server_default='')
-    host_nar = Column(types.String(24), nullable=False, server_default='')
+    host_status_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
+    host_status = EK.proxy('host_status_id', '@HOST_STATUS')
+
+    host_severity = Column(types.Integer, nullable=False, server_default='-1')
+
+    # space-delimited symptom list
+    symptoms = Column(types.String(128), nullable=False, server_default='')
+
+    # space-delimited comorbid list
+    comorbids = Column(types.String(128), nullable=False, server_default='')
+    treatment = Column(types.String(64), nullable=False, server_default='')
+
+    # the following fields can be used case-by-case depending on collections or studies
+
+    string_1 = Column(types.String(8), nullable=False, server_default='')
+    string_2 = Column(types.String(8), nullable=False, server_default='')
+    int_1 = Column(types.Integer, nullable=False, server_default='-1')
+    int_2 = Column(types.Integer, nullable=False, server_default='-1')
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     comment = deferred(Column(types.Text, nullable=False, server_default=''))
@@ -354,25 +337,28 @@ class Sample(Base, BaseMixIn):
     platepositions = relationship('PlatePosition', back_populates='sample',
                                   passive_deletes=True)
 
-    sequences = relationship('Sequence', lazy='dynamic', back_populates='sample',
-                             passive_deletes=True)
-
-    lineages = relationship('Lineage', back_populates='sample',
-                            passive_deletes=True)
-
     __table_args__ = (
+        UniqueConstraint('collection_id', 'code'),
         UniqueConstraint('originating_code', 'originating_institution_id'),
         UniqueConstraint('sampling_code', 'sampling_institution_id'),
     )
 
-    __ek_fields__ = ['species', 'passage', 'host', 'host_status', 'host_occupation',
-                     'specimen_type', 'ct_method', 'category']
+    __mapper_args__ = {
+        "polymorphic_on": type,
+        "polymorphic_identity": 0,
+    }
+
+    #__ek_fields__ = ['species', 'passage', 'host', 'host_status', 'host_occupation',
+    #                 'specimen_type', 'category']
 
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.SAMPLE_MANAGE}
     __modifying_roles__ = __managing_roles__ | {r.SAMPLE_MODIFY}
 
     def __repr__(self):
         return f"Sample('{self.code}')"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def update(self, obj):
 
@@ -429,15 +415,6 @@ class Sample(Base, BaseMixIn):
             sample.species = 'no-species'
         return sample
 
-    def update_sequence_name(self):
-        if self.species and self.host and self.location and self.acc_code and self.collection_date:
-            # only update sequence_name if all fields are filled, otherwise leave as it is
-            if sequence_name := nomenclature.create_name(self.species, self.host, self.location,
-                                                         self.acc_code, self.collection_date):
-                # # only update if sequence_name is constructed properly
-                self.sequence_name = sequence_name
-        return self.sequence_name
-
     # access control
 
     def can_modify(self, user):
@@ -461,16 +438,6 @@ class Sample(Base, BaseMixIn):
             q = func(q)
         return dbsess.execute(q).all()
 
-    def get_related_runs(self):
-        """return [ (run, plateposition, plate), ...]"""
-        dbsess = object_session(self)
-        return dbsess.execute(
-            select(SequencingRun, SequencingRunPlate, Plate, PlatePosition).
-            join(SequencingRunPlate, SequencingRunPlate.sequencingrun_id == SequencingRun.id).
-            join(Plate, Plate.id == SequencingRunPlate.plate_id).
-            join(PlatePosition, PlatePosition.plate_id == Plate.id).
-            filter(PlatePosition.sample_id == self.id)).all()
-
 
 sample_file_table = Table(
     'samples_files', metadata,
@@ -483,7 +450,7 @@ sample_file_table = Table(
 )
 
 
-class PlatePosition(Base, BaseMixIn):
+class PlatePosition(BaseMixIn, Base):
 
     __tablename__ = 'platepositions'
 
@@ -511,7 +478,7 @@ class PlatePosition(Base, BaseMixIn):
         return PlatePosition(sample_id=self.sample_id, position=self.position)
 
 
-class Plate(Base, BaseMixIn):
+class Plate(BaseMixIn, Base):
 
     __tablename__ = 'plates'
 
@@ -545,9 +512,6 @@ class Plate(Base, BaseMixIn):
 
     positions = relationship(PlatePosition, order_by='PlatePosition.id', passive_deletes=True,
                              back_populates='plate')
-
-    sequencingruns = relationship('SequencingRunPlate', order_by='sequencingrunplates.c.plate_id',
-                                  back_populates='plate')
 
     __ek_fields__ = ['specimen_type', 'experiment_type']
 
@@ -653,290 +617,5 @@ plate_file_table = Table(
     UniqueConstraint('plate_id', 'file_id')
 )
 
-
-class SequencingRun(Base, BaseMixIn):
-    """
-    This class represent a libprep + sequencing run
-    """
-
-    __tablename__ = 'sequencingruns'
-
-    code = Column(types.String(16), nullable=False, unique=True, server_default='')
-    serial = Column(types.String(48), nullable=False, unique=True, server_default='')
-    date = Column(types.Date, nullable=False, server_default=func.current_date())
-
-    # primary group of user
-    group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
-    group = relationship(Group, uselist=False, foreign_keys=group_id)
-
-    sequencing_provider_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
-    sequencing_provider = relationship(Institution, uselist=False, foreign_keys=sequencing_provider_id)
-
-    sequencing_kit_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    sequencing_kit = EK.proxy('sequencing_kit_id', '@SEQUENCING_KIT')
-
-    # pdf of depthplots, if available
-    depthplots_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    depthplots_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplots_file_id,
-                                   cascade='all, delete')
-    depthplots = FileAttachment.proxy('depthplots_file')
-
-    # gzip html from multiqc, if available
-    qcreport_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    qcreport_file = relationship(FileAttachment, uselist=False, foreign_keys=qcreport_file_id,
-                                 cascade='all, delete')
-    qcreport = FileAttachment.proxy('qcreport_file')
-
-    # screenshot from the instrument, if available
-    screenshot_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    screenshot_file = relationship(FileAttachment, uselist=False, foreign_keys=screenshot_file_id,
-                                   cascade='all, delete')
-    screenshot = FileAttachment.proxy('screenshot_file')
-
-    remark = deferred(Column(types.Text, nullable=False, server_default=''))
-
-    additional_files = relationship(FileAttachment, secondary="sequencingruns_files", cascade='all, delete',
-                                    collection_class=attribute_mapped_collection('id'),
-                                    order_by=FileAttachment.filename)
-
-    sequences = relationship('Sequence', lazy='dynamic', back_populates='sequencingrun',
-                             passive_deletes=True)
-
-    plates = relationship('SequencingRunPlate', order_by='sequencingrunplates.c.plate_id',
-                          back_populates='sequencingrun')
-
-    __ek_fields__ = ['sequencing_kit']
-
-    __managing_roles__ = BaseMixIn.__managing_roles__ | {r.SEQUENCINGRUN_MANAGE}
-    __modifying_roles__ = __managing_roles__ | {r.SEQUENCINGRUN_MODIFY}
-
-    def __str__(self):
-        return self.code
-
-    def __repr__(self):
-        return f"SequencingRun('{self.code}')"
-
-    def get_related_samples(self, scalar=False):
-        if scalar:
-            q = select(func.count(Sample.id))
-        else:
-            q = select(Sample)
-        q = (
-            q.
-            join(PlatePosition).
-            join(Plate).
-            join(SequencingRunPlate).
-            filter(SequencingRunPlate.sequencingrun_id == self.id).
-            filter(~Sample.code.in_(['-', '*', 'NTC1', 'NTC2', 'NTC3', 'NTC4']))
-        )
-        if scalar:
-            return object_session(self).scalar(q)
-        return object_session(self).execute(q).scalars()
-
-    def update(self, obj):
-
-        if isinstance(obj, dict):
-
-            dbh = get_dbhandler()
-
-            if 'group' in obj:
-                obj['group_id'] = dbh.get_group(obj['group']).id
-                del obj['group']
-
-            if type(inst := obj.get('sequencing_provider', None)) == str:
-                self.sequencing_provider_id = dbh.get_institutions_by_codes(
-                    obj['sequencing_provider'], None, raise_if_empty=True)[0].id
-                del obj['sequencing_provider']
-
-            convert_date(obj, 'date')
-
-            self.update_fields_with_dict(obj, additional_fields=['depthplots', 'qcreport', 'screenshot'])
-            self.update_ek_with_dict(obj, dbh=dbh)
-
-        else:
-            raise RuntimeError('PROG/ERR: can only update from dict object')
-
-    def as_dict(self, exclude=None):
-        d = super().as_dict(exclude={'sequences', 'plates', 'additional_files'})
-        d['plates'] = [[p.plate.code, p.adapterindex, p.lane, p.note] for p in self.plates]
-        return d
-
-    @classmethod
-    def from_dict(cls, a_dict, dbh):
-        run = super().from_dict(a_dict, dbh)
-        for rp in a_dict.get('plates', []):
-            plate = dbh.get_plates_by_codes(rp[0], groups=None, ignore_acl=True)[0]
-            d = dict(sequencingrun_id=run.id, plate_id=plate.id, adapterindex=rp[1], lane=rp[2], note=rp[3])
-            srp = SequencingRunPlate.from_dict(d, dbh)
-
-    def can_modify(self, user):
-        if user.has_roles(* self.__managing_roles__):
-            return True
-        if user.has_roles(* self.__modifying_roles__):  # and user.in_group(self.group):
-            return True
-        return False
-
-
-sequencingrun_file_table = Table(
-    'sequencingruns_files', metadata,
-    Column('id', types.Integer, Identity(), primary_key=True),
-    Column('sequencingrun_id', types.Integer, ForeignKey('sequencingruns.id', ondelete='CASCADE'),
-           index=True, nullable=False),
-    Column('file_id', types.Integer, ForeignKey('fileattachments.id', ondelete='CASCADE'), nullable=False),
-    UniqueConstraint('sequencingrun_id', 'file_id')
-)
-
-
-class SequencingRunPlate(Base, BaseMixIn):
-
-    __tablename__ = 'sequencingrunplates'
-
-    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id', ondelete='CASCADE'),
-                              index=True, nullable=False)
-    sequencingrun = relationship(SequencingRun, uselist=False, foreign_keys=sequencingrun_id,
-                                 back_populates='plates')
-
-    plate_id = Column(types.Integer, ForeignKey('plates.id', ondelete='CASCADE'),
-                      index=True, nullable=False)
-    plate = relationship(Plate, uselist=False, foreign_keys=plate_id,
-                         back_populates='sequencingruns')
-
-    adapterindex_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    adapterindex = EK.proxy('adapterindex_id', '@ADAPTERINDEX')
-
-    lane = Column(types.Integer, nullable=False, server_default='1')
-
-    note = Column(types.Text, nullable=True)
-
-    __ek_fields__ = {'adapterindex'}
-
-    __table_args__ = (
-        UniqueConstraint('sequencingrun_id', 'plate_id'),
-        UniqueConstraint('sequencingrun_id', 'adapterindex_id', 'lane'),
-    )
-
-
-class Sequence(Base, BaseMixIn):
-    """
-    """
-
-    __tablename__ = 'sequences'
-
-    # referencing
-
-    sequencingrun_id = Column(types.Integer, ForeignKey('sequencingruns.id', ondelete='CASCADE'),
-                              index=True, nullable=False)
-    sequencingrun = relationship(SequencingRun, uselist=False, back_populates='sequences')
-
-    sample_id = Column(types.Integer, ForeignKey('samples.id', ondelete='CASCADE'),
-                       index=True, nullable=False)
-    sample = relationship(Sample, uselist=False, back_populates='sequences')
-
-    method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    method = EK.proxy('method_id', '@METHOD')
-
-    accid = Column(types.String(32), nullable=True, index=True, unique=True)
-    submission_date = Column(types.Date, nullable=True)
-
-    sequence = Column(types.Text, nullable=False, server_default='')
-    avg_depth = Column(types.Integer, nullable=False, server_default='-1')
-
-    depthplot_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    depthplot_file = relationship(FileAttachment, uselist=False, foreign_keys=depthplot_file_id,
-                                  cascade='all, delete')
-    depthplot = FileAttachment.proxy('depthplot_file')
-
-    length = Column(types.Integer, nullable=False, server_default='-1')
-    gaps = Column(types.Integer, nullable=False, server_default='-1')
-    base_N = Column(types.Integer, nullable=False, server_default='-1')
-
-    refid = Column(types.String(32), nullable=True)
-    point_mutations = Column(types.Integer, nullable=False, server_default='-1')
-    aa_mutations = Column(types.Integer, nullable=False, server_default='-1')
-    inframe_gaps = Column(types.Integer, nullable=False, server_default='-1')
-    outframe_gaps = Column(types.Integer, nullable=False, server_default='-1')
-    reads_raw = Column(types.Integer, nullable=False, server_default='-1')
-    reads_optical_dedup = Column(types.Integer, nullable=False, server_default='-1')
-    reads_trimmed = Column(types.Integer, nullable=False, server_default='-1')
-    reads_pp_mapped = Column(types.Integer, nullable=False, server_default='-1')
-    reads_pcr_dedup = Column(types.Integer, nullable=False, server_default='-1')
-    reads_consensus_mapped = Column(types.Integer, nullable=False, server_default='-1')
-    reads_mean_insertsize = Column(types.Integer, nullable=False, server_default='-1')
-    reads_med_insertsize = Column(types.Integer, nullable=False, server_default='-1')
-    reads_stddev_insertsize = Column(types.Integer, nullable=False, server_default='-1')
-
-    snvs = deferred(Column(types.JSON, nullable=False, server_default='null'))
-    aa_change = deferred(Column(types.JSON, nullable=False, server_default='null'))
-
-    authorship = deferred(Column(types.Text, nullable=False, server_default=''))
-    remarks = deferred(Column(types.Text, nullable=False, server_default=''))
-
-    __ek_fields__ = ['method']
-
-    def __repr__(self):
-        return f"Sequence(sample='{self.code}')"
-
-    def update(self, obj):
-
-        if isinstance(obj, dict):
-
-            dbh = get_dbhandler()
-
-            if type(sequencingrun := obj.get('sequencingrun', None)) == str:
-                self.sequencingrun_id = dbh.get_sequencingruns_by_codes(obj['sequencingrun'])[0].id
-                del obj['sequencingrun']
-
-            if type(sample := obj.get('sample', None)) == str:
-                self.sample_id = dbh.get_samples_by_codes(obj['sample'])[0].id
-                del obj['sample']
-
-            convert_date(obj, 'submission_date')
-
-            self.update_fields_with_dict(obj)
-            self.update_ek_with_dict(obj, dbh=dbh)
-
-        else:
-            raise RuntimeError('PROG/ERR: can only update from dict object')
-
-
-class Lineage(Base, BaseMixIn):
-    """ Lineage result is seperated from Sequence because Lineage can be frequently updated
-        while the Sequence still stay the same.
-    """
-
-    __tablename__ = 'lineages'
-
-    sequence_id = Column(types.Integer, ForeignKey('sequences.id', ondelete='CASCADE'),
-                         index=True, nullable=False)
-
-    sample_id = Column(types.Integer, ForeignKey('samples.id', ondelete='CASCADE'),
-                       index=True, nullable=False)
-    sample = relationship(Sample, uselist=False, back_populates='lineages')
-
-    lineage_method_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    lineage_method = EK.proxy('lineage_method_id', '@LINEAGEMETHOD')
-
-    lineage = Column(types.String(24), nullable=False, server_default='')
-    support = Column(types.Float, nullable=False, server_default='-1')
-    conflict = Column(types.Float, nullable=False, server_default='-1')
-    version = Column(types.String(48), nullable=False, server_default='')
-    note = Column(types.String(127), nullable=True, server_default='')
-
-    __ek_fields__ = ['lineage_method']
-
-    def __repr__(self):
-        return f"Lineage(lineage='{self.lineage}')"
-
-    def update(self, obj):
-
-        if isinstance(obj, dict):
-
-            dbh = get_dbhandler()
-
-            self.update_fields_dict(obj)
-            self.update_ek_with_dict(obj, dbh=dbh)
-
-        else:
-            raise TypeError('PROG/ERR: can only update from dict object')
 
 # EOF
