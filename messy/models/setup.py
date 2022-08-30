@@ -8,7 +8,6 @@ import uuid
 
 def setup(dbh):
 
-    dbh.EK.bulk_update(ek_initlist, dbsession=dbh.session())
     dbh.Group.bulk_insert(messy_groups, dbsession=dbh.session())
 
     # add controls
