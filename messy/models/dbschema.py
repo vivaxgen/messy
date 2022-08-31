@@ -258,7 +258,7 @@ class Sample(BaseMixIn, Base):
     species = EK.proxy('species_id', '@SPECIES', 'no-species')
 
     passage_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    passage = EK.proxy('passage_id', '@PASSAGE')
+    passage = EK.proxy('passage_id', '@PASSAGE', default='original')
 
     collection_date = Column(types.Date, index=True, nullable=False)
     location = Column(types.String(64), nullable=False, index=True, server_default='')
@@ -353,6 +353,13 @@ class Sample(BaseMixIn, Base):
 
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.SAMPLE_MANAGE}
     __modifying_roles__ = __managing_roles__ | {r.SAMPLE_MODIFY}
+
+    def init_instance(self):
+        self.passage = None
+
+    __init_funcs__ = [
+        init_instance,
+    ]
 
     def __repr__(self):
         return f"Sample('{self.code}')"
