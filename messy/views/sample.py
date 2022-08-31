@@ -117,10 +117,8 @@ class SampleViewer(BaseViewer):
                 d['sampling_institution_id'] = d['originating_institution_id']
                 d['sampling_code'] = d['originating_code']
 
-            if obj.any_modified(d, {'acc_code', 'location', 'collection_date', 'species', 'host'}):
-                update_sequence_name = True
-            else:
-                update_sequence_name = False
+            # pre-updating object
+            self.preupdate_object(obj, d)
 
             obj.update(d)
             # check if obj is already registered
@@ -134,9 +132,8 @@ class SampleViewer(BaseViewer):
                                              self.form_fields['collection_id'][0])
                 dbh.session().add(obj)
 
-            # fill other values based on existing data
-            if update_sequence_name:
-                obj.update_sequence_name()
+            # post-updating object
+            self.postupdate_object(obj, d)
 
             dbh.session().flush([obj])
 
@@ -155,7 +152,7 @@ class SampleViewer(BaseViewer):
                     raise ParseFormError(f"The sequence name: {d['sequence_name']} is already being used.",
                                          self.ffn('sequence_name')) from err
 
-            raise RuntimeError('unhandled error updating Sample object')
+            raise RuntimeError(f'unhandled error updating Sample object with detail: {detail}')
 
         except RuntimeError:
             raise
@@ -183,12 +180,14 @@ class SampleViewer(BaseViewer):
             t.fieldset(
                 t.hr,
 
+                # mandatory fields
                 t.inline_inputs(
                     t.input_select('messy-sample-collection_id', 'Collection', value=obj.collection_id,
                                    offset=2, size=2,
                                    options=[(c.id, c.code) for c in dbh.get_collections(
                                        groups=None, user=req.user)]),
                     t.input_text(ff('code*'), '* Code', value=obj.code, offset=1, size=3,
+                                 required=True, maxlength=16,
                                  popover='Code|Unique code to be used in lab'),
                     t.input_text(ff('acc_code'), 'Acc Code', value=obj.acc_code, offset=1, size=3,
                                  popover='Accession Code|Unique code to be used in sequence name'),
@@ -207,7 +206,7 @@ class SampleViewer(BaseViewer):
 
                 t.inline_inputs(
                     t.input_text(ff('collection_date'), '* Collection date', value=obj.collection_date,
-                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
+                                 offset=2, size=2, placeholder='YYYY/MM/DD', required=True, maxlength=10),
                     t.input_text(ff('location'), '* Location', value=obj.location, offset=1, size=7,
                                  placeholder='Asia/Indonesia/'),
                 ),
@@ -226,45 +225,11 @@ class SampleViewer(BaseViewer):
 
                 t.hr,
 
-                #t.input_text(ff('sequence_name'), 'Sequence name', value=obj.sequence_name, readonly=True,
-                #             offset=2, size=10, placeholder='Sequence name will be automatically-generated'),
-
                 t.inline_inputs(
                     t.input_select_ek(ff('specimen_type_id'), 'Specimen type',
                                       value=obj.specimen_type_id or dbh.get_ekey('blood').id,
                                       offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
-
-                    #t.input_select_ek(ff('passage_id'), 'Passage',
-                    #                  value=obj.passage_id or dbh.get_ekey('original').id,
-                    #                  offset=1, size=2, parent_ek=dbh.get_ekey('@PASSAGE')),
-                    #t.input_text(ff('ct_host1'), 'Ct host 1, 2',
-                    #             value=-1 if obj.ct_host1 is None else obj.ct_host1, offset=1, size=1,
-                    #             popover='Ct value control or host 1 & 2|Ct value for host control region 1 '
-                    #                     'and region 2, and others. Please refer to the kit '
-                    #                     'being used and describe the kit in *Ct Info* field'),
-                    #t.input_text(ff('ct_host2'), None,
-                    #             value=-1 if obj.ct_host2 is None else obj.ct_host2, offset=1, size=1),
-                    #t.input_text(ff('viral_load'), 'Viral Load',
-                    #             value=-1 if obj.viral_load is None else obj.viral_load, offset=1, size=1),
                 ),
-
-                #t.inline_inputs(
-                #    t.input_text(ff('ct_target1'), 'Ct target 1, 2, 3, 4',
-                #                 value=-1 if obj.ct_target1 is None else obj.ct_target1, offset=2, size=1,
-                #                 popover='Ct value target 1, 2, 3 and 4|Ct value for target 1 (usually RdRp/ORF1) '
-                #                         'and target 2 (usually E), and others. Please refer to the kit '
-                #                         'being used and describe the kit in *Ct Info* field'),
-                #    t.input_text(ff('ct_target2'), None,
-                #                 value=-1 if obj.ct_target2 is None else obj.ct_target2, offset=1, size=1),
-                #    t.input_text(ff('ct_target3'), None,
-                #                 value=-1 if obj.ct_target3 is None else obj.ct_target2, offset=1, size=1),
-                #    t.input_text(ff('ct_target4'), None,
-                #                 value=-1 if obj.ct_target4 is None else obj.ct_target2, offset=1, size=1),
-                #    t.input_select_ek(ff('ct_method_id'), None,
-                #                      value=obj.ct_method_id or dbh.get_ekey('rtpcr').id,
-                #                      offset=1, size=2, parent_ek=dbh.get_ekey('@CT_METHOD')),
-                #    t.input_text(ff('ct_info'), 'Ct Info', value=obj.ct_info, offset=1, size=3),
-                #),
 
                 t.inline_inputs(
 
@@ -283,18 +248,6 @@ class SampleViewer(BaseViewer):
                 ),
 
                 t.inline_inputs(
-                    t.input_text(ff('infection_date?'), 'Date of infection', value=obj.infection_date,
-                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
-                    t.input_text(ff('symptom_date?'), 'Date of symptom', value=obj.symptom_date,
-                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
-                    t.input_text(ff('host_severity'), 'Severity',
-                                 value=-1 if obj.host_severity is None else obj.host_severity,
-                                 offset=1, size=1,
-                                 popover='Severity|Integer value indicating degree of severity, '
-                                         'from 0 (asymptomatic) to consensus max positive value.'),
-                ),
-
-                t.inline_inputs(
                     t.input_text(ff('symptoms'), 'Symptoms', value=obj.symptoms,
                                  offset=2, size=10, placeholder='List of space-delimited symptoms'),
                 ),
@@ -303,38 +256,6 @@ class SampleViewer(BaseViewer):
                     t.input_text(ff('comorbids'), 'Comorbids', value=obj.comorbids,
                                  offset=2, size=10, placeholder='List of space-delimited comorbids')
                 ),
-
-                #t.inline_inputs(
-                #    t.input_text(ff('last_infection_date?'), 'Last Infection Date',
-                #                 value=obj.last_infection_date, placeholder='YYYY/MM/DD',
-                #                 offset=2, size=2),
-                #    t.input_text(ff('last_infection_info'), 'Last Infection Info',
-                #                 value=obj.last_infection_info, offset=2, size=6,
-                #                 placeholder='YYYY/MM/DD of previous infection; previous status;'),
-                #),
-
-                t.inline_inputs(
-                    t.input_text(ff('host_age?'), 'Host Age', value=obj.host_age, offset=2, size=1),
-                    t.input_text(ff('host_gender'), 'Gender', value=obj.host_gender, offset=1, size=1,
-                                 placeholder='M/F/U'),
-                    t.input_select_ek(ff('host_occupation_id'), 'Occupation',
-                                      value=obj.host_occupation_id or dbh.get_ekey('other').id,
-                                      offset=1, size=4, parent_ek=dbh.get_ekey('@HOST_OCCUPATION')),
-                ),
-
-                #t.inline_inputs(
-                #    t.input_text(ff('last_vaccinated_dose?'), 'Last Vaccination Dose',
-                #                 value=-1 if obj.last_vaccinated_dose is None else obj.last_vaccinated_dose,
-                #                 offset=2, size=1),
-                #    t.input_text(ff('last_vaccinated_date?'), 'On Date', value=obj.last_vaccinated_date,
-                #                 offset=1, size=2, placeholder='YYYY/MM/DD'),
-                #    t.input_text(ff('last_vaccinated_info'), 'With Info', value=obj.last_vaccinated_info,
-                #                 offset=1, size=5,
-                #                 placeholder='YYYY/MM/DD of previous vaccination; brand of vaccine'),
-                #),
-
-                t.input_text(ff('outbreak'), 'Outbreak info', value=obj.outbreak,
-                             offset=2, size=10),
 
                 t.inline_inputs(
                     t.input_select(ff('sampling_institution_id'), 'Sampling Institution',
@@ -345,12 +266,6 @@ class SampleViewer(BaseViewer):
                     t.input_text(ff('sampling_code'), 'Sampling Code', value=obj.sampling_code,
                                  offset=2, size=3),
                 ),
-
-                #t.inline_inputs(
-                #    t.input_text(ff('host_dob?'), 'Host Date of Birth', value=obj.host_dob, offset=2, size=2),
-                #    t.input_text(ff('host_nik'), 'NIK', value=obj.host_nik, offset=1, size=3),
-                #    t.input_text(ff('host_nar'), 'NAR', value=obj.host_nar, offset=1, size=3),
-                #),
 
                 t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'attachment')),
@@ -388,10 +303,6 @@ class SampleViewer(BaseViewer):
         platepos_html, platepos_js = generate_plateposition_table(self.obj, self.request)
         sample_html.add(platepos_html)
         sample_jscode += platepos_js
-
-        run_html, run_js = generate_run_table(self.obj, self.request)
-        sample_html.add(run_html)
-        sample_jscode += run_js
 
         return self.render_edit_form(sample_html, sample_jscode)
 
@@ -478,8 +389,6 @@ class SampleViewer(BaseViewer):
                 d = vals['data']
                 sample = dbh.get_samples_by_ids([sample_id], groups=None, ignore_acl=True)[0]
                 sample.update(d)
-                if ({'acc_code', 'location', 'collection_date', 'species', 'host'} & set(d.keys())):
-                    sample.update_sequence_name()
 
             return {'success': True}
 
@@ -522,10 +431,8 @@ def generate_sample_table(samples, request):
                 t.td(sample.collection.code),
                 t.td(sample.category),
                 t.td(sample.acc_code),
-                t.td(sample.sequence_name),
                 t.td(sample.location),
                 t.td(sample.collection_date),
-                t.td(f'{sample.host_age:4.1f}'),
             )
         )
 
@@ -538,10 +445,8 @@ def generate_sample_table(samples, request):
                 t.th('Collection'),
                 t.th('Category'),
                 t.th('Acc Code'),
-                t.th('Name'),
                 t.th('Location'),
                 t.th('Collection Date'),
-                t.th('Age'),
             )
         )
     ]
