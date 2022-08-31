@@ -34,13 +34,7 @@ def includeme(config):
     # below are example for route for class-based viewer
     # the same thing can be achieved using add_view_route_class()
 
-    # config.add_route('rpc', '/rpc')
-    # config.add_view('messy.views.rpc.do_rpc', route_name='rpc')
-    #config.include("pyramid_rpc.jsonrpc")
     include_rpc(config)
-    #config.add_jsonrpc_endpoint('rpc-rb-v1', '/rpc/rb/v1')
-    #config.add_jsonrpc_method('messy.views.rpc.check_auth', endpoint='rpc', method='check_auth')
-    #onfig.add_jsonrpc_method("messy.views.rpc.pipeline_upload", endpoint="rpc", method="pipeline_upload")
 
     config.add_route('upload', '/upload')
     config.add_view('messy.views.upload.UploadViewer', attr='index', route_name='upload')
@@ -89,16 +83,6 @@ def includeme(config):
     )
 
     add_route_view_class(
-        config, 'messy.views.sequence.SequenceViewer', 'messy.sequence',
-        '/sequence',
-        '/sequence/@@action',
-        '/sequence/@@add',
-        '/sequence/{id}@@edit',
-        '/sequence/{id}@@save',
-        ('/sequence/{id}', 'view')
-    )
-
-    add_route_view_class(
         config, 'messy.views.plate.PlateViewer', 'messy.plate',
         '/plate',
         '/plate/@@action',
@@ -111,28 +95,6 @@ def includeme(config):
         ('/plate/{id}@@attachment/{fieldname}', 'attachment'),
         ('/plate/{id}', 'view')
     )
-
-    add_route_view_class(
-        config, 'messy.views.run.RunViewer', 'messy.run',
-        '/run',
-        '/run/@@action',
-        '/run/@@plateaction',
-        '/run/@@add',
-        ('/run/@@lookup', 'lookup', 'json'),
-        '/run/{id}@@edit',
-        '/run/{id}@@save',
-        ('/run/{id}@@attachment/{fieldname}', 'attachment'),
-        ('/run/{id}', 'view')
-    )
-
-    # config.add_route('post-add', '/add')
-    # config.add_view('messy.views.post.PostViewer', attr='add', route_name='post-add')
-
-    # config.add_route('post-edit', '/posts/{id}@@edit')
-    # config.add_view('messy.views.post.PostViewer', attr='edit', route_name='post-edit')
-
-    # config.add_route('post-view', '/posts/{id}')
-    # config.add_view('messy.views.post.PostViewer', attr='index', route_name='post-view')
 
     # add additional routes and views here
 
