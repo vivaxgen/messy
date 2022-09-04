@@ -188,17 +188,10 @@ ek_initlist = [
      ),
     ('@CATEGORY', 'Sample category',
         [
-            ('R-RA', 'R - Random surveillance and tracking'),
-            ('S-SE', 'S - Sentinel surveillance'),
-            ('A-NE', 'A - COVID19 clinically (-) test'),
-            ('B-CL', 'B - COVID19 severe clinically'),
-            ('C-TR', 'C - travel history'),
-            ('D-LO', 'D - long COVID19'),
-            ('E-RE', 'E - reinfection'),
-            ('F-PO', 'F - post-vaccination'),
-            ('G-CH', 'G - child case'),
-            ('H-CO', 'H - comorbid case'),
-            ('Z-CR', 'Z - Control or reference sample'),
+            ('RS', 'Random surveillance and tracking'),
+            ('SS', 'Sentinel surveillance'),
+            ('TH', 'Sample with travel history'),
+            ('CR', 'Z - Control or reference sample'),
         ]
      ),
     ('@SPECIMEN_TYPE', 'Specimen type',
@@ -218,15 +211,6 @@ ek_initlist = [
             ('ssdna', 'single-strand DNA'),
             ('water', 'empty sample'),
             ('no-specimen', 'no specimen'),
-        ]
-     ),
-    ('@CT_METHOD', 'Ct Methodology',
-        [
-            ('rtpcr', 'generic realtime RT-PCR'),
-            ('cobas', 'Cobas'),
-            ('charite-berlin', 'Charite-Berlin method'),
-            ('lamp', 'LAMP'),
-            ('no-ct', 'No Ct'),
         ]
      ),
     ('@EXPERIMENT_TYPE', 'Laboratory experiment type',
@@ -271,15 +255,6 @@ ek_initlist = [
             ('data-container', 'Container for imported data')
         ]
      ),
-    ('@METHOD', 'Upstream analysis method',
-        [
-            ('ncov19-pipeline/artic', 'ncov19-pipeline ARTIC mode'),
-            ('ncov19-pipeline/mapping', 'ncov19-pipeline generic mapping (minimap2) mode'),
-            ('ncov19-pipeline/assembling', 'ncov19-pipeline generic denovo assembling (SPAdes) mode'),
-            ('gisaid', 'direct GISAID import'),
-            ('other', 'other analysis method'),
-        ]
-     ),
     ('@ADAPTERINDEX', 'Adapter-index for sequencing',
         [
             ('covidseq-set-1', 'CovidSeq UDI Set 1 1-96'),
@@ -290,14 +265,6 @@ ek_initlist = [
             ('nebnext-udi-set-2', 'NebNext Multiplex Oligo UDI Set 2'),
             ('nebnext-udi-set-3', 'NebNext Multiplex Oligo UDI Set 3'),
             ('nebnext-udi-set-4', 'NebNext Multiplex Oligo UDI Set 4'),
-        ]
-     ),
-    ('@LINEAGEMETHOD', 'Lineage classification method',
-        [
-            ('pangolin', 'Pangolin'),
-            ('scorpio', 'Scorpio'),
-            ('gisaid', 'GISAID'),
-            ('nextstrain', 'NextStrain'),
         ]
      ),
 ]
