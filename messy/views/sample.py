@@ -33,12 +33,9 @@ class SampleViewer(BaseViewer):
         'collection_date': ('messy-sample-collection_date', dateutil.parser.parse),
         'received_date': ('messy-sample-received_date', dateutil.parser.parse),
         'specimen_type_id': ('messy-sample-specimen_type_id', ),
+        'day_taken': ('messy-sample-day-taken', ),
         'passage_id': ('messy-sample-passage_id', ),
         'ct_method_id': ('messy-sample-ct_method_id', ),
-        'ct_target1': ('messy-sample-ct_target1', float),
-        'ct_target2': ('messy-sample-ct_target2', float),
-        'ct_target3': ('messy-sample-ct_target3', float),
-        'ct_target4': ('messy-sample-ct_target4', float),
         'ct_host1': ('messy-sample-ct_host1', float),
         'ct_host2': ('messy-sample-ct_host2', float),
         'ct_info': ('messy-sample-ct_info', ),
@@ -72,8 +69,7 @@ class SampleViewer(BaseViewer):
         'attachment': ('messy-sample-attachment'),
     }
 
-    @m_roles(r.PUBLIC)
-    def index(self):
+    def index_helper(self):
 
         samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)\
             .order_by(self.dbh.Sample.id.desc())
@@ -177,6 +173,7 @@ class SampleViewer(BaseViewer):
         eform = t.form(name='messy-sample', method=t.POST, enctype=t.FORM_MULTIPART, readonly=readonly,
                        update_dict=update_dict)[
             self.hidden_fields(obj),
+
             t.fieldset(
                 t.hr,
 
@@ -194,8 +191,9 @@ class SampleViewer(BaseViewer):
                 ),
 
                 t.inline_inputs(
-                    t.input_text(ff('received_date'), '* Received Date', value=obj.received_date,
-                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
+                    t.input_select_ek(ff('specimen_type_id'), 'Specimen type',
+                                      value=obj.specimen_type_id or dbh.get_ekey('blood').id,
+                                      offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
                     t.input_select_ek(ff('category_id'), 'Category', description=True,
                                       value=obj.category_id or dbh.get_ekey('RS').id,
                                       offset=1, size=3, parent_ek=dbh.get_ekey('@CATEGORY')),
@@ -211,8 +209,13 @@ class SampleViewer(BaseViewer):
                                  placeholder='Asia/Indonesia/'),
                 ),
 
-                t.input_text(ff('location_info'), 'Additional location', value=obj.location_info,
-                             offset=2, size=10, placeholder='Any location info such traveling history'),
+                t.inline_inputs(
+                    t.input_text(ff('day_taken'), 'Day taken', value=0,
+                                 offset=2, size=1, required=True, maxlength=2),
+
+                    t.input_text(ff('location_info'), 'Additional location', value=obj.location_info,
+                                 offset=2, size=7, placeholder='Any location info such traveling history'),
+                ),
 
                 t.inline_inputs(
                     t.input_select(ff('originating_institution_id*'), '* Originating Institution',
@@ -223,12 +226,20 @@ class SampleViewer(BaseViewer):
                                  offset=2, size=3),
                 ),
 
-                t.hr,
+                name='messy-sample-compulsory-fieldset'
+            ),
+
+            t.hr,
+
+            t.fieldset(
+                name='messy-sample-additional-fieldset'
+            ),
+
+            t.fieldset(
 
                 t.inline_inputs(
-                    t.input_select_ek(ff('specimen_type_id'), 'Specimen type',
-                                      value=obj.specimen_type_id or dbh.get_ekey('blood').id,
-                                      offset=2, size=2, parent_ek=dbh.get_ekey('@SPECIMEN_TYPE')),
+                    t.input_text(ff('received_date'), '* Received Date', value=obj.received_date,
+                                 offset=2, size=2, placeholder='YYYY/MM/DD'),
                 ),
 
                 t.inline_inputs(
@@ -267,10 +278,17 @@ class SampleViewer(BaseViewer):
                                  offset=2, size=3),
                 ),
 
+                name='messy-sample-hostinfo-fieldset'
+            ),
+
+            t.hr,
+
+            t.fieldset(
+
                 t.input_file_attachment(ff('attachment'), 'Attachment', value=obj.attachment, offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'attachment')),
 
-                name='messy-sample-fieldset'
+                name='messy-sample-fileattachment-fieldset'
             ),
             t.fieldset(
                 form_submit_bar(create) if not readonly else t.div(),
@@ -278,7 +296,7 @@ class SampleViewer(BaseViewer):
             ),
         ]
 
-        jscode = """$(function () {$('[data-toggle="popover"]').popover()});"""
+        jscode = """$(function () {$('[data-bs-toggle="popover"]').popover()});"""
 
         if not readonly:
             jscode += select2_lookup(tag='messy-sample-originating_institution_id', minlen=3,
