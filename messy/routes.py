@@ -61,7 +61,7 @@ def includeme(config):
         '/collection',
         '/collection/@@action',
         '/collection/@@add',
-        '/plate/@@fileaction',
+        '/collection/@@fileaction',
         '/collection/{id}@@edit',
         '/collection/{id}@@save',
         ('/collection/{id}@@attachment/{fieldname}', 'attachment'),
@@ -97,6 +97,9 @@ def includeme(config):
     )
 
     # add additional routes and views here
+
+    # commit config
+    config.commit()
 
     # whoosh
 
