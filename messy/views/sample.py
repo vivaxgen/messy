@@ -296,16 +296,16 @@ class SampleViewer(BaseViewer):
             ),
         ]
 
-        jscode = """$(function () {$('[data-bs-toggle="popover"]').popover()});"""
+        jscode = ""  # """$(function () {$('[data-bs-toggle="popover"]').popover()});"""
 
         if not readonly:
             jscode += select2_lookup(tag='messy-sample-originating_institution_id', minlen=3,
                                      placeholder="Type an institution name",
-                                     parenttag="messy-sample-fieldset", usetag=False,
+                                     parenttag="messy-sample-compulsory-fieldset", usetag=False,
                                      url=self.request.route_url('messy.institution-lookup')) +\
                 select2_lookup(tag='messy-sample-sampling_institution_id', minlen=3,
                                placeholder="Type an institution name",
-                               parenttag="messy-sample-fieldset", usetag=False,
+                               parenttag="messy-sample-hostinfo-fieldset", usetag=False,
                                url=self.request.route_url('messy.institution-lookup'))
 
         return t.div()[t.h2('Sample'), eform], jscode
