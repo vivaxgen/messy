@@ -61,7 +61,7 @@ def setup(dbh):
         host='no-species',
         host_occupation='other',
         host_status='unknown',
-        category='Z-CR',
+        category='CR',
         specimen_type='no-specimen',
         ct_method='no-ct',
         originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
@@ -191,7 +191,7 @@ ek_initlist = [
             ('RS', 'Random surveillance and tracking'),
             ('SS', 'Sentinel surveillance'),
             ('TH', 'Sample with travel history'),
-            ('CR', 'Z - Control or reference sample'),
+            ('CR', 'Control or reference sample'),
         ]
      ),
     ('@SPECIMEN_TYPE', 'Specimen type',
