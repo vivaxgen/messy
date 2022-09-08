@@ -69,7 +69,6 @@ ${self.scriptlinks()}
 <%def name="scriptlinks()">
 
     <script src="/assets/rb/js/jquery-3.6.0.min.js"></script>
-    <script src="/assets/rb/js/popper.min.js"></script>
     <script src="/assets/rb/bootstrap/js/bootstrap.bundle.min.js"></script>
 
 <!--
