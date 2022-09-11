@@ -199,6 +199,7 @@ class CollectionViewer(BaseViewer):
 
         return self.render_edit_form(collection_html, collection_jscode)
 
+
 def generate_collection_table(collections, request):
 
     table_body = t.tbody()
