@@ -97,14 +97,9 @@ messy_groups = [
     ('PlateMgr', [r.PLATE_MANAGE]),
     ('PlateModifier', [r.PLATE_MODIFY, r.PLATE_VIEW]),
     ('PlateViewer', [r.PLATE_VIEW]),
-    ('SequencingRunMgr', [r.SEQUENCINGRUN_MANAGE]),
-    ('SequencingRunModifier', [r.SEQUENCINGRUN_MODIFY, r.SEQUENCINGRUN_VIEW]),
-    ('SequencingRunViewer', [r.SEQUENCINGRUN_VIEW]),
-    ('SequenceMgr', [r.SEQUENCE_MODIFY, r.SEQUENCE_VIEW]),
-    ('SequenceViewer', [r.SEQUENCE_VIEW]),
-    ('ProjectMgr', [r.SAMPLE_MODIFY, r.PLATE_MODIFY, r.SEQUENCINGRUN_MODIFY, r.SEQUENCE_MODIFY]),
-    ('ProjectViewer', [r.SAMPLE_VIEW, r.PLATE_VIEW, r.SEQUENCINGRUN_VIEW, r.SEQUENCE_VIEW]),
-    ('Collaborator', [r.SAMPLE_MODIFY, r.SEQUENCE_VIEW]),
+    ('ProjectMgr', [r.SAMPLE_MODIFY, r.PLATE_MODIFY]),
+    ('ProjectViewer', [r.SAMPLE_VIEW, r.PLATE_VIEW]),
+    ('Collaborator', [r.SAMPLE_MODIFY]),
 ]
 
 
@@ -127,12 +122,6 @@ ek_initlist = [
             (r.PLATE_MANAGE, 'plate manager'),
             (r.PLATE_MODIFY, 'modify plate'),
             (r.PLATE_VIEW, 'view plate'),
-            (r.SEQUENCINGRUN_MANAGE, 'manage sequencing run'),
-            (r.SEQUENCINGRUN_MODIFY, 'modify sequencing run'),
-            (r.SEQUENCINGRUN_VIEW, 'view sequencing run'),
-            (r.SEQUENCE_MANAGE, 'manage sequence'),
-            (r.SEQUENCE_MODIFY, 'modify sequence'),
-            (r.SEQUENCE_VIEW, 'view sequence'),
         ]
      ),
     ('@SPECIES', "Species",

@@ -16,10 +16,4 @@ PLATE_MANAGE = '~r|plate|manage'
 PLATE_MODIFY = '~r|plate|modify'
 PLATE_VIEW = '~r|plate|view'
 
-SEQUENCINGRUN_MANAGE = '~r|sequencingrun|manage'
-SEQUENCINGRUN_MODIFY = '~r|sequencingrun|modify'
-SEQUENCINGRUN_VIEW = '~r|sequencingrun|view'
-
-SEQUENCE_MANAGE = '~r|sequence|manage'
-SEQUENCE_MODIFY = '~r|sequence|modify'
-SEQUENCE_VIEW = '~r|sequence|view'
+# EOF
