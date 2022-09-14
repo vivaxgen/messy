@@ -20,33 +20,35 @@ def setup(dbh):
     )
     dbh.session().flush()
 
-    dbh.session().add(
-        dbh.Collection(
-            code='CONTROL',
-            uuid=uuid.uuid4(),
-            group=dbh.get_group('CollectionMgr'),
-            institutions=[dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0]],
-        )
+
+    d_collection = dict(
+        group=dbh.get_group('CollectionMgr'),
+        institutions=[dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0]],
+        refctrl=True,
     )
-    dbh.session().flush()
+
+    collections = [
+        dbh.Collection(** (d_collection | dict(code='CONTROL'))).update({}),
+        dbh.Collection(** (d_collection | dict(code='REFERENCE'))).update({}),
+    ]
+    for c in collections:
+        dbh.session().add(c)
+    dbh.session.flush(collections)
+
+    d_plate = dict(
+        group=dbh.get_group('PlateMgr'),
+        date=parser.parse('1970'),
+        specimen_type='water',
+        experiment_type='sample-container',
+        user=dbh.get_user('system/_SYSTEM_'),
+        refctrl=True,
+    )
 
     plates = [
-        dbh.Plate(
-            code='TEMPLATE-96',
-            group=dbh.get_group('PlateMgr'),
-            date=parser.parse('1970'),
-            specimen_type='water',
-            experiment_type='sample-container',
-            user=dbh.get_user('system/_SYSTEM_'),
-        ),
-        dbh.Plate(
-            code='TEMPLATE-384',
-            group=dbh.get_group('PlateMgr'),
-            date=parser.parse('1970'),
-            specimen_type='water',
-            experiment_type='sample-container',
-            user=dbh.get_user('system/_SYSTEM_'),
-        )
+        dbh.Plate(** (d_plate | dict(code='TEMPLATE-24'))),
+        dbh.Plate(** (d_plate | dict(code='TEMPLATE-48'))),
+        dbh.Plate(** (d_plate | dict(code='TEMPLATE-96'))),
+        dbh.Plate(** (d_plate | dict(code='TEMPLATE-384'))),
     ]
     for p in plates:
         dbh.session().add(p)
@@ -66,6 +68,7 @@ def setup(dbh):
         ct_method='no-ct',
         originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
         sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+        refctrl=True,
     )
 
     samples = [
