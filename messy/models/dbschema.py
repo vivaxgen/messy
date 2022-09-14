@@ -10,7 +10,7 @@ import messy.lib.roles as r
 from messy.lib import nomenclature
 import dateutil.parser
 import datetime
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, False_
 from sqlalchemy.orm import object_session
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
@@ -65,6 +65,7 @@ class Institution(BaseMixIn, Base):
     zipcode = Column(types.String(8), nullable=False, server_default='')
     contact = Column(types.String(64), nullable=False, server_default='')
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
+    refctrl = Column(types.Boolean, nullable=False, server_default=False_())
 
     __searchable__ = ['code', 'alt_codes', 'name', 'address']
 
@@ -132,6 +133,8 @@ class Collection(BaseMixIn, Base):
     attachment = FileAttachment.proxy('attachment_file')
 
     contact = deferred(Column(types.String(64), nullable=False, server_default=''))
+
+    refctrl = Column(types.Boolean, nullable=False, server_default=False_())
 
     institutions = relationship(Institution, secondary=collection_institution_table,
                                 order_by=collection_institution_table.c.id)
@@ -329,6 +332,7 @@ class Sample(BaseMixIn, Base):
 
     flag = Column(types.Integer, nullable=False, server_default='0')
     extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
+    refctrl = Column(types.Boolean, nullable=False, server_default=False_())
 
     additional_files = relationship(FileAttachment, secondary="samples_files", cascade='all, delete',
                                     collection_class=attribute_mapped_collection('id'),
@@ -513,14 +517,14 @@ class Plate(BaseMixIn, Base):
                                    cascade='all, delete')
     attachment = FileAttachment.proxy('attachment_file')
 
+    refctrl = Column(types.Boolean, nullable=False, server_default=False_())
+
     additional_files = relationship(FileAttachment, secondary="plates_files", cascade='all, delete',
                                     collection_class=attribute_mapped_collection('id'),
                                     order_by=FileAttachment.filename)
 
     positions = relationship(PlatePosition, order_by='PlatePosition.id', passive_deletes=True,
                              back_populates='plate')
-
-    __ek_fields__ = ['specimen_type', 'experiment_type']
 
     __managing_roles__ = BaseMixIn.__managing_roles__ | {r.PLATE_MANAGE}
     __modifying_roles__ = __managing_roles__ | {r.PLATE_MODIFY}
