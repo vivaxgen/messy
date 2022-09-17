@@ -2,7 +2,9 @@
 from rhombus.lib.utils import cerr, cout, random_string, get_dbhandler
 #from rhombus.lib.roles import SYSADM, DATAADM
 from rhombus.views.generics import error_page
-from rhombus.views import *
+from rhombus.views import (BaseViewer, roles, m_roles, Response, FileIter, HTTPFound,
+                           render_to_response, fileinstance_to_response, select2_lookup, ParseFormError,
+                           form_submit_bar)
 from rhombus.lib.modals import modal_delete, popup, modal_error
 from rhombus.lib.exceptions import AuthError
 import rhombus.lib.tags_b46 as t
@@ -16,7 +18,7 @@ alnumdash = set(('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 alnumdash_ext = alnumdash | set(('./'))
 
 
-def validate_code(a_code, charset = alnumdash):
+def validate_code(a_code, charset=alnumdash):
     """ check if a_code only contains alphanumerics and dash"""
 
     a_code = a_code.strip()
@@ -61,11 +63,7 @@ class BaseViewer(BaseViewer):
         if fid:
             fid = int(fid.removeprefix('/'))
             file_instance = obj.additional_files[fid]
-            content_encoding = mimetypes.guess_type(file_instance.filename)[1]
-            return Response(app_iter=FileIter(file_instance.fp()),
-                            content_type=file_instance.mimetype, content_encoding=content_encoding,
-                            content_disposition=f'inline; filename="{file_instance.filename}"',
-                            request=rq)
+            return fileinstance_to_response(file_instance)
 
         dbsess = dbh.session()
 
