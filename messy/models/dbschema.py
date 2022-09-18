@@ -122,7 +122,9 @@ class Collection(BaseMixIn, Base):
     description = Column(types.String(256), nullable=False, server_default='')
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     data = deferred(Column(types.JSON, nullable=False, server_default='null'))
-    public = Column(types.Boolean, nullable=False, server_default='FALSE')
+
+    refctrl = Column(types.Boolean, nullable=False, server_default=False_())
+    public = Column(types.Boolean, nullable=False, server_default=False_())
 
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
     group = relationship(Group, uselist=False, foreign_keys=group_id)
@@ -133,8 +135,6 @@ class Collection(BaseMixIn, Base):
     attachment = FileAttachment.proxy('attachment_file')
 
     contact = deferred(Column(types.String(64), nullable=False, server_default=''))
-
-    refctrl = Column(types.Boolean, nullable=False, server_default=False_())
 
     institutions = relationship(Institution, secondary=collection_institution_table,
                                 order_by=collection_institution_table.c.id)
@@ -331,8 +331,10 @@ class Sample(BaseMixIn, Base):
     attachment = FileAttachment.proxy('attachment_file')
 
     flag = Column(types.Integer, nullable=False, server_default='0')
-    extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
     refctrl = Column(types.Boolean, nullable=False, server_default=False_())
+    public = Column(types.Boolean, nullable=False, server_default=False_())
+
+    extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
     additional_files = relationship(FileAttachment, secondary="samples_files", cascade='all, delete',
                                     collection_class=attribute_mapped_collection('id'),
