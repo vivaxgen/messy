@@ -227,38 +227,6 @@ ek_initlist = [
             ('libprep-artic-ultraiifs', 'library prep with NEB Artic UltraIIFS kit'),
         ]
      ),
-    ('@SEQUENCING_KIT', 'Sequencing kit',
-        [
-            ('merged-data', 'Merged data from more than one run'),
-            ('MiSeq-V3-600', 'MiSeq 600-cycle v3'),
-            ('MiSeq-V2-500', 'MiSeq 500-cycle v2'),
-            ('MiSeq-V2-300', 'MiSeq 300-cycle v2'),
-            ('MiSeq-MicroV2-300', 'MiSeq 300-cycle v2 Micro'),
-            ('MiSeq-NanoV2-500', 'MiSeq Nano v2 500-cycle'),
-            ('MiSeq-NanoV2-300', 'MiSeq Nano v2 300-cycle'),
-            ('NextSeq-HiV2.5-300', 'NextSeq 500/550 High Output 300-cycle'),
-            ('NextSeq-HiV2.5-150', 'NextSeq 500/550 High Output 150-cycle'),
-            ('NextSeq-MidV2.5-300', 'NextSeq 500/550 Mid Output 300-cycle'),
-            ('NextSeq-MidV2.5-150', 'NextSeq 500/550 Mid Output 150-cycle'),
-            ('NovaSeq-SPv1.5-500', 'NovaSeq 6000 SP v1.5 500-cycle'),
-            ('NovaSeq-SPv1.5-300', 'NovaSeq 6000 SP v1.5 300-cycle'),
-            ('NovaSeq-SPv1.5-200', 'NovaSeq 6000 SP v1.5 200-cycle'),
-            ('NovaSeq-SPv1.5-100', 'NovaSeq 6000 SP v1.5 100-cycle'),
-            ('data-container', 'Container for imported data')
-        ]
-     ),
-    ('@ADAPTERINDEX', 'Adapter-index for sequencing',
-        [
-            ('covidseq-set-1', 'CovidSeq UDI Set 1 1-96'),
-            ('covidseq-set-2', 'CovidSeq UDI Set 2 97-192'),
-            ('covidseq-set-3', 'CovidSeq UDI Set 3 193-288'),
-            ('covidseq-set-4', 'CovidSeq UDI Set 4 289-384'),
-            ('nebnext-udi-set-1', 'NebNext Multiplex Oligo UDI Set 1'),
-            ('nebnext-udi-set-2', 'NebNext Multiplex Oligo UDI Set 2'),
-            ('nebnext-udi-set-3', 'NebNext Multiplex Oligo UDI Set 3'),
-            ('nebnext-udi-set-4', 'NebNext Multiplex Oligo UDI Set 4'),
-        ]
-     ),
 ]
 
 # EOF
