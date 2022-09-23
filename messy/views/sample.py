@@ -327,6 +327,10 @@ class SampleViewer(BaseViewer):
         return self.render_edit_form(sample_html, sample_jscode)
 
     def lookup_helper(self):
+        # XXX: this need to be modify for proper permission, only public samples
+        # (i.e. samples with public == True or samples from public Collections or
+        # reference and control samples), or samples from Collections accessible by
+        # current users
         q = self.request.params.get('q')
         if not q:
             return error_page(self.request, "q not provided")
