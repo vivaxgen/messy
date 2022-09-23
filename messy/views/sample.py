@@ -11,6 +11,11 @@ import json
 import more_itertools
 
 
+def generate_plateposition_table_tab(viewer, html_anchor=None):
+
+    return generate_plateposition_table(viewer.obj, viewer.request)
+
+
 class SampleViewer(BaseViewer):
 
     managing_roles = BaseViewer.managing_roles + [r.SAMPLE_MANAGE]
@@ -68,6 +73,10 @@ class SampleViewer(BaseViewer):
         'sampling_code': ('messy-sample-sampling_code', validate_code_ext),
         'attachment': ('messy-sample-attachment'),
     }
+
+    tab_contents = [
+        ('platepositions', 'Plates', generate_plateposition_table_tab),
+    ]
 
     def index_helper(self):
 
@@ -313,14 +322,7 @@ class SampleViewer(BaseViewer):
     def view_helper(self, render=True):
 
         sample_html, sample_jscode = super().view_helper(render=False)
-
-        sample_html.add(
-            t.hr,
-        )
-
-        platepos_html, platepos_js = generate_plateposition_table(self.obj, self.request)
-        sample_html.add(platepos_html)
-        sample_jscode += platepos_js
+        sample_html, sample_jscode = self.view_tabcontents(sample_html, sample_jscode)
 
         return self.render_edit_form(sample_html, sample_jscode)
 
