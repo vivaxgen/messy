@@ -2,9 +2,9 @@
 from rhombus.lib.utils import cerr, cout, random_string, get_dbhandler
 #from rhombus.lib.roles import SYSADM, DATAADM
 from rhombus.views.generics import error_page
-from rhombus.views import (BaseViewer, roles, m_roles, Response, FileIter, HTTPFound,
-                           render_to_response, fileinstance_to_response, select2_lookup, ParseFormError,
-                           form_submit_bar)
+from rhombus.views import (BaseViewer as rb_BaseViewer, roles, m_roles, Response,
+                           FileIter, HTTPFound, render_to_response, form_submit_bar,
+                           fileinstance_to_response, select2_lookup, ParseFormError)
 from rhombus.lib.modals import modal_delete, popup, modal_error
 from rhombus.lib.exceptions import AuthError
 import rhombus.lib.tags_b46 as t
@@ -36,7 +36,9 @@ def validate_code_ext(a_code):
     return validate_code(a_code, alnumdash_ext)
 
 
-class BaseViewer(BaseViewer):
+class BaseViewer(rb_BaseViewer):
+
+    tab_contents = None
 
     @m_roles(r.PUBLIC)
     def files(self):
@@ -124,6 +126,47 @@ class BaseViewer(BaseViewer):
             return HTTPFound(location=rq.referer)
 
         raise NotImplementedError()
+
+    def view_tabcontents(self, html_anchor, jscode_anchor):
+
+        if self.tab_contents is None:
+            return self.render_edit_form(html_anchor, jscode_anchor)
+
+        tab_nav = t.div(class_='nav nav-tabs', role='tablist', id='nav-tab')
+        tab_contents = t.div(class_='tab-content', id='nav-tabcontent')
+
+        for idx, tab_spec in enumerate(self.tab_contents):
+
+            tab_id, tab_title, tab_func = tab_spec
+            tab_html, tab_jscode = tab_func(self)
+            jscode_anchor += tab_jscode
+
+            tab_nav.add(
+                t.button(t.b(tab_title),
+                         id=f"{tab_id}-tab",
+                         class_="nav-link active" if idx == 0 else "nav-link",
+                         type="button",
+                         role="tab",
+                         ** {"data-bs-toggle": "tab",
+                             "data-bs-target": f"#{tab_id}",
+                             "aria-controls": tab_id,
+                             "aria-selected": "true"}
+                         ),
+            )
+
+            tab_contents.add(
+                t.div(tab_html,
+                      id=tab_id,
+                      class_="tab-pane show active" if idx == 0 else "tab-pane",
+                      role="tabpanel",
+                      tabindex="0",
+                      ** {"aria-labelledby": f"{tab_id}-tab"}
+                      ),
+            )
+
+        html_anchor.add(t.hr, t.nav(tab_nav), tab_contents)
+
+        return (html_anchor, jscode_anchor)
 
 
 def generate_file_table(files, request, obj, route_name):
