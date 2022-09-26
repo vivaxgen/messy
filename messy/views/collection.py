@@ -30,6 +30,13 @@ class CollectionViewer(BaseViewer):
         'data': ('messy-collection-data', json.loads),
     }
 
+    def can_modify(self, obj=None):
+        obj = obj or self.obj
+        # make sure the user has the right roles and/or the right membership
+        if obj is not None and obj.can_modify(self.request.user):
+            return True
+        return super().can_modify(obj) and self.request.user.in_group(obj.group_id)
+
     @m_roles(r.PUBLIC)
     def index(self):
 
@@ -62,6 +69,9 @@ class CollectionViewer(BaseViewer):
             obj.update(d)
             if obj.id is None:
                 dbh.session().add(obj)
+            if not self.can_modify(obj):
+                raise PermissionError(
+                    'You do not have the correct permission to modify the updated Collection.')
             dbh.session().flush([obj])
 
         except sqlalchemy.exc.IntegrityError as err:
