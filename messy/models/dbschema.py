@@ -416,6 +416,10 @@ class Sample(BaseMixIn, Base):
     def __str__(self):
         return self.code
 
+    @property
+    def fullcode(self):
+        return f'{self.code}/{self.collection.code}'
+
     def as_dict(self):
         return super().as_dict(exclude=['sequences', 'additional_files', 'platepositions'])
 
