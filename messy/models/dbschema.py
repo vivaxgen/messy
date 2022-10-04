@@ -647,8 +647,10 @@ class UploadJob(BaseMixIn, Base):
     user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
     start_time = Column(types.DateTime, nullable=False, server_default=func.now())
     upload_type = Column(types.Integer, nullable=False, server_default='0')
+    completed = Column(types.Boolean, nullable=False, server_default=False_())
 
-    json = deferred(Column(types.JSON, nullable=False, server_default='null'))
+    # non-deferred JSON type, since most operation will require JSON fields
+    json = Column(types.JSON, nullable=False, server_default='null')
     uploaditems = relationship('UploadItem', back_populates='uploadjob')
     filenames = relationship('UploadItem',
                              collection_class=attribute_mapped_collection("filename"),
@@ -703,7 +705,8 @@ class UploadItem(BaseMixIn, Base):
     total_size = Column(types.Integer, nullable=False, server_default='-1')
     progress_size = Column(types.Integer, nullable=False, server_default='-1')
 
-    json = deferred(Column(types.JSON, nullable=False, server_default='null'))
+    # non-deferred JSON type, since most operation will require JSON fields
+    json = Column(types.JSON, nullable=False, server_default='null')
 
     __table_args__ = (
         UniqueConstraint('uploadjob_id', 'filename'),
