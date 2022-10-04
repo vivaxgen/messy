@@ -16,8 +16,10 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
                         Identity, select)
 
+from pathlib import Path
 
-__version__ = '20210817'
+
+__version__ = '20221001'
 
 # Design Consideration
 # ====================
@@ -634,5 +636,83 @@ plate_file_table = Table(
     UniqueConstraint('plate_id', 'file_id')
 )
 
+
+class UploadJob(BaseMixIn, Base):
+
+    __tablename__ = 'uploadjobs'
+    __subdir__ = 'tmp-uploads/generics/'
+    __root_storage_path__ = None
+
+    sesskey = Column(types.String(32), unique=True, nullable=False, server_default='')
+    user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
+    start_time = Column(types.DateTime, nullable=False, server_default=func.now())
+    upload_type = Column(types.Integer, nullable=False, server_default='0')
+
+    json = deferred(Column(types.JSON, nullable=False, server_default='null'))
+    uploaditems = relationship('UploadItem', back_populates='uploadjob')
+    filenames = relationship('UploadItem',
+                             collection_class=attribute_mapped_collection("filename"),
+                             overlaps="uploaditems")
+
+    __mapper_args__ = {
+        "polymorphic_on": upload_type,
+        "polymorphic_identity": 0,
+    }
+
+    @classmethod
+    def set_root_storage_path(cls, path):
+        cerr(f'[Setting root storage path for {cls} to {path}]')
+        fullpath = cls.__root_storage_path__ = Path(path) / cls.__subdir__
+        fullpath.mkdir(parents=True, exist_ok=True)
+
+    def get_storage_path(self):
+        return self.__root_storage_path__
+
+    def can_modify(self, user):
+        return user.is_admin() or (self.user_id == user.id)
+
+    @classmethod
+    def list_sessions(cls, user=None, admin_roles=[]):
+
+        ignore_acl = False
+        if user is None or user.is_admin(* admin_roles):
+            ignore_acl = True
+
+        dbh = get_dbhandler()
+        sessions = dbh.get_uploadjobs(groups=user.groups, user=user, ignore_acl=ignore_acl,
+                                      class_=cls)
+
+        return sessions
+
+
+# the following class is a non (long) persistent object, so the table is as minimal as
+# possible
+
+class UploadItem(BaseMixIn, Base):
+
+    __tablename__ = 'uploaditems'
+
+    uploadjob_id = Column(types.Integer,
+                          ForeignKey('uploadjobs.id', ondelete='CASCADE'),
+                          index=True, nullable=False)
+    uploadjob = relationship('UploadJob', uselist=False,
+                             back_populates='uploaditems')
+
+    completed = Column(types.Boolean, server_default=False_())
+    filename = Column(types.String(128), nullable=False, server_default='')
+    total_size = Column(types.Integer, nullable=False, server_default='-1')
+    progress_size = Column(types.Integer, nullable=False, server_default='-1')
+
+    json = deferred(Column(types.JSON, nullable=False, server_default='null'))
+
+    __table_args__ = (
+        UniqueConstraint('uploadjob_id', 'filename'),
+    )
+
+    def get_fullpath(self):
+        # another simple sanity checks
+        if '/' in self.filename:
+            raise ValueError(f'filename {self.filename} contains forbidden character(s)')
+        return self.uploadjob.get_storage_path() / f'{{{self.uploadjob_id}}}-{{{self.filename}}}'
 
 # EOF
