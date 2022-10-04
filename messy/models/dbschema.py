@@ -127,6 +127,7 @@ class Collection(BaseMixIn, Base):
 
     refctrl = Column(types.Boolean, nullable=False, server_default=False_())
     public = Column(types.Boolean, nullable=False, server_default=False_())
+    archived = Column(types.Boolean, nullable=False, server_default=False_())
 
     group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
     group = relationship(Group, uselist=False, foreign_keys=group_id)
@@ -335,6 +336,7 @@ class Sample(BaseMixIn, Base):
     flag = Column(types.Integer, nullable=False, server_default='0')
     refctrl = Column(types.Boolean, nullable=False, server_default=False_())
     public = Column(types.Boolean, nullable=False, server_default=False_())
+    archived = Column(types.Boolean, nullable=False, server_default=False_())
 
     extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
