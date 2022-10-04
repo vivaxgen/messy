@@ -26,6 +26,10 @@ class MessyQueryConstructor(rhombus_handler.QueryConstructor):
 
         'plate_id': dbschema.Plate.id,
         'plate_code': dbschema.Plate.code,
+
+        'uploadjob_id': dbschema.UploadJob.id,
+        'uploadjob_sessky': dbschema.UploadJob.sesskey,
+        'uploaditem_id': dbschema.UploadItem.id,
     }
 
 
@@ -38,6 +42,8 @@ class DBHandler(rhombus_handler.DBHandler):
     Sample = dbschema.Sample
     Plate = dbschema.Plate
     PlatePosition = dbschema.PlatePosition
+    UploadJob = dbschema.UploadJob
+    UploadItem = dbschema.UploadItem
 
     query_constructor_class = MessyQueryConstructor
 
@@ -85,16 +91,20 @@ class DBHandler(rhombus_handler.DBHandler):
 
         q = self.construct_query(self.Collection, specs)
 
+        if user and user.has_roles(r.SYSADM, r.DATAADM, r.COLLECTION_MANAGE):
+            ignore_acl = True
+            groups = None
+
         if not ignore_acl and groups is None and user is None:
             raise ValueError('ERR: get_collections() - either groups or user needs to be provided !')
 
         if not ignore_acl and groups is None:
-            if not user.has_roles(r.SYSADM, r.DATAADM, r.COLLECTION_MANAGE):
-                groups = user.groups
+            groups = user.groups
 
         if groups is not None:
             # enforce security
-            q = q.filter(self.Collection.group_id.in_([x[1] for x in groups]))
+            cond = (self.Collection.group_id.in_([x[1] for x in groups]))
+            q = q.filter(or_)(self.Collection.public, self.Collection.refctrl, cond)
 
         if fetch:
             q = q.order_by(self.Collection.code)
@@ -114,6 +124,10 @@ class DBHandler(rhombus_handler.DBHandler):
 
     def get_samples(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False,
                     ignore_acl=False):
+
+        if user.has_roles(r.SYSADM, r.DATAADM, r.SAMPLE_MANAGE):
+            ignore_acl = True
+            groups = None
 
         q = self.construct_query(self.Sample, specs)
 
@@ -164,6 +178,37 @@ class DBHandler(rhombus_handler.DBHandler):
         return self.get_plates(groups, [{'plate_code': codes}], user=user, fetch=fetch,
                                ignore_acl=False, raise_if_empty=raise_if_empty)
 
+    # UploadJob
 
+    def get_uploadjobs(self, groups, specs=None, user=None, fetch=True,
+                       raise_if_empty=False, ignore_acl=False, class_=None):
+
+        cls = class_ or self.UploadJob
+
+        q = self.construct_query(cls, specs)
+
+        if not ignore_acl:
+            if user:
+                q = q.filter(cls.user_id == user.id)
+            else:
+                raise ValueError('user argument must be assigned')
+
+        if fetch:
+            q = q.order_by(cls.start_time.desc())
+
+        return self.fetch_query(q, fetch, raise_if_empty)
+
+    def get_uploadjobs_by_ids(self, ids, groups, user=None, fetch=True, class_=None,
+                              spec_tag='uploadjob_id', raise_if_empty=False):
+        return self.get_uploadjobs(groups, [{spec_tag: ids}],
+                                   user=user, fetch=fetch, class_=class_,
+                                   raise_if_empty=raise_if_empty)
+
+    def get_uploadjobs_by_sesskeys(self, sesskeys, groups, user=None, fetch=True,
+                                   spec_tag='uploadjob_sesskey', class_=None,
+                                   raise_if_empty=False):
+        return self.get_uploadjobs(groups, [{spec_tag: sesskeys}],
+                                   user=user, fetch=fetch, class_=class_,
+                                   raise_if_empty=raise_if_empty)
 
 # EOF
