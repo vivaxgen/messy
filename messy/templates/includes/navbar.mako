@@ -5,6 +5,7 @@
     <span class="navbar-toggler-icon"></span>
   </button>
   <div class="collapse navbar-collapse px-3" id="navbarCollapse">
+  <!--
     <ul class="navbar-nav mr-auto">
       <li class="nav-item active dropdown">
         <a name="navbarDatamenu" id="navbarDatamenu" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Data</a>
@@ -43,7 +44,8 @@
       <li class="nav-item">
         <a class="nav-link" href="/help/index.rst">Help</a>
       </li>
-    </ul>
+    </ul> -->
+    ${main_menu()}
     ${user_menu(request)}
   </div>
 </nav>

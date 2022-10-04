@@ -3,6 +3,7 @@ from messy.lib.whoosh import IndexService, set_index_service
 from rhombus.routes import add_route_view, add_route_view_class
 from rhombus.lib.utils import cerr, cout
 
+from pyramid.events import BeforeRender
 from pyramid.renderers import JSON
 import simplejson
 import datetime
@@ -11,6 +12,8 @@ import datetime
 def includeme(config):
     """ this configuration must be included as the last order
     """
+
+    config.add_subscriber(add_global, BeforeRender)
 
     config.add_static_view('static', 'static', cache_max_age=3600)
 
@@ -106,6 +109,11 @@ def includeme(config):
     set_index_service(IndexService(config.registry.settings['messy.whoosh.path']))
 
     # add addtional setup here
+
+
+def add_global(event):
+    from messy.views.menunav import main_menu
+    event['main_menu'] = main_menu
 
 
 def datetime_adapter(obj, request):
