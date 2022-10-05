@@ -106,18 +106,19 @@ class CollectionViewer(BaseViewer):
             institution_options = [(i.id, i.code) for i in institutions]
 
         ff = self.ffn
-        eform = t.form(name='messy-collection', method=t.POST, enctype=t.FORM_MULTIPART, readonly=readonly,
-                       update_dict=update_dict)
+        eform = t.form(name='messy-collection', method=t.POST, enctype=t.FORM_MULTIPART,
+                       readonly=readonly, update_dict=update_dict)
         eform.add(
             self.hidden_fields(obj),
             t.fieldset(
                 t.input_text(ff('code!'), 'Code', value=obj.code, offset=2),
-                t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=2,
-                               options=[(g.id, g.name)
-                                        for g in dbh.get_group(user_id=rq.user,
-                                                               additional_ids=[obj.group_id])
-                                        ]
-                               ),
+                t.input_select(
+                    ff('group_id'), 'Group', value=obj.group_id, offset=2, size=2,
+                    options=[(g.id, g.name) for g in
+                             dbh.get_group(user_id=rq.user,
+                                           additional_ids=[obj.group_id] if obj.group_id else None)
+                             ]
+                ),
                 t.input_text(ff('description'), 'Description', value=obj.description,
                              offset=2),
                 t.input_select(ff('institution_ids'), 'Institution', value=institution_ids, offset=2,
