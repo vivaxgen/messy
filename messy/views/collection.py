@@ -158,7 +158,10 @@ class CollectionViewer(BaseViewer):
             collections = dbh.get_collections_by_ids(collection_ids, groups=None, user=rq.user)
 
             if len(collections) == 0:
-                return Response(modal_error)
+                return Response(
+                    modal_error(
+                        content="Error - no collections are selected or selected collesion(s)"
+                                "are not accessible"))
 
             return Response(
                 modal_delete(
