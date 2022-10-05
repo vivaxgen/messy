@@ -10,6 +10,7 @@ from rhombus.lib.fileutils import save_file
 
 from pyramid.response import Response
 from urllib.parse import unquote
+from pathlib import Path
 import pandas as pd
 
 
@@ -36,12 +37,15 @@ class FastqUploadJobViewer(UploadJobViewer):
                 html, jscode = response
 
         except ValueError as e:
-            err_msg = str(e)
+            errors = e.args[0]
             html, jscode = self.generate_edit_form(self.obj,
                                                    update_dict=self.request.params)
-            html.add('Problem in the manifest file:')
-            html.add(err_msg)
-            # assert 0
+            html.add(
+                'Errors in the manifest file:',
+                t.ul(
+                    * [t.li(msg) for msg in errors]
+                )
+            ) if errors else None
 
         if not render:
             return html, jscode
@@ -126,61 +130,25 @@ class FastqUploadJobViewer(UploadJobViewer):
             obj.user_id = self.request.user.id
 
             obj.sesskey = generate_sesskey(self.request.user.id, obj.ngsrun_id)
-            self.dbh.session().add(obj)
 
-        # validate manifest file
+            # validate manifest file
+            manifest_file = d['manifest_file']
+            match ext := Path(manifest_file.filename.lower()).suffix:
+                case '.xlsx':
+                    df = pd.read_excel(manifest_file.file)
+                case '.csv' | '.tsv' | '.txt':
+                    df = pd.read_table(manifest_file.file, sep=None)
+                case _:
+                    raise ValueError(f'extension {ext} is not recognized')
 
-        manifest_file = d['manifest_file']
-        if manifest_file.filename.lower().endswith('.xlsx'):
-            df = pd.read_excel(manifest_file.file)
-        else:
-            df = pd.read_table(manifest_file.file, sep=None)
+            obj.validate_manifest(df, self.request.user, self.dbh)
 
-        obj.validate_manifest(df, self.request.user, self.dbh)
+            # once everything is fine, we add object to database session
+            sess = self.dbh.session()
+            sess.add(obj)
+            sess.flush([obj])
 
-    @m_roles(r.PUBLIC)
-    def save(self):
-        # commit the uploaded to database
-
-        rq = self.request
-        user = rq.user
-        job = self.get_object()
-
-        self.can_modify(job)
-        job.commit(user)
-
-        html = t.div(t.p('All uploaded files have been saved to database'))
-
-        return render_to_response("messy:templates/generic_page.mako", {
-            'html': html
-        }, request=rq)
-
-    @m_roles(r.PUBLIC)
-    def status(self):
-
-        rq = self.request
-        job = self.get_object()
-
-        self.can_modify(job)
-
-        # check how many files has been completed
-        completed = job.get_uploaded_count()
-
-        html = t.div().add(
-            t.h2('Upload Session'),
-            t.p(f'Started at: {job.start_time} UTC'),
-            t.p(f'Total files: {job.json["file_count"]}'),
-            t.p(f'Uploaded: {completed}'),
-            t.div(
-                t.a('Save', href=rq.route_url('messy-ngsmgr.uploadjob.fastq-save',
-                                              id=job.id),
-                    class_='btn btn-primary')
-                if completed == job.json["file_count"] else ''),
-        )
-
-        return Response(body=html.r(),
-                        status="200",
-                        content_type="text/html")
+        # do nothing if obj is not new upload session
 
     def view_helper(self):
         """ this will be the busiest method of the class """
