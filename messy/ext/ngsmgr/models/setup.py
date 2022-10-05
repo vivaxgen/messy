@@ -1,15 +1,51 @@
 
 from messy.ext.ngsmgr.lib import roles as r
+from messy.ext.ngsmgr.models.schema import PanelType
+from dateutil import parser
 
 
 def setup(dbh):
 
     dbh.Group.bulk_insert(group_initlist, dbsession=dbh.session())
 
+    d_ngsrun = dict(
+        date=parser.parse('1970'),
+        refctrl=True,
+        group=dbh.get_group('NGSRunMgr'),
+        ngs_provider=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+        ngs_kit='data-container',
+    )
+
+    ngsruns = [
+        dbh.NGSRun(** (d_ngsrun | dict(code='ILMN-INDEPENDENT-RUN', serial='SYSTEM-01'))),
+        dbh.NGSRun(** (d_ngsrun | dict(code='ONT-INDEPENDENT-RUN', serial='SYSTEM-02'))),
+        dbh.NGSRun(** (d_ngsrun | dict(code='PACBIO-INDEPENDENT-RUN', serial='SYSTEM-03'))),
+    ]
+    for run in ngsruns:
+        dbh.session().add(run)
+    dbh.session().flush(ngsruns)
+
+    d_panel = dict(
+        type=PanelType.SET.value,
+        refctrl=True,
+        species='no-species'
+    )
+
+    panels = [
+        dbh.Panel().update(d_panel | dict(code='WGS-generic'))
+    ]
+    for panel in panels:
+        dbh.session().add(panel)
+    dbh.session().flush(panels)
+
 
 group_initlist = [
     ('NGSRunMgr', [r.NGSRUN_MANAGE]),
     ('NGSRunModifier', [r.NGSRUN_MODIFY, r.NGSRUN_VIEW]),
+    ('PanelMgr', [r.PANEL_MANAGE]),
+    ('PanelModifier', [r.PANEL_MODIFY, r.PANEL_VIEW]),
+    ('FastqPairMgr', [r.FASTQPAIR_MANAGE]),
+    ('FastqPairModifier', [r.FASTQPAIR_MODIFY, r.FASTQPAIR_VIEW])
 ]
 
 
@@ -20,6 +56,12 @@ ek_initlist = [
             (r.NGSRUN_MANAGE, 'manage ngsrun'),
             (r.NGSRUN_MODIFY, 'modify ngsrun'),
             (r.NGSRUN_VIEW, 'view ngsrun'),
+            (r.PANEL_MANAGE, 'manage panel'),
+            (r.PANEL_MODIFY, 'modify panel'),
+            (r.PANEL_VIEW, 'view panel'),
+            (r.FASTQPAIR_MANAGE, 'manage fastqpair'),
+            (r.FASTQPAIR_MODIFY, 'modify fastqpair'),
+            (r.FASTQPAIR_VIEW, 'view fastqpair'),
         ]
      ),
     ('@NGS_KIT', 'NGS kit',

@@ -5,10 +5,10 @@ from messy.views import (BaseViewer, get_dbhandler, m_roles, ParseFormError, for
                          validate_code)
 import rhombus.lib.tags as t
 from rhombus.lib.modals import popup
-from rhombus.lib.exceptions import AuthError
 from pyramid import response
 
 from messy.ext.ngsmgr.lib import roles as r
+from messy.ext.ngsmgr.views.fastqpair import generate_fastqpair_table
 
 from messy.lib.samplesheet_utils import generate_samplesheet
 from messy.lib.converter import export_gisaid
@@ -16,6 +16,121 @@ from messy.lib.converter import export_gisaid
 import sqlalchemy.exc
 import dateutil
 import pandas as pd
+
+
+def generate_ngsrunplate_table(viewer, html_anchor=None):
+
+    ngsrun = viewer.obj
+    assert ngsrun
+
+    dbh = viewer.dbh
+    request = viewer.request
+
+    table_body = t.tbody()
+
+    for ngsrunplate in ngsrun.plates:
+        table_body.add(
+            t.tr(
+                t.td(t.literal(f'<input type="checkbox" name="ngsrunplate-ids" value="{ngsrunplate.id}" />')),
+                t.td(t.a(ngsrunplate.plate.code,
+                     href=request.route_url('messy.plate-view', id=ngsrunplate.plate.id))),
+                t.td(ngsrunplate.plate.specimen_type),
+                t.td(ngsrunplate.plate.experiment_type),
+                t.td(ngsrunplate.adapterindex),
+                t.td('1'),
+                t.td(ngsrunplate.note[:30] if ngsrunplate.note else ''),
+            )
+        )
+
+    ngsrunplate_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('', style="width: 2em"),
+                t.th('Plate Code'),
+                t.th('Specimen'),
+                t.th('Experiment'),
+                t.th('Adapter-Index'),
+                t.th('Lane'),
+                t.th('Note')
+            )
+        )
+    ]
+
+    ngsrunplate_table += table_body
+
+    if ngsrun.can_modify(request.user):
+
+        bar = t.selection_bar(
+            'ngsrunplate-ids', action=request.route_url('messy-ngsmgr.ngsrun-plateaction'), delete_label='Unlink',
+            others=t.button('Link plate',
+                            class_='btn btn-sm btn-success',
+                            id='add-ngsrunplate',
+                            name='_method',
+                            value='add_ngsrunplate',
+                            type='button'),
+            hiddens=[('ngsrun_id', ngsrun.id), ]
+        )
+        html, code = bar.render(ngsrunplate_table)
+
+        # prepare popup
+
+        popup_content = t.fieldset(
+            t.input_select('messy-ngsmgr-ngsrunplate-plate_id', 'Plate', value=None, offset=3, size=9),
+            t.input_select_ek('messy-ngsmgr-ngsrunplate-adapterindex_id', 'Adapter Index', offset=3, size=9,
+                              value=None, description=True, parent_ek=dbh.get_ekey('@ADAPTERINDEX')),
+            t.input_text('messy-ngsmgr-ngsrunplate-lane', 'Lane', value='1', offset=3, size=2),
+            t.input_text('messy-ngsmgr-ngsrunplate-note', 'Note', value='', offset=3, size=9),
+            name='messy-ngsmgr-ngsrunplate-fieldset'
+        )
+        submit_button = t.submit_bar('Add plate', 'add-ngsrunplate')
+
+        add_ngsrunplate_form = t.form(name='add-ngsrunplate-form', method=t.POST,
+                                      action=request.route_url('messy-ngsmgr.ngsrun-plateaction'))[
+            popup_content,
+            t.literal(f'<input type="hidden" name="ngsrun_id" value="{ngsrun.id}">'),
+            submit_button
+        ]
+
+        ngsrunplate_table = t.div(
+            t.div(
+                popup('Add plate', add_ngsrunplate_form, request=request),
+                id='add-ngsrunplate-modal', class_='modal fade', tabindex='-1', role='dialog'
+            ),
+            html
+        )
+
+        ngsrunplate_js = (code + "$('#add-ngsrunplate').click( function(e) {$('#add-ngsrunplate-modal').modal('show');});"
+                       + select2_lookup(tag='messy-runplate-plate_id', minlen=1,
+                                        placeholder="Type plate code here",
+                                        parenttag='messy-runplate-fieldset', usetag=False,
+                                        url=request.route_url('messy.plate-lookup')))
+
+        return ngsrunplate_table, ngsrunplate_js
+
+    else:
+        html = t.div(ngsrunplate_table)
+        code = ''
+
+        return html, code
+
+
+def generate_uploadmgr_panel(viewer, html_anchor=None):
+
+    html = t.div().add(
+        t.br,
+        t.a('Open Fastq Upload Manager', class_='btn btn-primary',
+            href=viewer.request.route_url('messy-ngsmgr.uploadjob.fastq'))
+    )
+
+    return html, ''
+
+
+def generate_fastqpair_panel(viewer, html_anchor=None):
+
+    fastqpairs = viewer.obj.fastqpairs
+
+    return generate_fastqpair_table(fastqpairs, viewer.request,
+                                    additional_fields=['sample', 'panel'])
 
 
 class NGSRunViewer(BaseViewer):
@@ -39,9 +154,14 @@ class NGSRunViewer(BaseViewer):
         'depthplots?': ('messy-ngsmgr-ngsrun-depthplots', ),  # lambda x: x.file.read() if x != b'' else None),
         'qcreport?': ('messy-ngsmgr-ngsrun-qcreport', ),
         'screenshot?': ('messy-ngsmgr-ngsrun-screenshot', ),
-        'vcf?': ('messy-ngsmgr-ngsrun-vcf', ),
         'remark': ('messy-ngsmgr-ngsrun-remark', ),
     }
+
+    tab_contents = [
+        ('uploadmgr', 'Upload Manager', generate_uploadmgr_panel),
+        ('fastqfiles', 'FastQ Files', generate_fastqpair_panel),
+        ('ngsrunplates', 'Plates', generate_ngsrunplate_table),
+    ]
 
     @m_roles(r.PUBLIC)
     def index(self):
@@ -103,29 +223,41 @@ class NGSRunViewer(BaseViewer):
                        update_dict=update_dict)[
             self.hidden_fields(obj),
             t.fieldset(
-                t.input_text(ff('code*'), 'Code', value=obj.code, offset=2),
-                t.input_text(ff('serial*'), 'Serial', value=obj.serial, offset=2),
-                t.input_text(ff('date?'), 'Running date', value=obj.date, offset=2, size=2, placeholder='YYYY/MM/DD'),
-                t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=2,
-                               options=[(g.id, g.name) for g in dbh.get_group(user_id=rq.user)]),
-                t.input_select(ff('ngs_provider_id*'), 'NGS Provider',
-                               value=prov_inst.id if prov_inst else '', offset=2, size=5,
-                               options=[(prov_inst.id, f'{prov_inst.code} | {prov_inst.name}')] if prov_inst else []),
-                t.input_select_ek(ff('ngs_kit_id'), 'NGS Kit',
-                                  value=obj.ngs_kit_id, offset=2, size=5,
-                                  parent_ek=dbh.get_ekey('@NGS_KIT')),
 
-                t.input_file_attachment(ff('depthplots?'), 'Depth plots', value=obj.depthplots, offset=2, size=4)
+                t.inline_inputs(
+                    t.input_text(ff('code*'), 'Code', value=obj.code, maxlength=16,
+                                 offset=2, size=3),
+                    t.input_text(ff('serial*'), 'Serial', value=obj.serial, maxlength=48,
+                                 offset=1, size=6),
+                ),
+
+                t.inline_inputs(
+                    t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=3,
+                                   options=[(g.id, g.name) for g in dbh.get_group(user_id=rq.user)]),
+                    t.input_select_ek(ff('ngs_kit_id'), 'NGS Kit', offset=1, size=6,
+                                      value=obj.ngs_kit_id, parent_ek=dbh.get_ekey('@NGS_KIT')),
+                ),
+
+                t.inline_inputs(
+                    t.input_text(ff('date?'), 'Running date', value=obj.date, offset=2, size=2,
+                                 placeholder='YYYY/MM/DD'),
+                    t.input_select(ff('ngs_provider_id*'), 'NGS Provider',
+                                   value=prov_inst.id if prov_inst else '', offset=2, size=6,
+                                   options=[(prov_inst.id, f'{prov_inst.code} | {prov_inst.name}')]
+                                   if prov_inst else []),
+                ),
+
+                t.input_file_attachment(ff('depthplots?'), 'Depth plots', value=obj.depthplots,
+                                        offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'depthplots')),
 
-                t.input_file_attachment(ff('qcreport?'), 'QC report', value=obj.qcreport, offset=2, size=4)
+                t.input_file_attachment(ff('qcreport?'), 'QC report', value=obj.qcreport,
+                                        offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'qcreport')),
 
-                t.input_file_attachment(ff('screenshot?'), 'Screenshot', value=obj.screenshot, offset=2, size=4)
+                t.input_file_attachment(ff('screenshot?'), 'Screenshot', value=obj.screenshot,
+                                        offset=2, size=4)
                 .set_view_link(self.attachment_link(obj, 'screenshot')),
-
-                t.input_file_attachment(ff('vcf?'), 'VCF', value=obj.vcf, offset=2, size=4)
-                .set_view_link(self.attachment_link(obj, 'vcf')),
 
                 t.input_textarea(ff('remark'), 'Remark', value=obj.remark,
                                  offset=2, static=readonly, update_dict=update_dict),
@@ -151,32 +283,10 @@ class NGSRunViewer(BaseViewer):
 
     def view_helper(self, render=True):
 
-        run_html, run_jscode = super().view_helper(render=False)
+        ngsrun_html, ngsrun_jscode = super().view_helper(render=False)
+        ngsrun_html, ngsrun_jscode = self.view_tabcontents(ngsrun_html, ngsrun_jscode)
 
-        run_html.add(
-            t.hr,
-            t.h4('Run Plate'),
-        )
-
-        runplate_html, runplate_js = generate_ngsrunplate_table(self.obj, self.request)
-        run_html.add(runplate_html)
-        run_jscode += runplate_js
-
-        if len(self.obj.plates) > 0:
-            run_html.add(
-                t.hr,
-                t.a('Generate sample sheet',
-                    href=self.request.route_url('messy-ngsmgr.ngsrun-action',
-                                                _query={'_method': 'generate_samplesheet',
-                                                        'id': self.obj.id})),
-                '|',
-                t.a('Generate GISAID csv',
-                    href=self.request.route_url('messy-ngsmgr.ngsrun-action',
-                                                _query={'_method': 'generate_gisaidcsv',
-                                                        'id': self.obj.id})),
-            )
-
-        return self.render_edit_form(run_html, run_jscode)
+        return self.render_edit_form(ngsrun_html, ngsrun_jscode)
 
     def lookup_helper(self):
         q = self.request.params.get('q')
@@ -355,98 +465,6 @@ def generate_ngsrun_table(ngsruns, request):
 
     code += template_datatable_js
     return html, code
-
-
-def generate_ngsrunplate_table(ngsrun, request):
-
-    dbh = get_dbhandler()
-
-    table_body = t.tbody()
-
-    for ngsrunplate in ngsrun.plates:
-        table_body.add(
-            t.tr(
-                t.td(t.literal(f'<input type="checkbox" name="ngsrunplate-ids" value="{ngsrunplate.id}" />')),
-                t.td(t.a(ngsrunplate.plate.code,
-                     href=request.route_url('messy.plate-view', id=ngsrunplate.plate.id))),
-                t.td(ngsrunplate.plate.specimen_type),
-                t.td(ngsrunplate.plate.experiment_type),
-                t.td(ngsrunplate.adapterindex),
-                t.td('1'),
-                t.td(ngsrunplate.note[:30] if ngsrunplate.note else ''),
-            )
-        )
-
-    ngsrunplate_table = t.table(class_='table table-condensed table-striped')[
-        t.thead(
-            t.tr(
-                t.th('', style="width: 2em"),
-                t.th('Plate Code'),
-                t.th('Specimen'),
-                t.th('Experiment'),
-                t.th('Adapter-Index'),
-                t.th('Lane'),
-                t.th('Note')
-            )
-        )
-    ]
-
-    ngsrunplate_table += table_body
-
-    if ngsrun.can_modify(request.user):
-
-        bar = t.selection_bar(
-            'ngsrunplate-ids', action=request.route_url('messy-ngsmgr.ngsrun-plateaction'), delete_label='Unlink',
-            others=t.button('Link plate',
-                            class_='btn btn-sm btn-success',
-                            id='add-ngsrunplate',
-                            name='_method',
-                            value='add_ngsrunplate',
-                            type='button'),
-            hiddens=[('ngsrun_id', ngsrun.id), ]
-        )
-        html, code = bar.render(ngsrunplate_table)
-
-        # prepare popup
-
-        popup_content = t.fieldset(
-            t.input_select('messy-ngsmgr-ngsrunplate-plate_id', 'Plate', value=None, offset=3, size=9),
-            t.input_select_ek('messy-ngsmgr-ngsrunplate-adapterindex_id', 'Adapter Index', offset=3, size=9,
-                              value=None, description=True, parent_ek=dbh.get_ekey('@ADAPTERINDEX')),
-            t.input_text('messy-ngsmgr-ngsrunplate-lane', 'Lane', value='1', offset=3, size=2),
-            t.input_text('messy-ngsmgr-ngsrunplate-note', 'Note', value='', offset=3, size=9),
-            name='messy-ngsmgr-ngsrunplate-fieldset'
-        )
-        submit_button = t.submit_bar('Add plate', 'add-ngsrunplate')
-
-        add_ngsrunplate_form = t.form(name='add-ngsrunplate-form', method=t.POST,
-                                      action=request.route_url('messy-ngsmgr.ngsrun-plateaction'))[
-            popup_content,
-            t.literal(f'<input type="hidden" name="ngsrun_id" value="{ngsrun.id}">'),
-            submit_button
-        ]
-
-        ngsrunplate_table = t.div(
-            t.div(
-                popup('Add plate', add_ngsrunplate_form, request=request),
-                id='add-ngsrunplate-modal', class_='modal fade', tabindex='-1', role='dialog'
-            ),
-            html
-        )
-
-        ngsrunplate_js = (code + "$('#add-ngsrunplate').click( function(e) {$('#add-ngsrunplate-modal').modal('show');});"
-                       + select2_lookup(tag='messy-runplate-plate_id', minlen=1,
-                                        placeholder="Type plate code here",
-                                        parenttag='messy-runplate-fieldset', usetag=False,
-                                        url=request.route_url('messy.plate-lookup')))
-
-        return ngsrunplate_table, ngsrunplate_js
-
-    else:
-        html = t.div(ngsrunplate_table)
-        code = ''
-
-        return html, code
 
 
 template_datatable_js = """

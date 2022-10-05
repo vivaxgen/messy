@@ -1,6 +1,7 @@
 
 from messy.ext.ngsmgr.lib import roles as r
-from messy.models.dbschema import Institution, Sample, Plate, PlatePosition, convert_date
+from messy.models.dbschema import (Institution, Sample, Plate, PlatePosition, UploadJob,
+                                   UploadItem, convert_date)
 
 from rhombus.lib.utils import cerr, cout, get_dbhandler
 from rhombus.models.core import (Base, BaseMixIn, metadata, deferred, relationship,
@@ -11,12 +12,22 @@ from rhombus.models.fileattach import FileAttachment
 from rhombus.models.auxtypes import GUID
 
 from sqlalchemy.sql import func, False_
-from sqlalchemy.orm import object_session, class_mapper
+from sqlalchemy.orm import object_session, reconstructor, class_mapper
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstraint,
                         Identity, select)
 
 from pathlib import Path
+from enum import Enum
+
+
+# auxiliary classses
+
+class PanelType(Enum):
+    SET = 1
+    ANALYSIS = 2
+    ASSAY = 3
+    MHAP = 4
 
 
 # add additional relationship from object class from handler
@@ -37,6 +48,7 @@ def extend_object_classes(dbh):
 
 
 class NGSRunFile(object):
+    """ base class for all NGS-related files """
 
     def generate_fullpath(self):
         """ generate a new fullpath composed from self.id and filename """
@@ -93,7 +105,7 @@ class NGSRun(BaseMixIn, Base):
     ngs_provider = relationship(Institution, uselist=False, foreign_keys=ngs_provider_id)
 
     ngs_kit_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
-    ngs_kit = EK.proxy('ngs_kit_id', '@SEQUENCING_KIT')
+    ngs_kit = EK.proxy('ngs_kit_id', '@NGS_KIT')
 
     # pdf of depthplots, if available
     depthplots_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
@@ -112,12 +124,6 @@ class NGSRun(BaseMixIn, Base):
     screenshot_file = relationship(FileAttachment, uselist=False, foreign_keys=screenshot_file_id,
                                    cascade='all, delete')
     screenshot = FileAttachment.proxy('screenshot_file')
-
-    # vcf file if available
-    vcf_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
-    vcf_file = relationship(VCFFile, uselist=False, foreign_keys=vcf_file_id,
-                            cascade='all, delete')
-    vcf = VCFFile.proxy("vcf_file")
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
@@ -252,6 +258,68 @@ class NGSRunPlate(BaseMixIn, Base):
     )
 
 
+class Panel(BaseMixIn, Base):
+    """ Panel can be:
+        - Set panel, eg. SPOTMAL, VG
+        - Assay panel, eg. SPOTMAL/GCRE-1, VG/GEO33
+        - Analysis panel, eg. SPOTMAL/DRG, VG/GEO33
+        - Microhap panel
+
+        Naming convention:
+            SPOTMAL/DRG -> SPOTMAL (set), DRG (analysis)
+            VG/GEO33
+    """
+
+    __tablename__ = 'panels'
+
+    code = Column(types.String(24), nullable=False, unique=True)
+    uuid = Column(GUID(), nullable=False, unique=True)
+    extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
+    remark = Column(types.String(128), nullable=False, server_default='')
+    type = Column(types.Integer, nullable=False, server_default='0')
+
+    refctrl = Column(types.Boolean, nullable=False, server_default=False_())
+    public = Column(types.Boolean, nullable=False, server_default=False_())
+
+    related_panel_id = Column(types.Integer, ForeignKey('eks.id'), nullable=True)
+
+    species_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
+    species = EK.proxy('species_id', '@SPECIES')
+
+    __table_args__ = (
+        UniqueConstraint('code', 'type'),
+    )
+
+    fastqpairs = relationship('FastqPair', back_populates='panel')
+
+    additional_files = relationship(FileAttachment, secondary="panels_files", cascade='all, delete',
+                                    collection_class=attribute_mapped_collection('id'),
+                                    order_by=FileAttachment.filename)
+
+    def __repr__(self):
+        return f"Panel('{self.code}')"
+
+    def update(self, obj):
+
+        super().update(obj)
+
+        if self.uuid is None:
+            self.uuid = GUID.new()
+
+        return self
+
+
+panel_file_table = Table(
+    'panels_files', metadata,
+    Column('id', types.Integer, Identity(), primary_key=True),
+    Column('panel_id', types.Integer, ForeignKey('panels.id', ondelete='CASCADE'),
+           index=True, nullable=False),
+    Column('file_id', types.Integer, ForeignKey('fileattachments.id', ondelete='CASCADE'),
+           nullable=False),
+    UniqueConstraint('panel_id', 'file_id')
+)
+
+
 class FastqPair(BaseMixIn, Base):
 
     __tablename__ = 'fastqpairs'
@@ -266,6 +334,15 @@ class FastqPair(BaseMixIn, Base):
     ngsrun = relationship(NGSRun, uselist=False, foreign_keys=ngsrun_id,
                           back_populates='fastqpairs')
 
+    panel_id = Column(types.Integer, ForeignKey('panels.id'),
+                      index=True, nullable=False)
+    panel = relationship(Panel, uselist=False, foreign_keys=panel_id,
+                         back_populates='fastqpairs')
+
+    # primary group of user
+    group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
+    group = relationship(Group, uselist=False, foreign_keys=group_id)
+
     # read1 file if available
     read1_file_id = Column(types.Integer, ForeignKey('fileattachments.id'), nullable=True)
     read1_file = relationship(FastqFile, uselist=False, foreign_keys=read1_file_id,
@@ -277,5 +354,195 @@ class FastqPair(BaseMixIn, Base):
     read2_file = relationship(FastqFile, uselist=False, foreign_keys=read2_file_id,
                               cascade='all, delete')
     read2 = FastqFile.proxy("read2_file")
+
+    @property
+    def filename1(self):
+        return self.read1_file.filename
+
+    @property
+    def filename2(self):
+        if self.read2:
+            return self.read2_file.filename
+        return None
+
+
+class FastqUploadJob(UploadJob):
+
+    __subdir__ = 'tmp-uploads/fastqs/'
+
+    __mapper_args__ = {
+        "polymorphic_identity": 10,
+    }
+
+    # json: {'ngsrun_id': ?, 'collection_id': ?}
+    # uploaditem json: {'sample_id': ?, 'panel_id': ?, 'readno': ?}
+
+    def __init__(self, ngsrun_id=None, collection_id=None, ** kwargs):
+        super().__init__(** kwargs)
+        self.ngsrun_id = ngsrun_id
+        self.collection_id = collection_id
+
+    @reconstructor
+    def init_on_load(self):
+        d = self.json
+        self.ngsrun_id = d['ngsrun_id']
+        self.collection_id = d.get('collection_id', None)
+
+    def commit(self, user):
+
+        completed = 0
+        for item in self.uploaditems:
+            if item.completed:
+                completed += 1
+
+        if completed != self.json['file_count']:
+            raise ValueError('The number of uploaded files does not match the manifest')
+
+        # set to proper data
+
+        fastqpair_d = {}
+        ngsrun_id = self.json['ngsrun_id']
+        session = object_session(self)
+
+        for item in self.uploaditems:
+            sample_id = item.json['sample_id']
+            panel_id = item.json['panel_id']
+            readno = item.json['readno']
+
+            try:
+                key = (sample_id, panel_id)
+                fastqpair = fastqpair_d[key]
+            except KeyError:
+                fastqpair_d[key] = fastqpair = FastqPair(sample_id=sample_id,
+                                                         ngsrun_id=ngsrun_id,
+                                                         panel_id=panel_id,
+                                                         group_id=user.primarygroup_id)
+
+            # for safety reason, we are copying the file instead of moving (use_move=False),
+            # in case something happen during the process
+            fastqfile = FastqFile.create_from_path(item.get_fullpath(),
+                                                   item.filename,
+                                                   # FASTQ is plain text
+                                                   mimetype="text/plain",
+                                                   session=session,
+                                                   use_move=False)
+            match readno:
+                case 1:
+                    fastqpair.read1_file = fastqfile
+                case 2:
+                    fastqpair.read2_file = fastqfile
+
+        for fastqpair in fastqpair_d.values():
+            session.add(fastqpair)
+
+        self.completed = True
+
+    def validate_manifest(self, df, user, dbh=None):
+        # 1) check all fields are filled properly
+        # 2) check filenames are not duplicated
+        # 3) check that both sample and panel exist
+
+        dbh = dbh or get_dbhandler()
+
+        df['sample_id'] = -1
+        df['panel_id'] = -1
+
+        fastq_filenames = set()
+        panel_cache = {}
+        sample_panel_set = set()
+
+        warnings = []
+        errors = []
+
+        for idx in range(len(df)):
+            row = df.loc[idx]
+
+            # check colletion and sample
+            if self.collection_id:
+                collection_id = self.collection_id
+            else:
+                results = dbh.get_collections_by_codes([row.COLLECTION.strip()],
+                                                       user=user,
+                                                       groups=user.groups)
+                if len(results) == 0:
+                    raise ValueError(f'line: {idx + 1} - collection {row.COLLECTION} '
+                                     f'does not exist!')
+
+                collection_id = results[0].id
+
+            results = dbh.get_samples(
+                user=user,
+                groups=user.groups,
+                specs=[dict(sample_code=[row.SAMPLE.strip()], collection_id=[collection_id])]
+            )
+            if len(results) == 0:
+                errors.append(f'line: {idx + 1} - sample {row.SAMPLE} '
+                              f'does not exist or not accessible!')
+
+            df.loc[idx, 'sample_id'] = sample_id = results[0].id
+
+            # check panel
+            if not (panel_id := panel_cache.get(row.PANEL, None)):
+                results = dbh.get_panels_by_codes([row.PANEL])
+                if len(results) == 0:
+                    errors.append(f'line: {idx + 1} - panel {row.PANEL} '
+                                  f'does not exist!')
+                panel_id = results[0].id
+
+            df.loc[idx, 'panel_id'] = panel_id
+
+            # check filename
+            read1 = df.loc[idx, 'READ1'] = row.READ1.strip()
+            read2 = df.loc[idx, 'READ2'] = row.READ2.strip() if row.READ2 else None
+            if read1 not in fastq_filenames:
+                if (sample_id, panel_id, 1) in sample_panel_set:
+                    warnings.append(f'line: {idx + 1} - duplicate sample/panel/read combination')
+                else:
+                    sample_panel_set.add((sample_id, panel_id, 1))
+                fastq_filenames.add(read1)
+            else:
+                errors.append(f'line {idx + 1} - duplicated fastq filename: {read1}')
+            if read2:
+                if read2 not in fastq_filenames:
+                    if (sample_id, panel_id, 2) in sample_panel_set:
+                        warnings.append(f'line: {idx + 1} - duplicate sample/panel/read combination')
+                    else:
+                        sample_panel_set.add((sample_id, panel_id, 2))
+                    fastq_filenames.add(read2)
+                else:
+                    errors.append(f'line {idx + 1} - duplicated fastq filename: {read2}')
+
+        if len(errors) > 1:
+            raise ValueError((errors, warnings))
+
+        # if there are no errors, process the file list
+
+        filecount = 0
+
+        for idx in range(len(df)):
+
+            row = df.loc[idx]
+
+            item_1 = UploadItem(uploadjob=self,
+                                filename=row.READ1,
+                                json=dict(sample_id=int(row.sample_id),
+                                          panel_id=int(row.panel_id),
+                                          readno=1))
+            filecount += 1
+
+            if row.READ2:
+                UploadItem(uploadjob=self,
+                           filename=row.READ2,
+                           json=dict(sample_id=int(row.sample_id),
+                                     panel_id=int(row.panel_id),
+                                     readno=2))
+                filecount += 1
+
+        self.json = dict(collection_id=self.collection_id,
+                         ngsrun_id=self.ngsrun_id,
+                         file_count=filecount,
+                         warnings=warnings)
+
+        return filecount, df, warnings
 
 # EOF
