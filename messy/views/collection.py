@@ -113,7 +113,11 @@ class CollectionViewer(BaseViewer):
             t.fieldset(
                 t.input_text(ff('code!'), 'Code', value=obj.code, offset=2),
                 t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=2,
-                               options=[(g.id, g.name) for g in dbh.get_group(user_id=rq.user)]),
+                               options=[(g.id, g.name)
+                                        for g in dbh.get_group(user_id=rq.user,
+                                                               additional_ids=[obj.group_id])
+                                        ]
+                               ),
                 t.input_text(ff('description'), 'Description', value=obj.description,
                              offset=2),
                 t.input_select(ff('institution_ids'), 'Institution', value=institution_ids, offset=2,
