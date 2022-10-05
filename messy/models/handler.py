@@ -104,7 +104,7 @@ class DBHandler(rhombus_handler.DBHandler):
         if groups is not None:
             # enforce security
             cond = (self.Collection.group_id.in_([x[1] for x in groups]))
-            q = q.filter(or_)(self.Collection.public, self.Collection.refctrl, cond)
+            q = q.filter(or_(self.Collection.public, self.Collection.refctrl, cond))
 
         if fetch:
             q = q.order_by(self.Collection.code)
