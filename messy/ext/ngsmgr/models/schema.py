@@ -384,19 +384,21 @@ class FastqUploadJob(UploadJob):
 
     @reconstructor
     def init_on_load(self):
-        d = self.json
-        self.ngsrun_id = d['ngsrun_id']
-        self.collection_id = d.get('collection_id', None)
+        if d := self.json:
+            self.ngsrun_id = d['ngsrun_id']
+            self.collection_id = d.get('collection_id', None)
+        else:
+            self.ngsrun_id = self.collection_id = None
 
     def commit(self, user):
+        """ arrange all fastq into respective FastqPair instance, then
+            add all instances to database
+        """
 
-        completed = 0
-        for item in self.uploaditems:
-            if item.completed:
-                completed += 1
-
-        if completed != self.json['file_count']:
-            raise ValueError('The number of uploaded files does not match the manifest')
+        if ((completed := self.get_uploaded_count())
+                != (file_count := self.json['file_count'])):
+            raise ValueError(f'The number of uploaded files {completed} '
+                             f'does not match the manifest {file_count}')
 
         # set to proper data
 
@@ -451,7 +453,6 @@ class FastqUploadJob(UploadJob):
         panel_cache = {}
         sample_panel_set = set()
 
-        warnings = []
         errors = []
 
         for idx in range(len(df)):
@@ -465,19 +466,22 @@ class FastqUploadJob(UploadJob):
                                                        user=user,
                                                        groups=user.groups)
                 if len(results) == 0:
-                    raise ValueError(f'line: {idx + 1} - collection {row.COLLECTION} '
-                                     f'does not exist!')
+                    errors.append(f'line: {idx + 1} - either collection {row.COLLECTION} '
+                                  f'does not exist or it is not accessible by current user!')
+                    continue
 
                 collection_id = results[0].id
 
             results = dbh.get_samples(
                 user=user,
                 groups=user.groups,
-                specs=[dict(sample_code=[row.SAMPLE.strip()], collection_id=[collection_id])]
+                specs=[dict(sample_code=[row.SAMPLE.strip()],
+                            collection_id=[collection_id])],
             )
             if len(results) == 0:
-                errors.append(f'line: {idx + 1} - sample {row.SAMPLE} '
-                              f'does not exist or not accessible!')
+                errors.append(f'line: {idx + 1} - either sample {row.SAMPLE} '
+                              f'does not exist or it is not accessible by current user!')
+                continue
 
             df.loc[idx, 'sample_id'] = sample_id = results[0].id
 
@@ -487,6 +491,7 @@ class FastqUploadJob(UploadJob):
                 if len(results) == 0:
                     errors.append(f'line: {idx + 1} - panel {row.PANEL} '
                                   f'does not exist!')
+                    continue
                 panel_id = results[0].id
 
             df.loc[idx, 'panel_id'] = panel_id
@@ -496,7 +501,8 @@ class FastqUploadJob(UploadJob):
             read2 = df.loc[idx, 'READ2'] = row.READ2.strip() if row.READ2 else None
             if read1 not in fastq_filenames:
                 if (sample_id, panel_id, 1) in sample_panel_set:
-                    warnings.append(f'line: {idx + 1} - duplicate sample/panel/read combination')
+                    errors.append(
+                        f'line: {idx + 1} - duplicate sample/panel/read combination')
                 else:
                     sample_panel_set.add((sample_id, panel_id, 1))
                 fastq_filenames.add(read1)
@@ -505,15 +511,16 @@ class FastqUploadJob(UploadJob):
             if read2:
                 if read2 not in fastq_filenames:
                     if (sample_id, panel_id, 2) in sample_panel_set:
-                        warnings.append(f'line: {idx + 1} - duplicate sample/panel/read combination')
+                        errors.append(
+                            f'line: {idx + 1} - duplicate sample/panel/read combination')
                     else:
                         sample_panel_set.add((sample_id, panel_id, 2))
                     fastq_filenames.add(read2)
                 else:
                     errors.append(f'line {idx + 1} - duplicated fastq filename: {read2}')
 
-        if len(errors) > 1:
-            raise ValueError((errors, warnings))
+        if len(errors) > 0:
+            raise ValueError(errors)
 
         # if there are no errors, process the file list
 
@@ -540,9 +547,8 @@ class FastqUploadJob(UploadJob):
 
         self.json = dict(collection_id=self.collection_id,
                          ngsrun_id=self.ngsrun_id,
-                         file_count=filecount,
-                         warnings=warnings)
+                         file_count=filecount)
 
-        return filecount, df, warnings
+        return filecount, df
 
 # EOF
