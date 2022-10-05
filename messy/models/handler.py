@@ -187,6 +187,9 @@ class DBHandler(rhombus_handler.DBHandler):
 
         q = self.construct_query(cls, specs)
 
+        if groups is None:
+            ignore_acl = True
+
         if not ignore_acl:
             if user:
                 q = q.filter(cls.user_id == user.id)
