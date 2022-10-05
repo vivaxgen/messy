@@ -11,6 +11,7 @@ ${ content | n }
   <link rel="stylesheet" href="/assets/rb/select2/css/select2.min.css" />
   <link rel="stylesheet" href="/assets/rb/css/select2-bootstrap-5-theme.min.css" />
   <link rel="stylesheet" href="/assets/jQuery-File-Upload/css/jquery.fileupload.css" />
+  <link rel="stylesheet" href="/assets/filepond/filepond.min.css" />
 </%def>
 ##
 ##
@@ -18,6 +19,8 @@ ${ content | n }
   <script src="/assets/rb/select2/js/select2.min.js"></script>
   <script src="/assets/jQuery-File-Upload/js/vendor/jquery.ui.widget.js"></script>
   <script src="/assets/jQuery-File-Upload/js/jquery.fileupload.js"></script>
+  <script src="/assets/filepond/filepond.min.js"></script>
+  <script src="/assets/filepond/filepond.jquery.js"></script>
 </%def>
 ##
 ##
