@@ -99,6 +99,14 @@ def includeme(config):
         ('/plate/{id}', 'view')
     )
 
+    add_route_view_class(
+        config, 'messy.views.uploadjob.UploadJobViewer', 'messy.uploadjob',
+        '/uploadjob',
+        '/uploadjob/{id}@@status',      # generic status viewer
+        '/uploadjob/{id}@@save',        # generic save method
+        '/uploadjob/{id}@@target'
+    )
+
     # add additional routes and views here
 
     # commit config
