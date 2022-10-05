@@ -232,8 +232,13 @@ class NGSRunViewer(BaseViewer):
                 ),
 
                 t.inline_inputs(
-                    t.input_select(ff('group_id'), 'Group', value=obj.group_id, offset=2, size=3,
-                                   options=[(g.id, g.name) for g in dbh.get_group(user_id=rq.user)]),
+                    t.input_select(
+                        ff('group_id'), 'Group', value=obj.group_id, offset=2, size=3,
+                        options=[(g.id, g.name)
+                                 for g in dbh.get_group(user_id=rq.user,
+                                                        additional_ids=[obj.group_id])
+                                 ]
+                    ),
                     t.input_select_ek(ff('ngs_kit_id'), 'NGS Kit', offset=1, size=6,
                                       value=obj.ngs_kit_id, parent_ek=dbh.get_ekey('@NGS_KIT')),
                 ),
