@@ -37,14 +37,35 @@ class UploadJobViewer(BaseViewer):
 
     def can_modify(self, job):
         user = self.request.user
-        if ~user.has_roles(* self.managing_roles) and job.user_id != user.id:
+        if not user.has_roles(* self.managing_roles) and job.user_id != user.id:
             raise PermissionError('Current user does not own the upload session!')
+
+    @m_roles(r.PUBLIC)
+    def save(self):
+        # commit the uploaded to database
+
+        rq = self.request
+        user = rq.user
+        job = self.get_object()
+
+        self.can_modify(job)
+        job.commit(user)
+
+        html = t.div(t.p('All uploaded files have been saved to database'))
+
+        return render_to_response("messy:templates/generic_page.mako", {
+            'html': html
+        }, request=rq)
 
     @m_roles(r.PUBLIC)
     def status(self):
 
         rq = self.request
         job = self.get_object()
+
+        if job.json is None:
+            return Response(body="This upload session is invalid. Please remove!",
+                            status='200', content_type="text/html")
 
         self.can_modify(job)
 
@@ -57,7 +78,7 @@ class UploadJobViewer(BaseViewer):
             t.p(f'Total files: {job.json["file_count"]}'),
             t.p(f'Uploaded: {completed}'),
             t.div(
-                t.a('Save', href=rq.route_url('messy-ngsmgr.uploadjob.fastq-save',
+                t.a('Save', href=rq.route_url('messy.uploadjob-save',
                                               id=job.id),
                     class_='btn btn-primary')
                 if completed == job.json["file_count"] else ''),
