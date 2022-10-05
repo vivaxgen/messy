@@ -675,6 +675,13 @@ class UploadJob(BaseMixIn, Base):
     def can_modify(self, user):
         return user.is_admin() or (self.user_id == user.id)
 
+    def get_uploaded_count(self):
+        count = 0
+        for v in self.uploaditems:
+            if v.completed:
+                count += 1
+        return count
+
     @classmethod
     def list_sessions(cls, user=None, admin_roles=[]):
 
@@ -705,6 +712,7 @@ class UploadItem(BaseMixIn, Base):
     completed = Column(types.Boolean, server_default=False_())
     filename = Column(types.String(128), nullable=False, server_default='')
     total_size = Column(types.Integer, nullable=False, server_default='-1')
+    key = Column(types.String(32), unique=True, nullable=True)
     progress_size = Column(types.Integer, nullable=False, server_default='-1')
 
     # non-deferred JSON type, since most operation will require JSON fields
