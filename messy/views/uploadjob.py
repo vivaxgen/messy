@@ -217,6 +217,13 @@ class UploadJobViewer(BaseViewer):
             # ignore this
             return Response()
 
+        if rq.method == 'HEAD' and (key := rq.params.get('patch')):
+            # asking for the last offset
+            uploaditem = self.dbh.UploadItem.get_by_key(key, self.dbh)
+            with open(uploaditem.get_fullpath(), 'rb') as fout:
+                offset = get_file_size(fout)
+            return Response(str(offset))
+
         return Response(json=dict(message="Protocol not implemented"),
                         status="400",
                         content_type="text/plain",
