@@ -5,7 +5,8 @@ from rhombus.lib import tags as t
 from rhombus.views import generate_sesskey
 from messy.models.dbschema import UploadJob
 from messy.views import (BaseViewer, m_roles, get_dbhandler, render_to_response,
-                           form_submit_bar, select2_lookup)
+                         form_submit_bar, select2_lookup, modal_delete, modal_error,
+                         HTTPFound)
 from messy.lib import roles as r
 
 from pyramid.response import Response
@@ -21,6 +22,7 @@ class UploadJobViewer(BaseViewer):
     __root_storage_path__ = None
 
     object_class = UploadJob
+    fetch_func = get_dbhandler().get_uploadjobs_by_ids
 
     def index_helper(self):
 
@@ -39,6 +41,63 @@ class UploadJobViewer(BaseViewer):
         user = self.request.user
         if not user.has_roles(* self.managing_roles) and job.user_id != user.id:
             raise PermissionError('Current user does not own the upload session!')
+
+    def action_post(self):
+
+        rq = self.request
+        dbh = self.dbh
+
+        match _method := rq.POST.get('_method'):
+
+            case 'delete':
+
+                job_ids = [int(x) for x in rq.POST.getall('uploadjob-ids')]
+                jobs = dbh.get_uploadjobs_by_ids(job_ids, groups=None, user=rq.user)
+
+                if len(jobs) == 0:
+                    return Response(
+                        modal_error(
+                            content="Please select upload jobs to be removed!")
+                    )
+
+                return Response(
+                    modal_delete(
+                        title='Removing upload job(s)',
+                        content=t.literal(
+                            'You are going to remove the following upload job(s): '
+                            '<ul>'
+                            + ''.join(f'<li>{j.start_time} | {j.get_status()}</li>'
+                                      for j in jobs)
+                            + '</ul>'
+                        ), request=rq,
+                    ), request=rq
+                )
+
+            case 'delete/confirm':
+
+                job_ids = [int(x) for x in rq.POST.getall('uploadjob-ids')]
+                jobs = dbh.get_uploadjobs_by_ids(job_ids, groups=None, user=rq.user)
+
+                sess = dbh.session()
+                count = left = 0
+                for j in jobs:
+                    if j.can_modify(rq.user):
+                        j.clear()
+                        sess.delete(j)
+                        count += 1
+                    else:
+                        left += 1
+
+                sess.flush()
+
+                rq.session.flash(
+                    ('success', f'You have successfully removed {count} uploadjob(s), '
+                                f'kept {left} uploadjob(s).')
+                )
+
+                return HTTPFound(location=rq.referer)
+
+        raise ValueError(f'unknown method: {_method}')
 
     @m_roles(r.PUBLIC)
     def save(self):
@@ -164,5 +223,46 @@ class UploadJobViewer(BaseViewer):
                         headers=[('Error-Message',
                                   'ERR - Protocol not implemented')])
 
+
+def generate_uploadjob_table(uploadjobs, request):
+
+    table_body = t.tbody()
+
+    for job in uploadjobs:
+        table_body.add(
+            t.tr(
+                t.td(
+                    t.literal(
+                        f'<input type="checkbox" name="uploadjob-ids" value="{job.id}" />'
+                    )
+                ),
+                t.td(t.a(job.start_time,
+                         href=request.route_url('messy.uploadjob-view',
+                                                id=job.id)
+                         )
+                     ),
+                t.td(job.user.login),
+                t.td(job.get_status())
+            )
+        )
+
+    job_table = t.table(id='uploadjob-table', class_='table table-condensed table-striped',
+                        style='width:100%')[
+        t.thead(
+            t.tr(
+                t.th('', style='width: 2em'),
+                t.th('Started at'),
+                t.th('Started by'),
+                t.th('Status'),
+            )
+        )
+    ]
+
+    job_table.add(table_body)
+
+    bar = t.selection_bar('uploadjob-ids', action=request.route_url('messy.uploadjob-action'))
+    html, code = bar.render(job_table)
+
+    return html, code
 
 # EOF
