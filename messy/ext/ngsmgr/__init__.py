@@ -44,8 +44,7 @@ def includeme(config):
         '/fastqpair/@@add',
         # '/fastqpair/@@uploadmgr',
         ('/fastqpair/@@upload/{sesskey}', 'upload'),
-        '/fastqpair/{sesskey}@@target1',            # read 1 upload target url
-        '/fastqpair/{sesskey}@@target2',            # read 2 upload target url
+        '/fastqpair/{sesskey}@@target',     # upload target for both read-1 and read-2
         '/fastqpair/{id}@@edit',
         '/fastqpair/{id}@@save',
         ('/fastqpair/{id}', 'view'),
@@ -54,7 +53,8 @@ def includeme(config):
     # id here is a session key, generated based on user_id and ngsrun_id that holds the
     # fastq
     add_route_view_class(
-        config, 'messy.ext.ngsmgr.views.uploadjob.FastqUploadJobViewer', 'messy-ngsmgr.uploadjob.fastq',
+        config, 'messy.ext.ngsmgr.views.uploadjob.FastqUploadJobViewer',
+        'messy-ngsmgr.uploadjob.fastq',
         '/uploadjob/fastq',
         '/uploadjob/fastq/@@action',
         '/uploadjob/fastq/@@add',
