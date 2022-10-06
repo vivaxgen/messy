@@ -102,9 +102,11 @@ def includeme(config):
     add_route_view_class(
         config, 'messy.views.uploadjob.UploadJobViewer', 'messy.uploadjob',
         '/uploadjob',
+        '/uploadjob/@@action',
         '/uploadjob/{id}@@status',      # generic status viewer
         '/uploadjob/{id}@@save',        # generic save method
-        '/uploadjob/{id}@@target'
+        '/uploadjob/{id}@@target',
+        ('/uploadjob/{id}@@view', 'view'),
     )
 
     # add additional routes and views here
