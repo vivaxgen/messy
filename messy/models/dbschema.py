@@ -698,6 +698,20 @@ class UploadJob(BaseMixIn, Base):
         for item in self.uploaditems:
             item.clear()
 
+    @classmethod
+    def get_or_create(cls, sesskey, user, dbh):
+        jobs = dbh.get_uploadjobs_by_sesskeys([sesskey],
+                                              groups=user.groups,
+                                              user=user)
+        if len(jobs) == 0:
+            # create a new one
+            # create a new one
+            job = cls(sesskey=sesskey, user_id=user.id)
+            dbh.session().add(job)
+        else:
+            job = jobs[0]
+
+        return job
 
     @classmethod
     def list_sessions(cls, user=None, admin_roles=[]):
@@ -743,11 +757,15 @@ class UploadItem(BaseMixIn, Base):
         # another simple sanity checks
         if '/' in self.filename:
             raise ValueError(f'filename {self.filename} contains forbidden character(s)')
-        return self.uploadjob.get_storage_path() / f'{{{self.uploadjob_id}}}-{{{self.filename}}}'
+        return self.uploadjob.get_storage_path() / f'{{{self.uploadjob.id}}}-{{{self.filename}}}'
 
     def clear(self):
         abspath = self.get_fullpath()
         abspath.unlink(missing_ok=True)
 
+    @classmethod
+    def get_by_key(cls, key, dbh):
+        items = cls.query(dbh.session()).filter(cls.key == key).all()
+        return items[0]
 
 # EOF
