@@ -646,14 +646,18 @@ class UploadJob(BaseMixIn, Base):
     __root_storage_path__ = None
 
     sesskey = Column(types.String(32), unique=True, nullable=False, server_default='')
+
     user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
+    user = relationship('User', uselist=False, foreign_keys=user_id)
+
     start_time = Column(types.DateTime, nullable=False, server_default=func.now())
     upload_type = Column(types.Integer, nullable=False, server_default='0')
     completed = Column(types.Boolean, nullable=False, server_default=False_())
 
     # non-deferred JSON type, since most operation will require JSON fields
     json = Column(types.JSON, nullable=False, server_default='null')
-    uploaditems = relationship('UploadItem', back_populates='uploadjob')
+    uploaditems = relationship('UploadItem', back_populates='uploadjob',
+                               cascade='all, delete', passive_deletes=True,)
     filenames = relationship('UploadItem',
                              collection_class=attribute_mapped_collection("filename"),
                              overlaps="uploaditems")
@@ -681,6 +685,19 @@ class UploadJob(BaseMixIn, Base):
             if v.completed:
                 count += 1
         return count
+
+    def get_status(self):
+        if self.json is None:
+            return 'invalid'
+        if self.completed:
+            return 'completed'
+        return 'pending'
+
+    def clear(self):
+        """ remove all stored files associated with all upload items """
+        for item in self.uploaditems:
+            item.clear()
+
 
     @classmethod
     def list_sessions(cls, user=None, admin_roles=[]):
@@ -727,5 +744,10 @@ class UploadItem(BaseMixIn, Base):
         if '/' in self.filename:
             raise ValueError(f'filename {self.filename} contains forbidden character(s)')
         return self.uploadjob.get_storage_path() / f'{{{self.uploadjob_id}}}-{{{self.filename}}}'
+
+    def clear(self):
+        abspath = self.get_fullpath()
+        abspath.unlink(missing_ok=True)
+
 
 # EOF
