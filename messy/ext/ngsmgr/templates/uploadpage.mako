@@ -51,7 +51,7 @@ ${ content | n }
       url: "${target_url | n}",
       fetch: null,
     },
-    allowDrop: false,
+    allowDrop: true,
     allowMultiple: true,
     ChunkUploads: true,
     chunkForce: true,

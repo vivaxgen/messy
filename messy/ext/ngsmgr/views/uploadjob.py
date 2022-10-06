@@ -2,7 +2,7 @@
 from rhombus.views import generate_sesskey, tokenize_sesskey
 from messy.views import (m_roles, get_dbhandler, render_to_response,
                          form_submit_bar, select2_lookup)
-from messy.views.uploadjob import UploadJobViewer
+from messy.views.uploadjob import UploadJobViewer, generate_uploadjob_table
 from messy.ext.ngsmgr.lib import roles as r
 from messy.ext.ngsmgr.models.schema import FastqUploadJob, FastqPair
 from rhombus.lib import tags as t
@@ -61,24 +61,12 @@ class FastqUploadJobViewer(UploadJobViewer):
         html = t.div().add(
             t.h2('Upload Manager')
         )
-        session_dirs = self.object_class.list_sessions(user=rq.user)
-        if len(session_dirs) > 0:
-            html.add(
-                t.div('Current active upload session:'),
-                t.ul(
-                    * [
-                        t.li(
-                            t.a(t.time(job.start_time,
-                                       datetime=job.start_time.isoformat(),
-                                       tz='auto'),
-                                href=rq.route_url('messy-ngsmgr.uploadjob.fastq-view',
-                                                  id=job.id))
-                        ) for job in session_dirs
-                    ]
-                )
-            )
-
+        active_jobs = self.object_class.list_sessions(user=rq.user)
+        if len(active_jobs) > 0:
+            job_list, jscode = generate_uploadjob_table(active_jobs, rq)
+            html += job_list
         else:
+            jscode = ''
             html.add(t.p('Current user does not have any active session'))
 
         html.add(t.p('Create a new active session by uploading a manifest file:'))
@@ -111,7 +99,6 @@ class FastqUploadJobViewer(UploadJobViewer):
             t.custom_submit_bar(('Create session', 'add')).set_offset(2)
         )
 
-        jscode = ''
         jscode += select2_lookup(tag=self.ffn('ngsrun_id!'), minlen=3,
                                  placeholder="Type an NGS Run code",
                                  parenttag="messy-ngsmgr-upload-fastqpair-fieldset",
