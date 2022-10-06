@@ -1,17 +1,14 @@
 
 from rhombus.lib.utils import get_dbhandler
+from rhombus.lib.fileutils import get_file_size
 from rhombus.lib import tags as t
 from rhombus.views import generate_sesskey
-from messy.views import BaseViewer, Response, m_roles
+from messy.views import BaseViewer, Response, m_roles, select2_lookup
 from messy.ext.ngsmgr.lib import roles as r
 
-# global, singleton variables
+from urllib.parse import unquote
 
-# the following dictionary holds active file upload session keys in memory
-# since file upload session should be short-lived, unlike the batched
-# uploadjob
-__active_upload_sesskey__ = {}
-
+import time
 
 
 class FastqPairViewer(BaseViewer):
@@ -28,9 +25,9 @@ class FastqPairViewer(BaseViewer):
     attachment_route = None
 
     form_fields = {
-        'sample_id': ('messy-ngsmgr-fastqpair-sample_id', ),
-        'panel_id': ('messy-ngsmgr-fastqpair-panel_id', ),
-        'ngsrun_id': ('messy-ngsmgr-fastqpair-ngsrun_id', ),
+        'sample_id!': ('messy-ngsmgr-fastqpair-sample_id', ),
+        'panel_id!': ('messy-ngsmgr-fastqpair-panel_id', ),
+        'ngsrun_id!': ('messy-ngsmgr-fastqpair-ngsrun_id', ),
     }
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
@@ -41,59 +38,163 @@ class FastqPairViewer(BaseViewer):
         ff = self.ffn
 
         sesskey = generate_sesskey(rq.user.id)
+        fileinput_tag = 'fastqread'
 
-        eform = t.form(name='messy-run', method=t.POST, enctype=t.FORM_MULTIPART, readonly=readonly,
-                       update_dict=update_dict).add(
+        eform = t.form(name='messy-run', method=t.POST, enctype=t.FORM_MULTIPART,
+                       readonly=readonly, update_dict=update_dict).add(
             self.hidden_fields(obj),
-            t.input_select(ff('sample_id') + '-' + sesskey,
-                           'Sample', value=obj.sample_id,
-                           options=[(obj.sample_id, obj.sample.fullcode)] if obj.sample_id else [],
-                           offset=2, size=2),
-            t.input_select(ff('panel_id') + '-' + sesskey,
-                           'Panel', value=obj.panel_id,
-                           options=[(obj.panel_id, obj.panel.code)] if obj.panel_id else [],
-                           offset=2, size=2),
-            t.input_select(ff('ngsrun_id') + '-' + sesskey,
-                           'NGS Run', value=obj.ngsrun_id or -1,
-                           options=[(obj.ngsrun_id, obj.ngsrun.code)] if obj.ngsrun else [],
-                           offset=2, size=2),
-        )
-
-        fileinput_tag = f'fileinput-{sesskey}'
-        eform.add(
+            t.inline_inputs(
+                t.input_select(
+                    ff('sample_id!') + '-' + sesskey,
+                    'Sample', value=obj.sample_id,
+                    options=[(obj.sample_id, obj.sample.fullcode)] if obj.sample_id else [],
+                    offset=1, size=3, required=True),
+                t.input_select(
+                    ff('panel_id!') + '-' + sesskey,
+                    'Panel', value=obj.panel_id,
+                    options=[(obj.panel_id, obj.panel.code)] if obj.panel_id else [],
+                    offset=1, size=3, required=True),
+                t.input_select(
+                    ff('ngsrun_id!') + '-' + sesskey,
+                    'NGS Run', value=obj.ngsrun_id or -1,
+                    options=[(obj.ngsrun_id, obj.ngsrun.code)] if obj.ngsrun else [],
+                    offset=1, size=3, required=True),
+                name='messy-ngsmgr-fastqpair-fieldset'
+            ),
             t.div(id=fileinput_tag + '-1', name=fileinput_tag + '-1'),
             t.div(id=fileinput_tag + '-2', name=fileinput_tag + '-2'),
+            t.custom_submit_bar(('Create session', 'add')).set_offset(2),
         )
 
-        jscode = '''
+        jscode = select2_lookup(tag=self.ffn('ngsrun_id!'), minlen=3,
+                                placeholder="Type an NGS Run code",
+                                parenttag="messy-ngsmgr-fastqpair-fieldset",
+                                usetag=False,
+                                url=self.request.route_url('messy-ngsmgr.ngsrun-lookup'))
+
+        jscode += '''
     $('#{fileinput_tag}-1').filepond({{
         server: {{
-          url: '{target1_url}',
+          url: '{target_url}',
+          fetch: null,
+          revert: null,
         }},
         allowDrop: true,
         allowMultiple: false,
+        labelIdle: "Drag & Drop or browse for 1st read (mandatory)",
         ChunkUploads: true,
         chunkForce: true,
         chunkSize: 262144, // 256KB = 256 * 1024 bytes
     }});
     $('#{fileinput_tag}-2').filepond({{
         server: {{
-          url: '{target2_url}',
+          url: '{target_url}',
+          fetch: null,
+          revert: null,
         }},
         allowDrop: true,
         allowMultiple: false,
+        labelIdle: "Drag & Drop or browse for 2nd read (if available)",
         ChunkUploads: true,
         chunkForce: true,
         chunkSize: 262144, // 256KB = 256 * 1024 bytes
     }});
         '''.format(fileinput_tag=fileinput_tag,
-                   target1_url=rq.route_url('messy-ngsmgr.fastqpair-target1',
-                                            sesskey=sesskey),
-                   target2_url=rq.route_url('messy-ngsmgr.fastqpair-target2',
-                                            sesskey=sesskey),
+                   target_url=unquote(rq.route_url('messy-ngsmgr.fastqpair-target',
+                                                   sesskey=sesskey)),
                    )
 
         return eform, jscode
+
+    @m_roles(r.PUBLIC)
+    def target(self):
+
+        rq = self.request
+        dbh = self.dbh
+        user = rq.user
+        sesskey = rq.matchdict.get('sesskey')
+
+        # sanity check,
+
+        # start of upload, hence prepare a new uploadjob or create a new one
+        if rq.POST.get('fastqread-1'):
+            dbh.FastqUploadJob.get_or_create(sesskey, rq.user, dbh)
+            return Response("1")
+        elif rq.POST.get('fastqread-2'):
+            dbh.FastqUploadJob.get_or_create(sesskey, rq.user, dbh)
+            return Response("2")
+
+        # pass this, we will have the first and consecutive chunks from the browser
+
+        job = dbh.get_uploadjobs_by_sesskeys([sesskey], groups=user.groups, user=rq.user)[0]
+
+        if (rq.method == 'PATCH'
+            and (key := rq.params.get('patch'))
+                and 'Upload-Name' in rq.headers):
+
+            # get file information
+            offset = int(rq.headers['Upload-Offset'])
+            filename = rq.headers['Upload-Name']
+            size = int(rq.headers['Upload-Length'])
+
+            # create or get uploaditem
+            if offset == 0:
+                # for new file, we create a new uploaditem and put the necessary info
+                uploaditem = dbh.UploadItem(uploadjob=job,
+                                            filename=filename,
+                                            total_size=size,
+                                            json={'readno': key}
+                                            )
+                dbh.session().add(uploaditem)
+                mode = 'wb'
+
+            else:
+                try:
+                    uploaditem = job.filenames[filename]
+                except KeyError:
+                    return Response(json=dict(message="File has not been prepared"),
+                                    status="403",
+                                    content_type="text/plain",
+                                    headers=[('Error-Message',
+                                             'ERR - File has not been prepared')])
+                mode = 'r+b'
+
+            path = uploaditem.get_fullpath()
+
+            with open(path, mode) as fout:
+
+                # check continuity of the transfer
+                prev_size = get_file_size(fout)
+                if offset != prev_size:
+                    return Response(json=dict(message="File offset is not correct"),
+                                    status="400",
+                                    content_type="text/plain",
+                                    headers=[('Error-Message',
+                                              'ERR - File offset is not correct')])
+
+                # move file pointer to the end of file and append the content from body
+                fout.seek(0, 2)
+                fout.write(rq.body)
+                curr_size = get_file_size(fout)
+
+            if curr_size == uploaditem.total_size:
+                uploaditem.completed = 1
+
+            return Response('ok')
+
+        if rq.method == 'DELETE':
+            # ignore this
+            return Response()
+
+        return Response(json=dict(message="Protocol not implemented"),
+                        status="400",
+                        content_type="text/plain",
+                        headers=[('Error-Message',
+                                  'ERR - Protocol not implemented')])
+
+    @m_roles(r.PUBLIC)
+    def target2(self):
+        raise NotImplementedError()
 
     def action_upload(self):
 
