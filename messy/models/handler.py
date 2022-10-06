@@ -28,7 +28,7 @@ class MessyQueryConstructor(rhombus_handler.QueryConstructor):
         'plate_code': dbschema.Plate.code,
 
         'uploadjob_id': dbschema.UploadJob.id,
-        'uploadjob_sessky': dbschema.UploadJob.sesskey,
+        'uploadjob_sesskey': dbschema.UploadJob.sesskey,
         'uploaditem_id': dbschema.UploadItem.id,
     }
 
