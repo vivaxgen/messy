@@ -20,7 +20,6 @@ def setup(dbh):
     )
     dbh.session().flush()
 
-
     d_collection = dict(
         group=dbh.get_group('CollectionMgr'),
         institutions=[dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0]],
@@ -100,11 +99,17 @@ messy_groups = [
     ('PlateMgr', [r.PLATE_MANAGE]),
     ('PlateModifier', [r.PLATE_MODIFY, r.PLATE_VIEW]),
     ('PlateViewer', [r.PLATE_VIEW]),
-    ('ProjectMgr', [r.SAMPLE_MODIFY, r.PLATE_MODIFY]),
+    ('ProjectMgr', [r.INSTITUTION_MODIFY, r.COLLECTION_MODIFY, r.SAMPLE_MODIFY,
+                    r.PLATE_MODIFY]),
     ('ProjectViewer', [r.SAMPLE_VIEW, r.PLATE_VIEW]),
     ('Collaborator', [r.SAMPLE_MODIFY]),
 ]
 
+# some notes on roles
+# -------------------
+# *_MANAGE: can manage (create/modify/delete) all instances regardless of the ownership
+# *_MODIFY: can create new instance or modify/delete instances if the user is the owner
+#           or the user belongs to the group of the instance
 
 ek_initlist = [
     ('@SYSNAME', 'System names',
