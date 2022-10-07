@@ -338,7 +338,7 @@ class SampleViewer(BaseViewer):
 
         samples = get_dbhandler().get_samples_by_codes(q, groups=None, user=self.request.user)
         result = [
-            {'id': s.id, 'text': f'{s.code} | {s.collection.code}'} for s in samples
+            {'id': s.id, 'text': f'{s.code} / {s.collection.code}'} for s in samples
         ]
 
         return result
