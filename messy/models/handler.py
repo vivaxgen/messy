@@ -150,7 +150,9 @@ class DBHandler(rhombus_handler.DBHandler):
 
         if groups is not None:
             q = q.join(self.Collection).filter(
-                self.Collection.group_id.in_([x[1] for x in groups]))
+                or_(self.Sample.public, self.Sample.refctrl,
+                    self.Collection.group_id.in_([x[1] for x in groups]))
+            )
 
         if fetch:
             q = q.order_by(self.Sample.code.desc())
