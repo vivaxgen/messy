@@ -70,7 +70,8 @@ class DBHandler(rhombus_handler.DBHandler):
 
     # Institutions
 
-    def get_institutions(self, groups=None, specs=None, user=None, fetch=True, raise_if_empty=False):
+    def get_institutions(self, groups=None, specs=None, user=None, fetch=True,
+                         raise_if_empty=False):
 
         q = self.construct_query(self.Institution, specs)
         if fetch:
@@ -79,10 +80,13 @@ class DBHandler(rhombus_handler.DBHandler):
         return self.fix_result(q, fetch, raise_if_empty)
 
     def get_institutions_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_institutions(groups, [{'institution_id': ids}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+        return self.get_institutions(groups, [{'institution_id': ids}], user=user, fetch=fetch,
+                                     raise_if_empty=raise_if_empty)
 
-    def get_institutions_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
-        return self.get_institutions(groups, [{'institution_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+    def get_institutions_by_codes(self, codes, groups, user=None, fetch=True,
+                                  raise_if_empty=False):
+        return self.get_institutions(groups, [{'institution_code': codes}], user=user,
+                                     fetch=fetch, raise_if_empty=raise_if_empty)
 
     # Collections
 
@@ -96,7 +100,8 @@ class DBHandler(rhombus_handler.DBHandler):
             groups = None
 
         if not ignore_acl and groups is None and user is None:
-            raise ValueError('ERR: get_collections() - either groups or user needs to be provided !')
+            raise ValueError(
+                'ERR: get_collections() - either groups or user needs to be provided !')
 
         if not ignore_acl and groups is None:
             groups = user.groups
@@ -111,11 +116,13 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_collections_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
+    def get_collections_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False,
+                               ignore_acl=False):
         return self.get_collections(groups, [{'collection_id': ids}], user=user, fetch=fetch,
                                     raise_if_empty=raise_if_empty, ignore_acl=ignore_acl)
 
-    def get_collections_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
+    def get_collections_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False,
+                                 ignore_acl=False):
         return self.get_collections(groups, [{'collection_code': codes}], user=user, fetch=fetch,
                                     raise_if_empty=raise_if_empty, ignore_acl=ignore_acl)
 
@@ -142,24 +149,28 @@ class DBHandler(rhombus_handler.DBHandler):
                 groups = user.groups
 
         if groups is not None:
-            q = q.join(self.Collection).filter(self.Collection.group_id.in_([x[1] for x in groups]))
+            q = q.join(self.Collection).filter(
+                self.Collection.group_id.in_([x[1] for x in groups]))
 
         if fetch:
             q = q.order_by(self.Sample.code.desc())
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_samples_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
+    def get_samples_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False,
+                           ignore_acl=False):
         return self.get_samples(groups, [{'sample_id': ids}], user=user, fetch=fetch,
                                 raise_if_empty=raise_if_empty, ignore_acl=ignore_acl)
 
-    def get_samples_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
-        return self.get_samples(groups, [{'sample_code': codes}], user=user, fetch=fetch, raise_if_empty=raise_if_empty,
-                                ignore_acl=ignore_acl)
+    def get_samples_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False,
+                             ignore_acl=False):
+        return self.get_samples(groups, [{'sample_code': codes}], user=user, fetch=fetch,
+                                raise_if_empty=raise_if_empty, ignore_acl=ignore_acl)
 
     # Plates
 
-    def get_plates(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
+    def get_plates(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False,
+                   ignore_acl=False):
 
         q = self.construct_query(self.Plate, specs)
         if fetch:
@@ -170,11 +181,13 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return self.fix_result(q, fetch, raise_if_empty)
 
-    def get_plates_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
+    def get_plates_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False,
+                          ignore_acl=False):
         return self.get_plates(groups, [{'plate_id': ids}], user=user, fetch=fetch,
                                raise_if_empty=raise_if_empty, ignore_acl=False)
 
-    def get_plates_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False, ignore_acl=False):
+    def get_plates_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False,
+                            ignore_acl=False):
         return self.get_plates(groups, [{'plate_code': codes}], user=user, fetch=fetch,
                                ignore_acl=False, raise_if_empty=raise_if_empty)
 
