@@ -125,6 +125,9 @@ class Collection(BaseMixIn, Base):
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     data = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
+    # the following fields should be propagated to samples, ie: if a collection is
+    # public, then public field of all its corresponding samples have to be set
+    # as well to improve the performance of the system
     refctrl = Column(types.Boolean, nullable=False, server_default=False_())
     public = Column(types.Boolean, nullable=False, server_default=False_())
     archived = Column(types.Boolean, nullable=False, server_default=False_())
@@ -145,7 +148,8 @@ class Collection(BaseMixIn, Base):
     samples = relationship('Sample', lazy='dynamic', back_populates='collection',
                            passive_deletes=True)
 
-    additional_files = relationship(FileAttachment, secondary="collections_files", cascade='all, delete',
+    additional_files = relationship(FileAttachment, secondary="collections_files",
+                                    cascade='all, delete',
                                     collection_class=attribute_mapped_collection('id'),
                                     order_by=FileAttachment.filename)
 
@@ -291,14 +295,17 @@ class Sample(BaseMixIn, Base):
 
     # originating lab, where diagnostic tests were performed or samples were prepared
     originating_code = Column(types.String(32), nullable=True)
-    originating_institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
-    originating_institution = relationship(Institution, uselist=False, foreign_keys=originating_institution_id)
+    originating_institution_id = Column(types.Integer, ForeignKey('institutions.id'),
+                                        nullable=False)
+    originating_institution = relationship(Institution, uselist=False,
+                                           foreign_keys=originating_institution_id)
 
     # sampling institution, where the samples were initially taken, usually hospital
     # or health facility.
     sampling_code = Column(types.String(32), nullable=True)
     sampling_institution_id = Column(types.Integer, ForeignKey('institutions.id'), nullable=False)
-    sampling_institution = relationship(Institution, uselist=False, foreign_keys=sampling_institution_id)
+    sampling_institution = relationship(Institution, uselist=False,
+                                        foreign_keys=sampling_institution_id)
 
     # host related information
     host_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
@@ -334,13 +341,17 @@ class Sample(BaseMixIn, Base):
     attachment = FileAttachment.proxy('attachment_file')
 
     flag = Column(types.Integer, nullable=False, server_default='0')
+
+    # the following fields should get their values either manually/individually or
+    # propagated from the collection
     refctrl = Column(types.Boolean, nullable=False, server_default=False_())
     public = Column(types.Boolean, nullable=False, server_default=False_())
     archived = Column(types.Boolean, nullable=False, server_default=False_())
 
     extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
 
-    additional_files = relationship(FileAttachment, secondary="samples_files", cascade='all, delete',
+    additional_files = relationship(FileAttachment, secondary="samples_files",
+                                    cascade='all, delete',
                                     collection_class=attribute_mapped_collection('id'),
                                     order_by=FileAttachment.filename)
 
@@ -477,10 +488,12 @@ class PlatePosition(BaseMixIn, Base):
 
     plate_id = Column(types.Integer, ForeignKey('plates.id', ondelete='CASCADE'),
                       index=True, nullable=False)
-    plate = relationship("Plate", uselist=False, foreign_keys=plate_id, back_populates='positions')
+    plate = relationship("Plate", uselist=False, foreign_keys=plate_id,
+                         back_populates='positions')
 
     sample_id = Column(types.Integer, ForeignKey('samples.id'), index=True, nullable=False)
-    sample = relationship(Sample, uselist=False, foreign_keys=sample_id, back_populates='platepositions')
+    sample = relationship(Sample, uselist=False, foreign_keys=sample_id,
+                          back_populates='platepositions')
 
     # position will be 384:A01 -> P24, 96: A01 -> H12
     position = Column(types.String(3), nullable=False, server_default='')
@@ -493,7 +506,8 @@ class PlatePosition(BaseMixIn, Base):
     )
 
     def __repr__(self):
-        return f"PlatePosition(plate_id={self.plate_id}, sample_id={self.sample_id}, {self.position})"
+        return (f"PlatePosition(plate_id={self.plate_id}, sample_id={self.sample_id}, "
+                f"{self.position})")
 
     def clone_sample(self):
         return PlatePosition(sample_id=self.sample_id, position=self.position)
@@ -529,7 +543,8 @@ class Plate(BaseMixIn, Base):
 
     refctrl = Column(types.Boolean, nullable=False, server_default=False_())
 
-    additional_files = relationship(FileAttachment, secondary="plates_files", cascade='all, delete',
+    additional_files = relationship(FileAttachment, secondary="plates_files",
+                                    cascade='all, delete',
                                     collection_class=attribute_mapped_collection('id'),
                                     order_by=FileAttachment.filename)
 
@@ -540,7 +555,9 @@ class Plate(BaseMixIn, Base):
     __modifying_roles__ = __managing_roles__ | {r.PLATE_MODIFY}
 
     #
-    # using column_property interferes with auto-correlation when using select(Plate, PlatePosition)
+    # using column_property interferes with auto-correlation when using
+    # select(Plate, PlatePosition)
+    #
     # @declared_attr
     # def has_layout(self):
     #    return column_property(exists().where(PlatePosition.plate_id == self.id))
@@ -623,7 +640,8 @@ class Plate(BaseMixIn, Base):
 
     def as_dict(self):
         d = super().as_dict(exclude=['positions', 'sequencingruns', 'additional_files'])
-        d['positions'] = [[p.sample.code, p.position, p.value, p.volume, p.note] for p in self.positions]
+        d['positions'] = [[p.sample.code, p.position, p.value, p.volume, p.note]
+                          for p in self.positions]
         d['additional_files'] = [f.as_dict() for f in self.additional_files]
         return d
 
