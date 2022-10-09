@@ -62,8 +62,9 @@ class CollectionViewer(BaseViewer):
         }, request=self.request)
 
     def update_object(self, obj, d):
-        rq = self.request
+
         dbh = self.dbh
+        ff = self.ffn
 
         try:
             obj.update(d)
@@ -79,9 +80,9 @@ class CollectionViewer(BaseViewer):
             detail = err.args[0]
             if 'UNIQUE' in detail or 'UniqueViolation' in detail:
                 if 'collections.code' in detail or 'uq_collections_code' in detail:
-                    raise ParseFormError(f'The collection code: {d["code"]}  is '
+                    raise ParseFormError(f'The collection code: {d["code"]} is '
                                          f'already being used. Please use other collection code!',
-                                         'messy-collection-code') from err
+                                         ff('code!')) from err
 
             raise RuntimeError(f'error updating object: {detail}')
 
