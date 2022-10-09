@@ -36,7 +36,7 @@ class PathogenSampleViewer(SampleViewer):
 
         el.add(
             t.inline_inputs(
-                t.checkboxes('messy-sample-case-statuss', 'Case status', [
+                t.checkboxes('messy-sample-case-status', 'Case status', [
                     (ff('passive_case_detection'), 'Passive detection',
                         obj.passive_case_detection),
                     (ff('imported_case'), 'Imported',
