@@ -18,14 +18,20 @@
   <meta name='viewport' content='width=device-width, initial-scale=1.0' />
 
   <!-- styles -->
-  <link href="${request.static_url('rhombus:static/bootstrap/css/bootstrap.min.css')}" rel="stylesheet" />
-  <link href="${request.static_url('rhombus:static/bootstrap/css/bootstrap-theme.min.css')}" rel="stylesheet" />
-  <link href="${request.static_url('rhombus:static/fonts/source-sans-pro.css')}" rel="stylesheet" />
+  <link href="/assets/rb/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="/assets/rb/fontawesome/css/all.min.css" rel="stylesheet" />
+  <link href="/assets/rb/fonts/source-sans-pro.css" rel="stylesheet" />
+  <link href="${request.static_url('rhombus:static/css/custom.css')}" rel="stylesheet" />
+  <link href="${request.static_url('messy:static/css/custom.css')}" rel="stylesheet" />
 
   ${self.stylelinks()}
 
   </head>
   <body>
+
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-red p-0" id="fixedNavbar">
+    <a class="navbar-brand px-3" href="/">${request.get_resource('rhombus.title', None) or "MESSy"}</a>
+  </nav>
 
     <div class="container-fluid">
       <div class="row">
@@ -37,16 +43,9 @@
       </div>
 
     </div>
-    <footer>
-    <div class="container-fluid">
-      <div class='row'>
-      <div class='col-md-12'>
-        <!-- font: Nobile -->
-        <p>Rhombus Framework Footer</p>
-      </div>
-      </div>
-    </div>
-    </footer>
+
+    <!-- footer -->
+    <%include file="messy:templates/includes/footer.mako" />
 
 ${self.scriptlinks()}
 

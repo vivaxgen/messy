@@ -32,7 +32,7 @@
   <body>
 
     <!-- Static navbar -->
-    <%include file="messy:templates/includes/navbar.mako" args="user_menu='abc'" />
+    <%include file="messy:templates/includes/navbar.mako" />
 
 
     <div class="container-fluid">
@@ -51,7 +51,7 @@
     </div>
 
     <!-- footer -->
-    <%include file="messy:templates/includes/footer.mako" args="user_menu='abc'" />
+    <%include file="messy:templates/includes/footer.mako" />
 
 
 ${self.scriptlinks()}
