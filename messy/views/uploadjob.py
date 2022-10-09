@@ -119,33 +119,11 @@ class UploadJobViewer(BaseViewer):
     @m_roles(r.PUBLIC)
     def status(self):
 
-        rq = self.request
-        job = self.get_object()
+        return self.status_helper()
 
-        if job.json is None:
-            return Response(body="This upload session is invalid. Please remove!",
-                            status='200', content_type="text/html")
+    def status_helper(self):
+        raise NotImplementedError()
 
-        self.can_modify(job)
-
-        # check how many files has been completed
-        completed = job.get_uploaded_count()
-
-        html = t.div().add(
-            t.h2('Upload Session'),
-            t.p(f'Started at: {job.start_time} UTC'),
-            t.p(f'Total files: {job.json["file_count"]}'),
-            t.p(f'Uploaded: {completed}'),
-            t.div(
-                t.a('Save', href=rq.route_url('messy.uploadjob-save',
-                                              id=job.id),
-                    class_='btn btn-primary')
-                if completed == job.json["file_count"] else ''),
-        )
-
-        return Response(body=html.r(),
-                        status="200",
-                        content_type="text/html")
 
     @m_roles(r.PUBLIC)
     def target(self):
@@ -231,7 +209,7 @@ class UploadJobViewer(BaseViewer):
                                   'ERR - Protocol not implemented')])
 
 
-def generate_uploadjob_table(uploadjobs, request):
+def generate_uploadjob_table(uploadjobs, request, view_route):
 
     table_body = t.tbody()
 
@@ -244,7 +222,7 @@ def generate_uploadjob_table(uploadjobs, request):
                     )
                 ),
                 t.td(t.a(job.start_time,
-                         href=request.route_url('messy.uploadjob-view',
+                         href=request.route_url(view_route,
                                                 id=job.id)
                          )
                      ),
