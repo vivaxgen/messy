@@ -66,6 +66,10 @@ class VCFFile(NGSRunFile, FileAttachment):
 
 
 class FastqFile(NGSRunFile, FileAttachment):
+    """ Fastq file """
+
+    # Fastqfiles are kept under the following path scheme:
+    # root_storage/fastqs/{ngsrun_id}/{sample_id}-{fileattach_id}-{filename}
 
     __subdir__ = 'fastqs'
 
@@ -75,6 +79,7 @@ class FastqFile(NGSRunFile, FileAttachment):
 
 
 class AMFile(NGSRunFile, FileAttachment):
+    """ alignment map file (BAM/SAM)"""
 
     __subdir__ = 'ams'
 
@@ -264,6 +269,7 @@ class Panel(BaseMixIn, Base):
         - Assay panel, eg. SPOTMAL/GCRE-1, VG/GEO33
         - Analysis panel, eg. SPOTMAL/DRG, VG/GEO33
         - Microhap panel
+        - etc
 
         Naming convention:
             SPOTMAL/DRG -> SPOTMAL (set), DRG (analysis)
@@ -274,14 +280,18 @@ class Panel(BaseMixIn, Base):
 
     code = Column(types.String(24), nullable=False, unique=True)
     uuid = Column(GUID(), nullable=False, unique=True)
-    extdata = deferred(Column(types.JSON, nullable=False, server_default='null'))
+    json = deferred(Column(types.JSON, nullable=False, server_default='null'))
     remark = Column(types.String(128), nullable=False, server_default='')
     type = Column(types.Integer, nullable=False, server_default='0')
+
+    group_id = Column(types.Integer, ForeignKey('groups.id'), nullable=False)
+    group = relationship(Group, uselist=False, foreign_keys=group_id)
 
     refctrl = Column(types.Boolean, nullable=False, server_default=False_())
     public = Column(types.Boolean, nullable=False, server_default=False_())
 
-    related_panel_id = Column(types.Integer, ForeignKey('eks.id'), nullable=True)
+    related_panel_id = Column(types.Integer, ForeignKey('panels.id'), nullable=True)
+    related_panel = relationship('Panel', uselist=False, remote_side='Panel.id')
 
     species_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     species = EK.proxy('species_id', '@SPECIES')
@@ -295,6 +305,16 @@ class Panel(BaseMixIn, Base):
     additional_files = relationship(FileAttachment, secondary="panels_files", cascade='all, delete',
                                     collection_class=attribute_mapped_collection('id'),
                                     order_by=FileAttachment.filename)
+
+    __managing_roles__ = BaseMixIn.__managing_roles__ | {r.PANEL_MANAGE}
+    __modifying_roles__ = __managing_roles__ | {r.PANEL_MODIFY}
+
+    def can_modify(self, user):
+        if user.has_roles(* self.__managing_roles__):
+            return True
+        if user.has_roles(* self.__modifying_roles__) and user.in_group(self.group):
+            return True
+        return False
 
     def __repr__(self):
         return f"Panel('{self.code}')"
@@ -355,6 +375,13 @@ class FastqPair(BaseMixIn, Base):
                               cascade='all, delete')
     read2 = FastqFile.proxy("read2_file")
 
+    def can_modify(self, user):
+        if self.sample.can_modify(user):
+            return True
+        if self.ngsrun.can_modify(user):
+            return True
+        return False
+
     @property
     def filename1(self):
         return self.read1_file.filename
@@ -364,6 +391,12 @@ class FastqPair(BaseMixIn, Base):
         if self.read2:
             return self.read2_file.filename
         return None
+
+    def clear(self):
+        if self.read1_file:
+            self.read1_file.clear()
+        if self.read2_file:
+            self.read2_file.clear()
 
 
 class FastqUploadJob(UploadJob):
@@ -433,6 +466,8 @@ class FastqUploadJob(UploadJob):
                     fastqpair.read1_file = fastqfile
                 case 2:
                     fastqpair.read2_file = fastqfile
+                case _:
+                    raise ValueError('readno has to be either 1 or 2')
 
         for fastqpair in fastqpair_d.values():
             session.add(fastqpair)

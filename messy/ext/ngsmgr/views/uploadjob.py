@@ -63,7 +63,8 @@ class FastqUploadJobViewer(UploadJobViewer):
         )
         active_jobs = self.object_class.list_sessions(user=rq.user)
         if len(active_jobs) > 0:
-            job_list, jscode = generate_uploadjob_table(active_jobs, rq)
+            job_list, jscode = generate_uploadjob_table(active_jobs, rq,
+                                                        'messy-ngsmgr.uploadjob.fastq-view')
             html += job_list
         else:
             jscode = ''
@@ -81,6 +82,12 @@ class FastqUploadJobViewer(UploadJobViewer):
                 collection = dbh.get_collections_by_ids([update_dict[ffn('collection_id')]],
                                                         groups=rq.user.groups)[0]
 
+        # check request query
+        if ngsrun_id := rq.POST.get('ngsrun_id', None):
+            ngsrun_id = int(ngsrun_id)
+            ngsrun = dbh.get_ngsruns_by_ids([ngsrun_id],
+                                            groups=rq.user.groups)[0]
+
         eform = t.form(name='messy-ngsmgr-upload-fastqpair', method=t.POST,
                        enctype=t.FORM_MULTIPART, update_dict=update_dict,
                        action=rq.route_url('messy-ngsmgr.uploadjob.fastq-add')).add(
@@ -92,7 +99,8 @@ class FastqUploadJobViewer(UploadJobViewer):
                 t.input_select(self.ffn('ngsrun_id!'), 'NGS Run code', offset=2, size=4,
                                value=ngsrun.id if ngsrun else '',
                                options=[(ngsrun.id, ngsrun.code)] if ngsrun else [],
-                               required=True),
+                               required=True,
+                               readonly=True if ngsrun_id else False),
                 t.input_file(self.ffn('manifest_file'), 'Manifest', required=True, offset=2),
                 name='messy-ngsmgr-upload-fastqpair-fieldset'
             ),
@@ -159,5 +167,35 @@ class FastqUploadJobViewer(UploadJobViewer):
             'target_url': unquote(rq.route_url('messy-ngsmgr.uploadjob.fastq-target',
                                   id=job.id)),
         }, request=rq)
+
+    def status_helper(self):
+
+        rq = self.request
+        job = self.get_object()
+
+        if job.json is None:
+            return Response(body="This upload session is invalid. Please remove!",
+                            status='200', content_type="text/html")
+
+        self.can_modify(job)
+
+        # check how many files has been completed
+        completed = job.get_uploaded_count()
+
+        html = t.div().add(
+            t.h2('Upload Session'),
+            t.p(f'Started at: {job.start_time} UTC'),
+            t.p(f'Total files: {job.json["file_count"]}'),
+            t.p(f'Uploaded: {completed}'),
+            t.div(
+                t.a('Save', href=rq.route_url('messy.uploadjob.fastq-save',
+                                              id=job.id),
+                    class_='btn btn-primary')
+                if completed == job.json["file_count"] else ''),
+        )
+
+        return Response(body=html.r(),
+                        status="200",
+                        content_type="text/html")
 
 # EOF

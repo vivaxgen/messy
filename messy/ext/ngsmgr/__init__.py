@@ -9,7 +9,14 @@ from messy.ext.ngsmgr import configkeys as ck
 
 
 set_dbhandler_class(generate_handler_class(get_dbhandler_class()))
-get_menunav().add_after('Plate', ('NGSRun', 'url:/ngsrun'))
+get_menunav().add_before(
+    'Plate', ('NGSRun', 'url:/ngsrun')
+).add_before(
+    'Analysis', ('Marker',
+                 [
+                     ('Panel', 'url:/panel'),
+                 ])
+)
 
 
 def includeme(config):
@@ -33,7 +40,10 @@ def includeme(config):
     add_route_view_class(
         config, 'messy.ext.ngsmgr.views.panel.PanelViewer', 'messy-ngsmgr.panel',
         '/panel',
+        '/panel/@@action',
         '/panel/@@add',
+        ('/panel/@@lookup', 'lookup', 'json'),
+        '/panel/{id}@@edit',
         ('/panel/{id}', 'view'),
     )
 

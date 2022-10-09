@@ -23,6 +23,7 @@ def generate_handler_class(base_class):
             'ngsrun_code': schema.NGSRun.code,
             'panel_id': schema.Panel.id,
             'panel_code': schema.Panel.code,
+            'fastqpair_id': schema.FastqPair.id,
             'fastquploadjob_id': schema.FastqUploadJob.id,
             'fastquploadjob_sesskey': schema.FastqUploadJob.sesskey,
         }
@@ -90,6 +91,22 @@ def generate_handler_class(base_class):
         def get_panels_by_codes(self, codes, groups=None, user=None, fetch=True, raise_if_empty=False):
             return self.get_panels(groups, [{'panel_code': codes}], user=user, fetch=fetch,
                                    raise_if_empty=raise_if_empty)
+
+        # accessor for FastqPair
+
+        def get_fastqpairs(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
+
+            q = self.construct_query(self.FastqPair, specs)
+
+            # check permission
+            if groups:
+                q = q.filter(self.FastqPair.group_id.in_([x[1] for x in groups]))
+
+            return self.fetch_query(q, fetch, raise_if_empty)
+
+        def get_fastqpairs_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+            return self.get_fastqpairs(groups, [{'fastqpair_id': ids}], user=user, fetch=fetch,
+                                       raise_if_empty=raise_if_empty)
 
         # accessor for FastqUploadjob and FastqUploadItem
 

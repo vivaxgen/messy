@@ -119,7 +119,8 @@ def generate_uploadmgr_panel(viewer, html_anchor=None):
     html = t.div().add(
         t.br,
         t.a('Open Fastq Upload Manager', class_='btn btn-primary',
-            href=viewer.request.route_url('messy-ngsmgr.uploadjob.fastq'))
+            href=viewer.request.route_url('messy-ngsmgr.uploadjob.fastq',
+                                          _query=dict(ngsrun_id=viewer.obj.id)))
     )
 
     return html, ''

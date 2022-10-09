@@ -50,6 +50,7 @@ ${ content | n }
     server: {
       url: "${target_url | n}",
       fetch: null,
+      revert: null,
     },
     allowDrop: true,
     allowMultiple: true,

@@ -28,11 +28,12 @@ def setup(dbh):
     d_panel = dict(
         type=PanelType.SET.value,
         refctrl=True,
-        species='no-species'
+        species='no-species',
+        group=dbh.get_group('PanelMgr')
     )
 
     panels = [
-        dbh.Panel().update(d_panel | dict(code='WGS-generic'))
+        dbh.Panel(** (d_panel | dict(code='WGS-generic'))).update({}),
     ]
     for panel in panels:
         dbh.session().add(panel)
