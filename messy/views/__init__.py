@@ -7,7 +7,7 @@ from rhombus.views import (BaseViewer as rb_BaseViewer, roles, m_roles, Response
                            fileinstance_to_response, select2_lookup, ParseFormError)
 from rhombus.lib.modals import modal_delete, popup, modal_error
 from rhombus.lib.exceptions import AuthError
-import rhombus.lib.tags_b46 as t
+import rhombus.lib.tags as t
 import messy.lib.roles as r
 import sqlalchemy.exc
 from sqlalchemy import or_
