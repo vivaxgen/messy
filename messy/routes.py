@@ -106,7 +106,7 @@ def includeme(config):
         '/uploadjob/{id}@@status',      # generic status viewer
         '/uploadjob/{id}@@save',        # generic save method
         '/uploadjob/{id}@@target',
-        ('/uploadjob/{id}', 'view'),
+        #('/uploadjob/{id}', 'view'),
     )
 
     # add additional routes and views here
