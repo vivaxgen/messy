@@ -71,7 +71,7 @@ class SampleViewer(BaseViewer):
         'originating_code': ('messy-sample-originating_code', validate_code_ext),
         'sampling_institution_id': ('messy-sample-sampling_institution_id', ),
         'sampling_code': ('messy-sample-sampling_code', validate_code_ext),
-        'attachment': ('messy-sample-attachment'),
+        'attachment': ('messy-sample-attachment', ),
     }
 
     tab_contents = [
