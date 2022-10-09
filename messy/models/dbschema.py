@@ -68,6 +68,8 @@ class Institution(BaseMixIn, Base):
     contact = Column(types.String(64), nullable=False, server_default='')
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
     refctrl = Column(types.Boolean, nullable=False, server_default=False_())
+    user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
+    user = relationship('User', uselist=False, foreign_keys=user_id)
 
     __searchable__ = ['code', 'alt_codes', 'name', 'address']
 
