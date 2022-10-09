@@ -26,6 +26,14 @@ class InstitutionViewer(BaseViewer):
         'remark': ('messy-institution-remark', ),
     }
 
+    def can_modify(self, obj):
+        obj = obj or self.obj
+        if super().can_modify(obj):
+            return True
+        if obj.user.id == self.request.user.id:
+            return True
+        return False
+
     def __init__(self, request):
         super().__init__(request)
         self.institution = None
@@ -116,6 +124,8 @@ class InstitutionViewer(BaseViewer):
         rq = self.request
         dbh = self.dbh
 
+        d['user_id'] = rq.user.id
+
         try:
             obj.update(d)
             if obj.id is None:
@@ -161,6 +171,9 @@ class InstitutionViewer(BaseViewer):
                 t.input_text(ff('contact'), 'Contact', value=obj.contact, offset=2,
                              popover='Contact|Contact persons and their numbers that represent this '
                                      'institution.'),
+                t.input_text('', 'User',
+                             value=str(obj.user) if obj.user else str(self.request.user),
+                             offset=2, size=2, readonly=True),
                 t.input_textarea(ff('remark'), 'Remark', value=obj.remark, offset=2,
                                  popover='Remark|Any remarks about this institution.')
             ),
