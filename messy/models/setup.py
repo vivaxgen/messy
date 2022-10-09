@@ -11,21 +11,30 @@ def setup(dbh):
     dbh.Group.bulk_insert(messy_groups, dbsession=dbh.session())
 
     # add controls
+    sysadm = dbh.get_user('system/_SYSTEM_')
 
-    dbh.session().add(
-        dbh.Institution(
-            code='NOT-AVAILABLE',
-            name='Not Available'
-        )
+    not_available = dbh.Institution(
+        code='NOT-AVAILABLE',
+        name='Not Available',
+        user_id=sysadm.id,
     )
+    irrelevant = dbh.Institution(
+        code='IRRELEVANT',
+        name='Irrelevant',
+        user_id=sysadm.id,
+    )
+
+    dbh.session().add(not_available)
+    dbh.session().add(irrelevant)
     dbh.session().flush()
 
     d_collection = dict(
         group=dbh.get_group('CollectionMgr'),
-        institutions=[dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0]],
+        institutions=[irrelevant],
         refctrl=True,
     )
 
+    # We need to perform update() to fill in Collection uuid field
     collections = [
         dbh.Collection(** (d_collection | dict(code='CONTROL'))).update({}),
         dbh.Collection(** (d_collection | dict(code='REFERENCE'))).update({}),
@@ -65,8 +74,8 @@ def setup(dbh):
         category='CR',
         specimen_type='no-specimen',
         ct_method='no-ct',
-        originating_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
-        sampling_institution=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+        originating_institution=irrelevant,
+        sampling_institution=irrelevant,
         refctrl=True,
     )
 
