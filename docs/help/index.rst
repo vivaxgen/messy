@@ -6,9 +6,10 @@ HELP
 Introduction
 ------------
 
-MESSy (Molecular Epidemiology and Surveillance System) is a system that combines data management and simple LIMS, and its source code is deposited at https://github.com/trmznt/messy.
+MESSy (Molecular Epidemiology and Surveillance System) is a system that combines
+data management and online analysis tools, and its source code can be accessed at
+https://github.com/vivaxgen/messy.
 
-The system is designed to work in conjunction with NGS data analysis pipeline at https://github.com/trmznt/ncov19-pipeline.
 
 
 Basic Concept
@@ -37,14 +38,19 @@ Data Processing
 Preparation
 ~~~~~~~~~~~
 
-Data can either be entered to the system using form-based web interface or uploaded to system using csv (comma
-separated value) or tsv (tab-separated value) files.
-The csv/tsv files can be prepared using software environments that have user-friendly ways to work with column-based text files (such as R or Python with Pandas) or a spreadsheet software (such as Microsoft Excel, Libreoffice Calc or Google Sheet).
+Data can either be entered to the system using form-based web interface or uploaded to
+system using csv (comma-separated value) or tsv (tab-separated value) files.
+The csv/tsv files can be prepared using software environments that have user-friendly ways
+to work with column-based text files (such as R or Python with Pandas) or a spreadsheet
+software (such as Microsoft Excel, Libreoffice Calc or Google Sheet).
 
 Date Format
 ~~~~~~~~~~~
 
 To avoid confusion, all dates are represented as **YYYY/MM/DD** (or **YYYY-MM-DD**) format.
 
-Please be aware when you are using spreadsheet software since some of the software perform automatic formatting of the date values (or values that look like dates).
-It is best to recheck the content of the csv/tsv file saved by spreadsheet software using plain text editors (Notepad, Wordpad, ConTEXT) or using R or Python before uploading just to make sure that dates are still in properly YYYY/MM/DD or YYYY-MM-DD format.
+Please be aware when you are using spreadsheet software since some of the software perform
+automatic formatting of the date values (or values that look like dates).
+It is best to recheck the content of the csv/tsv file saved by spreadsheet software using plain
+text editors (Notepad, Wordpad, ConTEXT) or using R or Python before uploading just to make sure
+that dates are still in properly YYYY/MM/DD or YYYY-MM-DD format.

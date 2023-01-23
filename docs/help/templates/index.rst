@@ -5,7 +5,8 @@ Templates
 Institutions
 ------------
 
-For adding new institutions, all fields are necessary.
+For adding new institutions, all fields are mandatory.
+
 For updating data, the TSV file needs to contain the *code* and the necessary fields to be updated.
 
 `<institutions.tsv>`_
