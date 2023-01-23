@@ -42,7 +42,7 @@ class MenuNav(object):
 
     def html(self):
 
-        html = t.ul(class_='navbar-nav mr-auto')
+        html = t.ul(class_='navbar-nav me-auto')
 
         for menuitem in self.menutree:
             label, spec = menuitem
