@@ -2,7 +2,7 @@ from pyramid.config import Configurator
 from sqlalchemy import engine_from_config
 
 from rhombus import init_app
-from rhombus.lib.utils import cerr, cout, get_dbhandler
+from rhombus.lib.utils import cerr, cout, get_dbhandler, get_dbhandler_class
 from rhombus.models.core import set_func_userid
 
 # set configuration and dbhandler
@@ -13,6 +13,7 @@ from messy.scripts import run
 from messy.routes import includeme
 from messy.lib.uploads import set_temp_directory
 from messy.lib.nomenclature import load_location_data
+from messy.lib.qstospec import set_fields
 
 
 def get_userid_func():
@@ -32,6 +33,9 @@ def main(global_config, **settings):
 
     set_temp_directory(config.get_settings().get('messy.temp_directory'))
     load_location_data(config.get_settings().get('assets.directory') + '/locations.json')
+
+    # prepare query syntax parser
+    set_fields(get_dbhandler_class().query_constructor_class.field_specs.keys())
 
     return config.make_wsgi_app()
 
