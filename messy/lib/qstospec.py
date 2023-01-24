@@ -1,4 +1,7 @@
 
+# this source file was taken from github.com/trmznt/genaf-base
+# (C) Hidayat Trimarsanto
+
 from pyparsing import *
 
 # Word(initial_character_set, body_character_set)
@@ -27,15 +30,6 @@ class QueryExpr(object):
 
     def eval(self):
         raise NotImplementedError()
-
-
-class Field(object):
-    BATCH = 'batch'
-    BATCH_ID = 'batch_id'
-    ID = 'id'
-    CATEGORY = 'category'
-    COUNTRY = 'country'
-    ADMINL1 = 'adminl1'
 
 
 __FIELDS__ = ['batch', 'batch_id', 'id', 'category', 'country', 'adminl1']
