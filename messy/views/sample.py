@@ -4,6 +4,7 @@ from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, 
                          Response, modal_delete, modal_error, Response, HTTPFound,
                          validate_code, validate_code_ext, AuthError)
 from messy.lib.nomenclature import fix_location_data
+from messy.lib.qstospec import query2dict
 import rhombus.lib.tags as t
 import sqlalchemy.exc
 import dateutil
@@ -80,8 +81,13 @@ class SampleViewer(BaseViewer):
 
     def index_helper(self):
 
-        samples = self.dbh.get_samples(groups=None, user=self.request.user, fetch=False)\
-            .order_by(self.dbh.Sample.id.desc())
+        specs = None
+        if (q := self.request.params.get('q', None)):
+            specs = query2dict(q, grouping=False)
+
+        samples = self.dbh.get_samples(
+            groups=None, specs=specs, user=self.request.user, fetch=False
+        ).order_by(self.dbh.Sample.id.desc())
 
         if self.request.params.get('view', None) == 'status':
             html, code = generate_sample_status_table(samples, self.request)
