@@ -1,7 +1,9 @@
 from messy.lib.whoosh import IndexService, set_index_service
+from messy import configkeys as ck
 
 from rhombus.routes import add_route_view, add_route_view_class
 from rhombus.lib.utils import cerr, cout
+
 
 from pyramid.events import BeforeRender
 from pyramid.renderers import JSON
@@ -12,6 +14,8 @@ import datetime
 def includeme(config):
     """ this configuration must be included as the last order
     """
+
+    settings = config.get_settings()
 
     config.add_subscriber(add_global, BeforeRender)
 
@@ -27,6 +31,10 @@ def includeme(config):
 
     config.add_route('login', '/login')
     config.add_view('messy.views.home.login', route_name='login')
+
+    if settings.get(ck.rb_guestuser, None):
+        config.add_route('guest_login', '/guest_login')
+        config.add_view('rhombus.views.home.guest_login', route_name='guest_login')
 
     config.add_route('logout', '/logout')
     config.add_view('messy.views.home.logout', route_name='logout')
