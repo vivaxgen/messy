@@ -5,7 +5,7 @@
       <div class='row'>
       <div class='col-md-12'>
         <!-- font: Nobile -->
-        <p>MESSy: Molecular Epidemiology and Surveillance System</p>
+        <p>Powered by <a href="https://github.com/vivaxgen/messy/">MESSy</a></p>
       </div>
       </div>
     </div>
