@@ -2,7 +2,7 @@
 from messy.views import (BaseViewer, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, form_submit_bar, select2_lookup, error_page,
                          Response, modal_delete, modal_error, Response, HTTPFound, AuthError,
-                         validate_code)
+                         validate_code, not_roles)
 import rhombus.lib.tags as t
 from rhombus.lib.modals import popup
 from pyramid import response
@@ -166,6 +166,9 @@ class NGSRunViewer(BaseViewer):
 
     @m_roles(r.PUBLIC)
     def index(self):
+
+        if self.request.user.has_roles(r.GUEST):
+            raise AuthError('Guest user is not authorized to view NGS Run data!')
 
         group_id = int(self.request.params.get('group_id', 0))
 
