@@ -1,8 +1,9 @@
 
-from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
-                         render_to_response, form_submit_bar, select2_lookup, or_, error_page,
+from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError,
+                         render_to_response, form_submit_bar, select2_lookup, or_,
                          Response, modal_delete, modal_error, HTTPFound, generate_file_table,
                          validate_code)
+from rhombus.lib import exceptions as exc
 import rhombus.lib.tags as t
 import sqlalchemy.exc
 import json
@@ -45,7 +46,9 @@ class CollectionViewer(BaseViewer):
             if self.request.user.in_group(group_id):
                 collections = self.dbh.get_collections(groups=[(None, group_id)])
             else:
-                return error_page('You do not have access to view collections that belong to this group.')
+                raise exc.AuthError(
+                    f'You login [{self.request.user.login}] does not have access to view '
+                    f'collections that belong to group with group id: {group_id}')
 
         elif self.request.user.has_roles(r.SYSADM, r.DATAADM, r.SYSVIEW, r.DATAVIEW, r.COLLECTION_MANAGE):
             collections = self.dbh.get_collections(groups=None, ignore_acl=True)
