@@ -5,14 +5,13 @@ from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, 
                          validate_code)
 import rhombus.lib.tags_b46 as t
 from rhombus.lib.modals import popup
-from rhombus.lib.exceptions import AuthError
 from pyramid import response
 
 from messy.lib.samplesheet_utils import generate_samplesheet
 from messy.lib.converter import export_gisaid
 
 import sqlalchemy.exc
-from pyramid.response import Response, FileIter
+from pyramid.response import FileIter
 import dateutil
 import pandas as pd
 
@@ -43,6 +42,9 @@ class RunViewer(BaseViewer):
 
     @m_roles(r.PUBLIC)
     def index(self):
+
+        if self.request.user.has_roles(r.GUEST):
+            raise AuthError('Guest user can not access this resource!')
 
         group_id = int(self.request.params.get('group_id', 0))
 
