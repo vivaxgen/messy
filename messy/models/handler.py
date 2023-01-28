@@ -149,7 +149,7 @@ class DBHandler(rhombus_handler.DBHandler):
                 groups = user.groups
 
         if groups is not None:
-            q = q.join(self.Collection).filter(
+            q = self.rejoin(q, self.Collection).filter(
                 or_(self.Sample.public, self.Sample.refctrl,
                     self.Collection.group_id.in_([x[1] for x in groups]))
             )
