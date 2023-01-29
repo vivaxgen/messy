@@ -73,11 +73,11 @@ class DBHandler(rhombus_handler.DBHandler):
     def get_institutions(self, groups=None, specs=None, user=None, fetch=True,
                          raise_if_empty=False):
 
-        q = self.construct_query(self.Institution, specs)
+        q = self.construct_select(self.Institution, specs)
         if fetch:
             q = q.order_by(self.Institution.code)
 
-        return self.fix_result(q, fetch, raise_if_empty)
+        return self.fetch_select(q, fetch, raise_if_empty)
 
     def get_institutions_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
         return self.get_institutions(groups, [{'institution_id': ids}], user=user, fetch=fetch,

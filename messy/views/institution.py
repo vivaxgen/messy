@@ -1,7 +1,7 @@
 
 from messy.views import (BaseViewer, r, get_dbhandler, m_roles, ParseFormError, form_submit_bar,
                          render_to_response, select2_lookup, or_, error_page, modal_delete,
-                         modal_error, Response, HTTPFound, validate_code)
+                         modal_error, Response, HTTPFound, validate_code, select)
 import rhombus.lib.tags as t
 import sqlalchemy.exc
 
@@ -19,7 +19,7 @@ class InstitutionViewer(BaseViewer):
     form_fields = {
         'code*': ('messy-institution-code', validate_code),
         'alt_codes': ('messy-institution-alt_codes', ),
-        'name': ('messy-institution-name', ),
+        'name*': ('messy-institution-name', ),
         'address': ('messy-institution-address', ),
         'zipcode': ('messy-institution-zipcode', ),
         'contact': ('messy-institution-contact', ),
@@ -58,8 +58,8 @@ class InstitutionViewer(BaseViewer):
         q = '%' + q.lower() + '%'
 
         dbh = get_dbhandler()
-        institutions = dbh.Institution.query(dbh.session()).filter(
-            or_(dbh.Institution.code.ilike(q), dbh.Institution.name.ilike(q)))
+        institutions = dbh.scalars(dbh.Institution.select().filter(
+            or_(dbh.Institution.code.ilike(q), dbh.Institution.name.ilike(q))))
 
         result = [
             {'id': i.id, 'text': i.render()}
@@ -80,7 +80,7 @@ class InstitutionViewer(BaseViewer):
         if _method == 'delete':
 
             inst_ids = [int(x) for x in rq.POST.getall('institution-ids')]
-            institutions = dbh.get_institutions_by_ids(inst_ids, groups=None, user=rq.user)
+            institutions = dbh.get_institutions_by_ids(inst_ids, groups=None, user=rq.user).all()
 
             if len(institutions) == 0:
                 return Response(modal_error)
@@ -141,7 +141,10 @@ class InstitutionViewer(BaseViewer):
                     raise ParseFormError(f'The institution code: {d["code"]} is '
                                          f'already being used. Please use other institution code!',
                                          self.ffn('code*')) from err
-
+                if 'institutions.name' in detail or 'uq_institutions_name' in detail:
+                    raise ParseFormError(f'The institution name: {d["name"]} is '
+                                         f'already being used. Please use other institution code!',
+                                         self.ffn('name*')) from err
             raise RuntimeError('error updating object')
 
     def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
@@ -162,7 +165,7 @@ class InstitutionViewer(BaseViewer):
                 t.input_text(ff('alt_codes'), 'Alternate Codes', value=obj.alt_codes, offset=2, size=6,
                              popover='Alternate Codes|Unique, alphanumeric codes used by external sources. '
                                      'Multiple codes must be separated by single space.'),
-                t.input_text(ff('name'), 'Name', value=obj.name, offset=2,
+                t.input_text(ff('name*'), 'Name', value=obj.name, offset=2,
                              popover='Name|Official name of the institution.'),
                 t.input_text(ff('address'), 'Address', value=obj.address, offset=2,
                              popover='Address|Address of the insitution. Comma is allowed.'),
