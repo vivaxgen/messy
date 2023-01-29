@@ -4,7 +4,7 @@ from rhombus.lib.utils import cerr, cout, random_string, get_dbhandler
 from rhombus.views.generics import error_page
 from rhombus.views import (BaseViewer as rb_BaseViewer, roles, m_roles, not_roles, Response,
                            FileIter, HTTPFound, render_to_response, form_submit_bar, ScalarResult,
-                           fileinstance_to_response, select2_lookup, ParseFormError)
+                           fileinstance_to_response, select2_lookup, ParseFormError, select)
 from rhombus.lib.modals import modal_delete, popup, modal_error
 from rhombus.lib.exceptions import AuthError
 import rhombus.lib.tags as t
