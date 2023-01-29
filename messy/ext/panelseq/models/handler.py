@@ -1,25 +1,26 @@
 
 from rhombus.lib.utils import cerr
 
-from messy.ext.panelseq.models import markers
+from messy.ext.panelseq.models import schema
 
 
 def generate_handler_class(base_class):
     """ base_class is the handler base class """
 
+    schema.extend_object_classes(base_class)
+
     class MessyPanelSeqQueryConstructor(base_class.query_constructor_class):
 
         field_specs = base_class.query_constructor_class.field_specs | {
-            'panel_id': markers.Panel.id,
+            'panel_id': base_class.Panel.id,
         }
 
     class PanelSeqHandler(base_class):
 
         # add models here
 
-        Variant = markers.Variant
-        Region = markers.Region
-        Panel = markers.Panel
+        Variant = schema.Variant
+        Region = schema.Region
 
         # set query constructor class
 
