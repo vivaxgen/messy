@@ -4,7 +4,7 @@ from rhombus.routes import add_route_view, add_route_view_class
 
 from messy.views.menunav import get_menunav
 from messy.ext.ngsmgr.models.handler import generate_handler_class
-from messy.ext.ngsmgr.models.schema import FastqUploadJob
+from messy.ext.ngsmgr.models.schema import FastqUploadJob, FastqFile, VCFFile, AMFile
 from messy.ext.ngsmgr import configkeys as ck
 
 
@@ -23,6 +23,9 @@ def includeme(config):
 
     settings = config.get_settings()
     FastqUploadJob.set_root_storage_path(settings[ck.rb_attachment_root])
+    FastqFile.set_root_storage_path(settings[ck.rb_attachment_root])
+    VCFFile.set_root_storage_path(settings[ck.rb_attachment_root])
+    AMFile.set_root_storage_path(settings[ck.rb_attachment_root])
 
     add_route_view_class(
         config, 'messy.ext.ngsmgr.views.ngsrun.NGSRunViewer', 'messy-ngsmgr.ngsrun',
