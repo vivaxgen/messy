@@ -181,6 +181,7 @@ class FastqUploadJobViewer(UploadJobViewer):
 
         # check how many files has been completed
         completed = job.get_uploaded_count()
+        uncompleted = job.json["file_count"] - completed
 
         html = t.div().add(
             t.h2('Upload Session'),
@@ -188,10 +189,10 @@ class FastqUploadJobViewer(UploadJobViewer):
             t.p(f'Total files: {job.json["file_count"]}'),
             t.p(f'Uploaded: {completed}'),
             t.div(
-                t.a('Save', href=rq.route_url('messy.uploadjob.fastq-save',
+                t.a('Save', href=rq.route_url('messy.uploadjob-save',
                                               id=job.id),
                     class_='btn btn-primary')
-                if completed == job.json["file_count"] else ''),
+            ) if not uncompleted else '',
         )
 
         return Response(body=html.r(),
