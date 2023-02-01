@@ -183,11 +183,27 @@ class FastqUploadJobViewer(UploadJobViewer):
         completed = job.get_uploaded_count()
         uncompleted = job.json["file_count"] - completed
 
+        filelist_panel = ''
+        if uncompleted:
+            file_list = t.ol()
+            for f in job.get_uncompleted_list():
+                file_list.add(t.li(f))
+            filelist_panel = t.div(
+                t.p('Click ',
+                    t.a('here',
+                        href='#collapseList',
+                        **{'data-bs-toggle': 'collapse',
+                           'aria-controls': 'collapseList'}),
+                    'to see the unuploaded files.'),
+                t.div(t.div(file_list, class_='card card-body'),
+                      class_='collapse', id='collapseList')
+            )
+
         html = t.div().add(
             t.h2('Upload Session'),
             t.p(f'Started at: {job.start_time} UTC'),
-            t.p(f'Total files: {job.json["file_count"]}'),
-            t.p(f'Uploaded: {completed}'),
+            t.p(f'Total files: {job.json["file_count"]}, Uploaded: {completed}'),
+            filelist_panel if uncompleted else '',
             t.div(
                 t.a('Save', href=rq.route_url('messy.uploadjob-save',
                                               id=job.id),
