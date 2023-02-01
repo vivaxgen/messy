@@ -50,8 +50,26 @@ def extend_object_classes(dbh):
 class NGSRunFile(object):
     """ base class for all NGS-related files """
 
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self._file_owner = None
+
+    def set_file_owner(self, inst):
+        self._file_owner = inst
+
+    def get_file_owner(self):
+        if not self._file_owner:
+            # fetch from db
+            pass
+        return self._file_owner
+
+    @reconstructor
+    def init_on_load(self):
+        self._file_owner = None
+
     def generate_fullpath(self):
         """ generate a new fullpath composed from self.id and filename """
+
         hex_id = f'{self.id:05x}'
         return Path(hex_id[-3:], f'{{{hex_id}}}-{self.filename}').as_posix()
 
@@ -77,9 +95,22 @@ class FastqFile(NGSRunFile, FileAttachment):
         "polymorphic_identity": 3128321612305521149,    # hash('FastqFile') & sys.maxsize
     }
 
+    def generate_fullpath(self):
+        # this will generate the following path:
+        # {ngsrun_id(hex)}/{sample_id(hex)}-{fileattach_id(hex)}-{filename}
+
+        file_owner = self.get_file_owner()
+
+        # check file_owner, if None then there is error in programming flow, possibly
+        # set_file_owner() has not been called before calling this function
+        assert file_owner
+
+        return Path(f'{file_owner.ngsrun_id:05x}',
+                    f'{file_owner.sample_id:05x}-{self.id:05x}-{self.filename}').as_posix()
+
 
 class AMFile(NGSRunFile, FileAttachment):
-    """ alignment map file (BAM/SAM)"""
+    """ alignment map file (BAM/SAM/CRAM)"""
 
     __subdir__ = 'ams'
 
@@ -455,12 +486,14 @@ class FastqUploadJob(UploadJob):
 
             # for safety reason, we are copying the file instead of moving (use_move=False),
             # in case something happen during the process
+            # set_file_owner() will be invoked to ensure generate_fullpath() run without error
             fastqfile = FastqFile.create_from_path(item.get_fullpath(),
                                                    item.filename,
                                                    # FASTQ is plain text
                                                    mimetype="text/plain",
                                                    session=session,
-                                                   use_move=False)
+                                                   use_move=False,
+                                                   func=lambda x: x.set_file_owner(fastqpair))
             match readno:
                 case 1:
                     fastqpair.read1_file = fastqfile
