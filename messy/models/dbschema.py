@@ -718,6 +718,9 @@ class UploadJob(BaseMixIn, Base):
         for item in self.uploaditems:
             item.clear()
 
+    def get_uncompleted_list(self):
+        return [i.filename for i in self.uploaditems if not i.completed]
+
     @classmethod
     def get_or_create(cls, sesskey, user, dbh):
         jobs = dbh.get_uploadjobs_by_sesskeys([sesskey],
