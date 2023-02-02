@@ -430,6 +430,55 @@ class NGSRunViewer(BaseViewer):
 
         raise ValueError('unknown method')
 
+    def action_post(self):
+
+        rq = self.request
+        dbh = self.dbh
+        _method = rq.POST.get('_method')
+
+        if _method == 'delete':
+
+            run_ids = [int(x) for x in rq.POST.getall('run-ids')]
+            runs = dbh.get_ngsruns_by_ids(run_ids, groups=None, user=rq.user).all()
+
+            if len(runs) == 0:
+                return Response(modal_error)
+
+            return Response(
+                modal_delete(
+                    title='Removing NGS run(s)',
+                    content=t.literal(
+                        'You are going to remove the following NGS run(s): '
+                        '<ul>'
+                        + ''.join(f'<li>{r.code} | {r.date}</li>' for r in runs)
+                        + '</ul>'
+                    ), request=rq,
+                ), request=rq
+            )
+
+        elif _method == 'delete/confirm':
+
+            run_ids = [int(x) for x in rq.POST.getall('run-ids')]
+            runs = dbh.get_ngsruns_by_ids(run_ids, groups=None, user=rq.user)
+
+            sess = dbh.session()
+            count = left = 0
+            for run in runs:
+                if run.can_modify(rq.user):
+                    sess.delete(run)
+                    count += 1
+                else:
+                    left += 1
+
+            sess.flush()
+            rq.session.flash(
+                ('success', f'You have successfully removed {count} NGS run(s), kept {left} NGS run(s).')
+            )
+
+            return HTTPFound(location=rq.referer)
+
+        raise RuntimeError('unknown method')
+
 
 def generate_ngsrun_table(ngsruns, request):
 

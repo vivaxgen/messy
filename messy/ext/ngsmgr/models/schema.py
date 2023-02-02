@@ -163,7 +163,7 @@ class NGSRun(BaseMixIn, Base):
 
     remark = deferred(Column(types.Text, nullable=False, server_default=''))
 
-    fastqpairs = relationship("FastqPair", back_populates="ngsrun")
+    fastqpairs = relationship("FastqPair", back_populates="ngsrun", cascade='all, delete-orphan')
 
     additional_files = relationship(FileAttachment, secondary="ngsruns_files", cascade='all, delete',
                                     collection_class=attribute_mapped_collection('id'),
