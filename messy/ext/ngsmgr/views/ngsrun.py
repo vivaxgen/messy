@@ -172,7 +172,11 @@ class NGSRunViewer(BaseViewer):
 
         group_id = int(self.request.params.get('group_id', 0))
 
-        runs = self.dbh.get_ngsruns(groups=None, fetch=False).order_by(self.dbh.NGSRun.date.desc())
+        runs = self.dbh.scalars(
+            self.dbh.get_ngsruns(
+                groups=None, fetch=False
+            ).order_by(self.dbh.NGSRun.date.desc())
+        )
 
         html, code = generate_ngsrun_table(runs, self.request)
         html = t.div()[t.h2('Runs'), html]

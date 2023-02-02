@@ -59,11 +59,11 @@ def generate_handler_class(base_class):
 
         def get_ngsruns(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
 
-            q = self.construct_query(self.NGSRun, specs)
+            q = self.construct_select(self.NGSRun, specs)
             if fetch:
                 q = q.order_by(self.NGSRun.date.desc())
 
-            return self.fetch_query(q, fetch, raise_if_empty)
+            return self.fetch_select(q, fetch, raise_if_empty)
 
         def get_ngsruns_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
             return self.get_ngsruns(groups, [{'ngsrun_id': ids}], user=user, fetch=fetch,
