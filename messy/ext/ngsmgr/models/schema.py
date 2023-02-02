@@ -43,7 +43,8 @@ def extend_object_classes(dbh):
     dbh.Sample.__mapper__.add_property(
         'fastqpairs',
         relationship('FastqPair',
-                     back_populates='sample')
+                     back_populates='sample',
+                     cascade='all, delete-orphan')
     )
 
 
