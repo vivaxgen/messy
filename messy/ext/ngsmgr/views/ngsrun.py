@@ -450,8 +450,12 @@ class NGSRunViewer(BaseViewer):
                     content=t.literal(
                         'You are going to remove the following NGS run(s): '
                         '<ul>'
-                        + ''.join(f'<li>{r.code} | {r.date}</li>' for r in runs)
+                        + ''.join(
+                            f'<li>{r.code} | {r.date} | <b>{len(r.fastqpairs)}</b> pair/read files</li>'
+                            for r in runs)
                         + '</ul>'
+                        'All associated reads and analysis results will also be removed. '
+                        'Do you want to continue?'
                     ), request=rq,
                 ), request=rq
             )
