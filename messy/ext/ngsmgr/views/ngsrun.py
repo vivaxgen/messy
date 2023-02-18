@@ -451,7 +451,8 @@ class NGSRunViewer(BaseViewer):
                         'You are going to remove the following NGS run(s): '
                         '<ul>'
                         + ''.join(
-                            f'<li>{r.code} | {r.date} | <b>{len(r.fastqpairs)}</b> pair/read files</li>'
+                            f'<li>{r.code} | {r.date} | '
+                            f'<b>{len(r.fastqpairs)}</b> pair/read files</li>'
                             for r in runs)
                         + '</ul>'
                         'All associated reads and analysis results will also be removed. '
