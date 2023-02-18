@@ -23,18 +23,20 @@ requires = [
     'pyramid_rpc',
     'joblib',
     'more_itertools',
-    ]
+    'simplejson',
+    'pyparsing',
+]
 
 setup(name='MESSy',
       version='0.0',
       description='MESSy',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
-        "Programming Language :: Python",
-        "Framework :: Pyramid",
-        "Topic :: Internet :: WWW/HTTP",
-        "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
-        ],
+          "Programming Language :: Python",
+          "Framework :: Pyramid",
+          "Topic :: Internet :: WWW/HTTP",
+          "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+      ],
       author='',
       author_email='',
       url='',
@@ -52,3 +54,5 @@ setup(name='MESSy',
       messy-shell = messy.scripts.shell:main
       """,
       )
+
+# EOF
