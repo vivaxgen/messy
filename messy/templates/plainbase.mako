@@ -31,6 +31,13 @@
 
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-red p-0" id="fixedNavbar">
     <a class="navbar-brand px-3" href="/">${request.get_resource('rhombus.title', None) or "MESSy"}</a>
+    <div class="collapse navbar-collapse px-3" id="navbarCollapse">
+      <ul class="navbar-nav me-auto"></ul>
+      <!-- user menu -->
+      <div class="d-flex">
+        ${user_menu(request)}
+      </div>
+    </div>
   </nav>
 
     <div class="container-fluid">
@@ -60,6 +67,8 @@ ${self.scriptlinks()}
 ##
 ##
 <%def name="scriptlinks()">
+    <script src="/assets/rb/js/jquery-3.6.0.min.js"></script>
+    <script src="/assets/rb/bootstrap/js/bootstrap.bundle.min.js"></script>
 </%def>
 ##
 ##
