@@ -66,6 +66,9 @@ def index(request):
         #]
     ]
 
+    if not request.identity:
+        html = generate_login_text(request) + html
+
     return render_to_response(
         'messy:templates/generic_page.mako',
         {
