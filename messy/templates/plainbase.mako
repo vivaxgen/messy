@@ -12,6 +12,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
+  <!-- plainbase.mako -->
   <head>
   <meta charset="utf-8" />
   <title>${request.get_resource('rhombus.title', None) or "Rhombus Framework"}</title>
@@ -72,4 +73,3 @@ ${self.scriptlinks()}
 </%def>
 ##
 ##
-
