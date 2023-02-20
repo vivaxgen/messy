@@ -45,7 +45,6 @@ class StatStatus(object):
 _stats_ = StatStatus(300)  # caching duration 300 secs or 5 mins
 
 
-#@roles(r.PUBLIC)
 def index(request):
     global _stats_
 
