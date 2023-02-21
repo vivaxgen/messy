@@ -14,6 +14,7 @@
   from rhombus.views.user import user_menu
 %>
 <html lang="en">
+  <!-- base.mako -->
   <head>
   <meta charset="utf-8" />
   <title>${request.get_resource('rhombus.title', None) or "MESSy"}</title>

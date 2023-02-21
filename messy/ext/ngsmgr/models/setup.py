@@ -12,7 +12,7 @@ def setup(dbh):
         date=parser.parse('1970'),
         refctrl=True,
         group=dbh.get_group('NGSRunMgr'),
-        ngs_provider=dbh.get_institutions_by_codes('NOT-AVAILABLE', None)[0],
+        ngs_provider=dbh.get_institutions_by_codes('IRRELEVANT', None).one(),
         ngs_kit='data-container',
     )
 

@@ -4,34 +4,70 @@ from messy.lib import roles as r
 
 from rhombus.lib import tags_b46 as t
 from rhombus.views.home import login as rb_login, logout as rb_logout
-from rhombus.views import fso
+from rhombus.views import fso, generate_login_text
 from pyramid.response import FileResponse
 
 import docutils.core
 import os
+import time
+import threading
 
 
-@roles(r.PUBLIC)
+# rudimentary caching mechanism for stats
+
+class StatStatus(object):
+
+    def __init__(self, duration=300):
+        self.duration = duration
+        self.last_update = 0
+        self.collections = -1
+        self.samples = -1
+        self.lock = threading.Lock()
+
+    def update(self, request):
+        dbh = get_dbhandler()
+        dbsess = dbh.session()
+        self.collections = dbh.Collection.query(dbsess).filter(~dbh.Collection.refctrl).count()
+        self.samples = dbh.Sample.query(dbsess).filter(~dbh.Sample.refctrl).count()
+
+    def get_stats(self, request):
+        if ((current_time := time.monotonic()) - self.last_update) > self.duration:
+            if self.lock.acquire(blocking=False):
+                self.last_update = current_time
+                self.update(request)
+                self.lock.release()
+            else:
+                # stats is being updated, sleep for 1 sec to allow for getting latest update
+                time.sleep(1)
+        return (self.collections, self.samples)
+
+
+_stats_ = StatStatus(300)  # caching duration 300 secs or 5 mins
+
+
 def index(request):
+    global _stats_
 
-    dbh = get_dbhandler()
-    dbsession = dbh.session()
+    total_collections, total_samples = _stats_.get_stats(request)
 
     html = t.div()[
         t.h2('Data Status'),
         t.div(class_='row')[
             t.div('Total collection:', class_='col-3 offset-1'),
-            t.div(str(dbh.Collection.query(dbsession).filter(~dbh.Collection.refctrl).count()), class_='col'),
+            t.div(str(total_collections), class_='col'),
         ],
         t.div(class_='row')[
             t.div('Total samples:', class_='col-3 offset-1'),
-            t.div(str(dbh.Sample.query(dbsession).filter(~dbh.Sample.refctrl).count()), class_='col'),
+            t.div(str(total_samples), class_='col'),
         ],
         #t.div(class_='row')[
         #    t.div('Total sequences:', class_='col-3 offset-1'),
         #    t.div(str(dbh.Sequence.query(dbsession).count()), class_='col'),
         #]
     ]
+
+    if not request.identity:
+        html = generate_login_text(request) + html
 
     return render_to_response(
         'messy:templates/generic_page.mako',

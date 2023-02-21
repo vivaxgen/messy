@@ -5,9 +5,14 @@
     <span class="navbar-toggler-icon"></span>
   </button>
   <div class="collapse navbar-collapse px-3" id="navbarCollapse">
+% if request.identity:
     ${main_menu()}
+% else:
+    <ul class="navbar-nav me-auto"></ul>
+% endif
     <!-- user menu -->
     <div class="d-flex">
+
       ${user_menu(request)}
     </div>
   </div>
