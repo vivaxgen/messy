@@ -27,6 +27,8 @@ def extend_object_classes(dbh):
 
 class Variant(BaseMixIn, Base):
     """ Variant is a 1-base SNP position to be analyzed
+        TODO: currently only able for biallelic SNPs, need to think for
+        non-biallelic SNPs (possibly uses alt_1, alt_2, alt_3?)
     """
 
     __tablename__ = 'variants'
@@ -45,6 +47,16 @@ class Variant(BaseMixIn, Base):
 
     def __repr__(self):
         return f"Variant('{self.code}')"
+
+    def __init__(self, code=None, chrom=None, position=None, ref=None, alt=None,
+                 gene=None, aachange=None):
+        # just perform sanity check and recode empty code
+        if not chrom or not position:
+            raise ValueError('chrom and position must be provided')
+        if code is None:
+            code = f"{chrom}:{position}"
+        super().__init__(code=code, chrom=chrom, position=position, ref=ref, alt=alt,
+                         gene=gene, aachange=aachange)
 
 
 class Region(BaseMixIn, Base):
