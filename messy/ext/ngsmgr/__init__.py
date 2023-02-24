@@ -45,6 +45,7 @@ def includeme(config):
         '/panel',
         '/panel/@@action',
         '/panel/@@add',
+        '/panel/@@fileaction',
         ('/panel/@@lookup', 'lookup', 'json'),
         '/panel/{id}@@edit',
         ('/panel/{id}', 'view'),

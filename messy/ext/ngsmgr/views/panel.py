@@ -2,8 +2,9 @@
 from rhombus.lib.utils import get_dbhandler
 from rhombus.views import boolean_checkbox
 from messy.views import (BaseViewer, t, render_to_response, error_page, form_submit_bar,
-                         ParseFormError)
+                         ParseFormError, generate_file_table)
 from messy.ext.ngsmgr.lib import roles as r
+from messy.ext.ngsmgr.models.schema import PanelType
 import sqlalchemy.exc
 import json
 
@@ -24,9 +25,10 @@ class PanelViewer(BaseViewer):
         'remark': ('messy-ngsmgr-panel-remark', ),
         'species_id': ('messy-ngsmgr-panel-species_id', ),
         'group_id': ('messy-ngsmgr-panel-group_id', int),
+        'type': ('messy-ngsmgr-panel-type', int),
         'refctrl': ('messy-ngsmgr-panel-refctrl', boolean_checkbox),
         'public': ('messy-ngsmgr-panel-public', boolean_checkbox),
-        'json': ('messy-ngsmgr-panel-json', ),
+        'json': ('messy-ngsmgr-panel-json', json.loads),
     }
 
     def can_modify(self, obj=None):
@@ -120,6 +122,10 @@ class PanelViewer(BaseViewer):
                 ),
                 t.input_text(ff('remark'), 'Remark', value=obj.remark,
                              offset=2),
+                t.input_select(
+                    ff('type'), 'Type', value=obj.type or 1, offset=2, size=2,
+                    options=[(pt.value, pt.name) for pt in PanelType]
+                ),
                 t.input_select_ek(ff('species_id'), 'Species',
                                   value=obj.species_id or dbh.get_ekey('pv').id,
                                   offset=2, size=3, parent_ek=dbh.get_ekey('@SPECIES')),
@@ -146,8 +152,22 @@ class PanelViewer(BaseViewer):
 
         return t.div()[t.h2('Panel'), eform], jscode
 
+    def view_helper(self, render=True):
 
+        panel_html, panel_jscode = super().view_helper(render=False)
 
+        panel_html.add(
+            t.hr,
+            t.h6('Additional Files')
+        )
+
+        file_html, file_jscode = generate_file_table(self.obj.additional_files, self.request,
+                                                     self.obj, 'messy-ngsmgr.panel-fileaction')
+
+        panel_html.add(file_html)
+        panel_jscode += file_jscode
+
+        return self.render_edit_form(panel_html, panel_jscode)
 
 
 def generate_panel_table(panels, request):
