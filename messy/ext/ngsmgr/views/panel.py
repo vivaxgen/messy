@@ -2,7 +2,7 @@
 from rhombus.lib.utils import get_dbhandler
 from rhombus.views import boolean_checkbox
 from messy.views import (BaseViewer, t, render_to_response, error_page, form_submit_bar,
-                         ParseFormError, generate_file_table)
+                         ParseFormError, generate_file_table, select2_lookup)
 from messy.ext.ngsmgr.lib import roles as r
 from messy.ext.ngsmgr.models.schema import PanelType
 import sqlalchemy.exc
@@ -26,6 +26,7 @@ class PanelViewer(BaseViewer):
         'species_id': ('messy-ngsmgr-panel-species_id', ),
         'group_id': ('messy-ngsmgr-panel-group_id', int),
         'type': ('messy-ngsmgr-panel-type', int),
+        'related_panel_id': ('messy-ngsmgr-panel-related_panel_id', ),
         'refctrl': ('messy-ngsmgr-panel-refctrl', boolean_checkbox),
         'public': ('messy-ngsmgr-panel-public', boolean_checkbox),
         'json': ('messy-ngsmgr-panel-json', json.loads),
@@ -126,6 +127,12 @@ class PanelViewer(BaseViewer):
                     ff('type'), 'Type', value=obj.type or 1, offset=2, size=2,
                     options=[(pt.value, pt.name) for pt in PanelType]
                 ),
+                t.input_select(
+                    ff('related_panel_id'), 'Related Panel',
+                    value=obj.related_panel_id if obj.related_panel_id else None,
+                    options=[(obj.related_panel_id, f'{obj.related_panel.code}')]
+                    if obj.related_panel_id else [],
+                    offset=2, size=3),
                 t.input_select_ek(ff('species_id'), 'Species',
                                   value=obj.species_id or dbh.get_ekey('pv').id,
                                   offset=2, size=3, parent_ek=dbh.get_ekey('@SPECIES')),
@@ -149,6 +156,12 @@ class PanelViewer(BaseViewer):
         )
 
         jscode = ''
+
+        if not readonly:
+            jscode = select2_lookup(tag=ff('related_panel_id'), minlen=3,
+                                    placeholder="Type panel code",
+                                    parenttag="messy-ngsmgr-panel-fieldset", usetag=False,
+                                    url=self.request.route_url('messy-ngsmgr.panel-lookup'))
 
         return t.div()[t.h2('Panel'), eform], jscode
 
@@ -183,6 +196,7 @@ def generate_panel_table(panels, request):
                      if not_guest else ''),
                 t.td(t.a(p.code,
                          href=request.route_url('messy-ngsmgr.panel-view', id=p.id))),
+                t.td(PanelType(p.type).name),
                 t.td(p.species),
                 t.td(p.related_panel.code if p.related_panel else ''),
             )
@@ -193,6 +207,7 @@ def generate_panel_table(panels, request):
             t.tr(
                 t.th('', style="width: 2em"),
                 t.th('Code'),
+                t.th('Type'),
                 t.th('Species'),
                 t.th('Related Panel'),
             )
@@ -228,6 +243,7 @@ $(document).ready(function() {
         orderClasses: false,
         columns: [
             { title: ' ', orderable: false, width: '12px' },
+            { },
             { },
             { },
             { },
