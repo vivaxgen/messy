@@ -175,6 +175,7 @@ def generate_file_table(files, request, obj, route_name):
 
     table_body = t.tbody()
 
+    any_files = True
     for a_file in files.values():
         table_body.add(
             t.tr(
@@ -185,18 +186,24 @@ def generate_file_table(files, request, obj, route_name):
                 t.td(a_file.size / 1000)
             )
         )
+    else:
+        any_files = False
 
-    file_table = t.table(class_='table table-condensed table-striped')[
-        t.thead(
-            t.tr(
-                t.th('', style="width: 2em"),
-                t.th('Filename'),
-                t.th('Size (Kb)'),
+    if any_files:
+        file_table = t.table(class_='table table-condensed table-striped')[
+            t.thead(
+                t.tr(
+                    t.th('', style="width: 2em"),
+                    t.th('Filename'),
+                    t.th('Size (Kb)'),
+                )
             )
-        )
-    ]
+        ]
 
-    file_table.add(table_body)
+        file_table.add(table_body)
+
+    else:
+        file_table = t.div(t.br, t.p('Currently no files'))
 
     if not_guest:
         # add_button = ('Upload file', request.route_url(route_name, id=0))
@@ -204,7 +211,7 @@ def generate_file_table(files, request, obj, route_name):
         # prepare tool bar
 
         bar = t.selection_bar(
-            'file-ids', action=request.route_url(route_name),
+            'file-ids', action=request.route_url(route_name), name='fileselection_bar',
             others=t.button('Upload file',
                             class_='btn btn-sm btn-success',
                             id='upload-file',
