@@ -362,7 +362,7 @@ class NGSRunViewer(BaseViewer):
             runplates = dbh.get_runplates_by_ids(runplate_ids, groups=None, user=rq.user)
 
             if len(runplates) == 0:
-                return Response(modal_error)
+                return Response(modal_error(content="Please select plate(s) to be removed"))
 
             return Response(
                 modal_delete(
@@ -439,10 +439,10 @@ class NGSRunViewer(BaseViewer):
         if _method == 'delete':
 
             run_ids = [int(x) for x in rq.POST.getall('run-ids')]
-            runs = dbh.get_ngsruns_by_ids(run_ids, groups=None, user=rq.user).all()
+            runs = dbh.get_ngsruns_by_ids(run_ids, groups=None, user=rq.user)
 
             if len(runs) == 0:
-                return Response(modal_error)
+                return Response(modal_error(content="Please select NGS run(s) to be removed!"))
 
             return Response(
                 modal_delete(
