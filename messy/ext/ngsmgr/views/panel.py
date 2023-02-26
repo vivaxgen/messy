@@ -2,7 +2,8 @@
 from rhombus.lib.utils import get_dbhandler
 from rhombus.views import boolean_checkbox
 from messy.views import (BaseViewer, t, render_to_response, error_page, form_submit_bar,
-                         ParseFormError, generate_file_table, select2_lookup)
+                         ParseFormError, generate_file_table, select2_lookup, Response,
+                         modal_error, HTTPFound, modal_delete)
 from messy.ext.ngsmgr.lib import roles as r
 from messy.ext.ngsmgr.models.schema import PanelType
 import sqlalchemy.exc
@@ -10,7 +11,7 @@ import json
 
 
 class PanelViewer(BaseViewer):
-    
+
     managing_roles = BaseViewer.managing_roles + [r.PANEL_MANAGE]
     modifying_roles = [r.PANEL_MODIFY] + managing_roles
 
@@ -165,7 +166,7 @@ class PanelViewer(BaseViewer):
 
         return t.div()[t.h2('Panel'), eform], jscode
 
-    def view_helper(self, render=True):
+    def view_helper(self, render=True) -> tuple[str, str] | Response:
 
         panel_html, panel_jscode = super().view_helper(render=False)
 
@@ -180,7 +181,64 @@ class PanelViewer(BaseViewer):
         panel_html.add(file_html)
         panel_jscode += file_jscode
 
+        if not render:
+            return (panel_html, panel_jscode)
         return self.render_edit_form(panel_html, panel_jscode)
+
+    def action_post(self):
+
+        rq = self.request
+        dbh = self.dbh
+        _method = rq.POST.get('_method')
+
+        if _method == 'delete':
+
+            panel_ids = [int(x) for x in rq.POST.getall('panel-ids')]
+            panels = dbh.get_panels_by_ids(panel_ids, groups=None, user=rq.user)
+
+            if len(panels) == 0:
+                return Response(modal_error(content="Please select panel(s) to be removed"))
+
+            return Response(
+                modal_delete(
+                    title='Removing Panel(s)',
+                    content=t.literal(
+                        'You are going to remove the following panel(s): '
+                        '<ul>'
+                        + ''.join(
+                            f'<li>{p.code} | {p.type} | '
+                            for p in panels)
+                        + '</ul>'
+                        'All associated regions and variants will be removed. '
+                        'Do you want to continue?'
+                    ), request=rq,
+                ), request=rq
+            )
+
+        elif _method == 'delete/confirm':
+
+            panel_ids = [int(x) for x in rq.POST.getall('panel-ids')]
+            panels = dbh.get_panels_by_ids(panel_ids, groups=None, user=rq.user)
+
+            sess = dbh.session()
+            count = left = 0
+            for panel in panels:
+                if panel.can_modify(rq.user):
+                    sess.delete(panel)
+                    count += 1
+                else:
+                    left += 1
+
+            sess.flush()
+            rq.session.flash(
+                ('success',
+                 f'You have removed {count} panel(s) sucessfully' +
+                 (f', {left} panel(s) unsucessfully.' if left else '.'))
+            )
+
+            return HTTPFound(location=rq.referer)
+
+        raise RuntimeError('unknown method')
 
 
 def generate_panel_table(panels, request):
@@ -188,11 +246,12 @@ def generate_panel_table(panels, request):
     table_body = t.tbody()
 
     not_guest = not request.user.has_roles(r.GUEST)
+    can_manage = request.user.has_roles(* PanelViewer.modifying_roles)
 
     for p in panels:
         table_body.add(
             t.tr(
-                t.td(t.literal(f'<input type="checkbox" name="panels-ids" value="{p.id}" />')
+                t.td(t.literal(f'<input type="checkbox" name="panel-ids" value="{p.id}" />')
                      if not_guest else ''),
                 t.td(t.a(p.code,
                          href=request.route_url('messy-ngsmgr.panel-view', id=p.id))),
@@ -216,7 +275,7 @@ def generate_panel_table(panels, request):
 
     panel_table.add(table_body)
 
-    if not_guest:
+    if not_guest and can_manage:
         add_button = ('New panel',
                       request.route_url('messy-ngsmgr.panel-add'))
 
