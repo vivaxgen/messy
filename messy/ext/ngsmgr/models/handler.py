@@ -78,11 +78,11 @@ def generate_handler_class(base_class):
 
         def get_panels(self, groups=None, specs=None, user=None, fetch=True, raise_if_empty=False):
 
-            q = self.construct_query(self.Panel, specs)
+            q = self.construct_select(self.Panel, specs)
             if fetch:
                 q = q.order_by(self.Panel.code)
 
-            return self.fetch_query(q, fetch, raise_if_empty)
+            return self.fetch_select(q, fetch, raise_if_empty)
 
         def get_panels_by_ids(self, ids, groups=None, user=None, fetch=True, raise_if_empty=False):
             return self.get_panels(groups, [{'panel_id': ids}], user=user, fetch=fetch,
