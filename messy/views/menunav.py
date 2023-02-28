@@ -80,18 +80,25 @@ class MenuNav(object):
 
         return html
 
-    def add_before(self, tag, newitem):
+    def add_menu(self, tag, newitem, after=False):
 
         for idx, menuitem in enumerate(self.menutree):
             if type(menuitem) is tuple:
                 if menuitem[0] == tag:
-                    self.menutree.insert(idx, newitem)
+                    self.menutree.insert(idx if not after else idx + 1, newitem)
                     break
                 if type(menuitem[1] == list):
                     for idx2, submenuitem in enumerate(menuitem[1]):
                         if type(submenuitem) is tuple:
                             if submenuitem[0] == tag:
-                                menuitem[1].insert(idx2, newitem)
+                                if type(newitem) is list:
+                                    for pos, item in enumerate(newitem):
+                                        menuitem[1].insert(
+                                            (idx2 if not after else idx2 + 1) + pos,
+                                            item
+                                        )
+                                else:
+                                    menuitem[1].insert(idx2 if not after else idx2 + 1, newitem)
                                 break
 
         self.menu_cache = self.html()
