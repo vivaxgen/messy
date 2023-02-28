@@ -9,9 +9,9 @@ from messy.ext.ngsmgr import configkeys as ck
 
 
 set_dbhandler_class(generate_handler_class(get_dbhandler_class()))
-get_menunav().add_before(
+get_menunav().add_menu(
     'Plate', ('NGSRun', 'url:/ngsrun')
-).add_before(
+).add_menu(
     'Analysis', ('Marker',
                  [
                      ('Panel', 'url:/panel'),
