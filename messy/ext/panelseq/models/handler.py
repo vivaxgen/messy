@@ -12,7 +12,17 @@ def generate_handler_class(base_class):
     class MessyPanelSeqQueryConstructor(base_class.query_constructor_class):
 
         field_specs = base_class.query_constructor_class.field_specs | {
-            'panel_id': base_class.Panel.id,
+
+            'region_id': schema.Region.id,
+            'region_code': schema.Region.code,
+            'region_chrom': schema.Region.chrom,
+            'region_begin': schema.Region.begin,
+            'region_end': schema.Region.end,
+
+            'variant_id': schema.Variant.id,
+            'variant_code': schema.Variant.code,
+            'variant_chrom': schema.Variant.chrom,
+            'variant_position': schema.Variant.position,
         }
 
     class PanelSeqHandler(base_class):
@@ -38,16 +48,61 @@ def generate_handler_class(base_class):
                 setup(self)
                 cerr('[messy-panelseq database has been initialized]')
 
-        def get_panels(self, groups=None, specs=None, user=None, fetch=True, raise_if_empty=False):
+        # Panel accessors are provided by messy-ngsmgr extension
 
-            q = self.construct_query(self.Panel, specs)
+        # this is for Region and Variant accessors
+
+        def get_regions(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
+
+            q = self.construct_select(self.Region, specs)
             if fetch:
-                q = q.order_by(self.Panel.code)
+                q = q.order_by(self.Region.chrom, self.Region.begin)
 
-            return self.fetch_query(q, fetch, raise_if_empty)
+            return self.fetch_select(q, fetch, raise_if_empty)
 
-        def get_panels_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
-            return self.get_panels(groups, [{'panel_id': ids}], user=user, fetch=fetch, raise_if_empty=raise_if_empty)
+        def get_regions_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+            return self.get_regions(groups, [{'region_id': ids}], user=user, fetch=fetch,
+                                    raise_if_empty=raise_if_empty)
+
+        def get_regions_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
+            return self.get_regions(groups, [{'region_code': codes}], user=user, fetch=fetch,
+                                    raise_if_empty=raise_if_empty)
+
+        def get_regions_by_position(self, chrom=None, begin=None, end=None):
+            specs = {}
+            if chrom:
+                specs['region_chrom'] = chrom
+            if begin:
+                specs['region_begin'] = str(begin)
+            if end:
+                specs['region_end'] = str(end)
+
+            return self.get_regions(None, [specs])
+
+        def get_variants(self, groups, specs=None, user=None, fetch=True, raise_if_empty=False):
+
+            q = self.construct_select(self.Variant, specs)
+            if fetch:
+                q = q.order_by(self.Variant.chrom, self.Variant.position)
+
+            return self.fetch_select(q, fetch, raise_if_empty)
+
+        def get_variants_by_ids(self, ids, groups, user=None, fetch=True, raise_if_empty=False):
+            return self.get_variants(groups, [{'variant_id': ids}], user=user, fetch=fetch,
+                                     raise_if_empty=raise_if_empty)
+
+        def get_variants_by_codes(self, codes, groups, user=None, fetch=True, raise_if_empty=False):
+            return self.get_variants(groups, [{'variant_code': codes}], user=user, fetch=fetch,
+                                     raise_if_empty=raise_if_empty)
+
+        def get_variants_by_position(self, chrom=None, position=None):
+            specs = {}
+            if chrom:
+                specs['variant_chrom'] = chrom
+            if position:
+                specs['position_begin'] = str(position)
+
+            return self.get_variants(None, [specs])
 
     cerr('[PanelSeqHandler class generated.]')
     return PanelSeqHandler

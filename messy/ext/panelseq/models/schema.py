@@ -5,6 +5,7 @@ from sqlalchemy import (exists, Table, Column, types, ForeignKey, UniqueConstrai
                         Identity, select)
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
+from rhombus.lib.utils import get_dbhandler
 from rhombus.models.ek import EK
 from rhombus.models.auxtypes import GUID
 from rhombus.models.fileattach import FileAttachment
@@ -12,17 +13,14 @@ from rhombus.models.core import (Base, BaseMixIn, metadata, deferred, relationsh
                                  registered, declared_attr, column_property)
 from rhombus.models.auxtypes import GUID
 
+from messy.ext.ngsmgr.models.schema import Panel
+
 
 class PanelType(Enum):
     SET = 1
     ANALYSIS = 2
     ASSAY = 3
     MHAP = 4
-
-
-def extend_object_classes(dbh):
-
-    pass
 
 
 class Variant(BaseMixIn, Base):
@@ -60,7 +58,7 @@ class Variant(BaseMixIn, Base):
 
 
 class Region(BaseMixIn, Base):
-    """ Region is either Assay region or Analysis region
+    """ Region is either Assay region or Analysis region (set by type)
     """
 
     __tablename__ = 'regions'
@@ -74,12 +72,43 @@ class Region(BaseMixIn, Base):
     species_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     species = EK.proxy('species_id', '@SPECIES')
 
+    panels = relationship(Panel,
+                          secondary='panels_regions',
+                          cascade='all, delete',
+                          collection_class=attribute_mapped_collection('id'),
+                          order_by=Panel.code
+                          )
+
     __table_args__ = (
         UniqueConstraint('code', 'type'),
     )
 
     def __repr__(self):
         return f"Region('{self.code}')"
+
+    def __init__(self, code=None, type=None, chrom=None, begin=None, end=None, species_id=None):
+        if not (chrom and begin and end and type):
+            raise ValueError('chrom, begin and end must be provided!')
+        if code is None:
+            code = f"{chrom}:{begin}:{end-begin}"
+        super().__init__(code=code, type=type,
+                         chrom=chrom, begin=begin, end=end,
+                         species_id=species_id)
+
+    @classmethod
+    def get_or_create(cls, chrom, begin, end, type, species_id):
+        """ return an already region in database or create a new one """
+
+        dbh = get_dbhandler()
+        regions = dbh.get_regions_by_position(chrom=chrom, begin=begin, end=end)
+        if not any(regions):
+            # empty list, create a new region
+            region = cls(type=type, chrom=chrom, begin=begin, end=end, species_id=species_id)
+            dbh.session().add(region)
+            dbh.session().flush([region])
+            return region
+
+        return regions[0]
 
 
 panel_region_table = Table(
@@ -102,5 +131,31 @@ panel_variant_table = Table(
            index=True, nullable=False),
     UniqueConstraint('panel_id', 'variant_id'),
 )
+
+
+def extend_object_classes(dbh):
+
+    # the following code might not work properly yet
+
+    dbh.Panel.__mapper__.add_property(
+        'regions',
+        relationship(Region,
+                     secondary=panel_region_table,
+                     cascade='all, delete',
+                     collection_class=attribute_mapped_collection('id'),
+                     order_by=[Region.chrom, Region.begin],
+                     )
+    )
+
+    dbh.Panel.__mapper__.add_property(
+        'variants',
+        relationship(Variant,
+                     secondary=panel_variant_table,
+                     cascade='all, delete',
+                     collection_class=attribute_mapped_collection('id'),
+                     order_by=[Variant.chrom, Variant.position],
+                     )
+    )
+
 
 # EOF

@@ -37,4 +37,26 @@ def includeme(config):
         ('/panel/{id}', 'view'),
     )
 
+    add_route_view_class(
+        config, 'messy.ext.panelseq.views.region.RegionViewer', 'messy-panelseq.region',
+        '/region',
+        '/region/@@action',
+        '/region/@@add',
+        ('/region/@@lookup', 'lookup', 'json'),
+        '/region/{id}@@edit',
+        '/region/{id}@@save',
+        ('/region/{id}', 'view'),
+    )
+
+    add_route_view_class(
+        config, 'messy.ext.panelseq.views.variant.VariantViewer', 'messy-panelseq.variant',
+        '/variant',
+        '/variant/@@action',
+        '/variant/@@add',
+        ('/variant/@@lookup', 'lookup', 'json'),
+        '/variant/{id}@@edit',
+        '/variant/{id}@@save',
+        ('/variant/{id}', 'view'),
+    )
+
 # EOF

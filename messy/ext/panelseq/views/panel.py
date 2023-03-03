@@ -1,144 +1,378 @@
 
 from rhombus.lib.utils import cerr, get_dbhandler
 
-from messy.views import (BaseViewer, form_submit_bar, render_to_response, ParseFormError)
+from messy.views import (form_submit_bar, render_to_response, ParseFormError, Response,
+                         m_roles, not_roles, AuthError, HTTPFound)
+from messy.ext.ngsmgr.views.panel import PanelViewer
 from messy.ext.panelseq.lib import roles as r
 from rhombus.lib import tags as t
+from rhombus.lib.modals import popup, modal_error, modal_delete
 
-from messy.ext.panelseq.models.markers import PanelType
+from messy.ext.ngsmgr.models.schema import PanelType
+from messy.ext.panelseq.models.schema import Region, Variant
 import sqlalchemy.exc
 
 
-class PanelViewer(BaseViewer):
-
-    managing_roles = BaseViewer.managing_roles + [r.PANEL_MANAGE]
-    modifying_roles = [r.PANEL_MODIFY] + managing_roles
-
-    object_class = get_dbhandler().Panel
-    fetch_func = get_dbhandler().get_panels_by_ids
-    edit_route = 'messy-panelseq.panel-edit'
-    view_route = 'messy-panelseq.panel-view'
-    attachment_route = 'messy-panelseq.panel-attachment'
-
-    form_fields = {
-        'code!': ('messy-panelseq.panel-code', ),
-        'type': ('messy-panelseq.panel-type', int),
-        'remark': ('messy-panelseq.panel-remark', ),
-        'species_id': ('messy-panelseq.panel-species_id', int)
-    }
+class PanelSeqViewer(PanelViewer):
+    """ This viewer class extend base PanelViewer (from messy-ngsmgr) to provide
+        positions informations
+    """
 
     def index_helper(self):
+        return super().index_helper()
 
-        # all users can view Panels
+    def view_helper(self, render=True) -> tuple[str, str] | Response:
 
-        panels = self.dbh.get_panels()
-        html, code = generate_panel_table(panels, self.request)
+        panel_html, panel_jscode = super().view_helper(render=False)
 
-        html = t.div(t.h2('Panels'), html)
+        # if type is Analysis, add variant table
+        if self.obj.type == PanelType.ANALYSIS.value:
+            variant_html, variant_jscode = generate_variant_table(self)
+            panel_html += variant_html
+            panel_jscode += variant_jscode
 
-        return render_to_response("messy:templates/generic_page.mako", {
-            'html': html,
-            'code': code,
-        }, request=self.request)
+        # if type is Assay or Analysis, add region table
+        if self.obj.type in [PanelType.ASSAY.value, PanelType.ANALYSIS.value]:
+            region_html, region_jscode = generate_region_table(self)
+            panel_html += region_html
+            panel_jscode += region_jscode
 
-    def update_object(self, obj, d):
+        if not render:
+            return (panel_html, panel_jscode)
+        return self.render_edit_form(panel_html, panel_jscode)
 
-        dbh = self.dbh
-
-        try:
-            obj.update(d)
-            if obj.id is None:
-                dbh.session().add(obj)
-            dbh.session().flush([obj])
-
-        except sqlalchemy.exc.IntegrityError as err:
-            dbh.session().rollback()
-            detail = err.args[0]
-            if 'UNIQUE' in detail or 'UniqueViolation' in detail:
-                if 'panels.code' in detail or 'uq_panels_code' in detail:
-                    raise ParseFormError(f'The panel code: {d["code"]} is '
-                                         f'already being used. Please use other panel code!',
-                                         'messy-panelseq-panel-code') from err
-
-            raise RuntimeError(f'error updating object: {detail}')
-
-    def edit_form(self, obj=None, create=False, readonly=False, update_dict=None):
+    @m_roles(r.PUBLIC, not_roles(r.GUEST))
+    def regionaction(self):
 
         rq = self.request
-        obj = obj or self.obj
-        dbh = self.dbh
+        dbh = get_dbhandler()
 
-        ff = self.ffn
-        eform = t.form(name='messy-panelseq.panel', method=t.POST, enctype=t.FORM_MULTIPART, readonly=readonly,
-                       update_dict=update_dict)
-        eform.add(
-            self.hidden_fields(obj),
-            t.fieldset(
-                t.inline_inputs(
-                    t.input_text(ff('code!'), 'Code', value=obj.code, offset=2, size=3, maxlength=24),
-                    t.input_select(ff('type'), 'Type', value=obj.type, offset=1, size=2,
-                                   options=[(t.value, t.name) for t in PanelType]),
-                    t.input_select_ek(ff('species_id'), 'Species',
-                                      value=obj.species_id or dbh.get_ekey('pv').id,
-                                      offset=1, size=2, parent_ek=dbh.get_ekey('@SPECIES')),
-                ),
-                t.inline_inputs(
-                    t.input_textarea(ff('remark'), 'Remark', value=obj.remark, offset=2),
-                ),
-                name="messy-panelseq.panel-fieldset"
-            ),
-            t.fieldset(
-                form_submit_bar(create) if not readonly else t.div(),
-                name='footer'
-            ),
-        )
+        _method = rq.params.get('_method')
+        panel_id = int(rq.params.get('panel_id'))
+        panel = self.get_object(obj_id=panel_id)
 
-        jscode = ''
+        if not panel.can_modify(rq.identity):
+            raise AuthError("Your user account does not have the role for modifying this Panel.")
 
-        return t.div()[t.h2('Panel'), eform], jscode
+        match _method:
+
+            case 'add-panelregion':
+
+                species_id = int(rq.params.get('species_id'))
+
+                bed_info = rq.POST.get('bed_info').strip()
+                if bed_info:
+                    # parse to [(chrom, begin, end)]
+                    for line in bed_info.split('\n'):
+                        tokens = line.split()
+                        chrom, begin, end = tokens[0], int(tokens[1]), int(tokens[2])
+                        region = Region.get_or_create(
+                            type=PanelType.ASSAY.value,
+                            chrom=chrom, begin=begin, end=end,
+                            species_id=species_id
+                        )
+                        panel.regions[region.id] = region
+
+                return HTTPFound(location=rq.route_url(self.view_route, id=panel_id))
+
+            case 'delete':
+
+                panelregion_ids = [int(x) for x in rq.POST.getall('panelregion-ids')]
+                regions = [panel.regions[pr_id] for pr_id in panelregion_ids]
+
+                if len(regions) == 0:
+                    return Response(modal_error(content="Please select region(s) to be removed"))
+
+                return Response(
+                    modal_delete(
+                        title='Remove region(s)',
+                        content=t.literal(
+                            'You are going to remove the following region(s): '
+                            '<ul>'
+                            + ''.join(f'<li>{reg.chrom} {reg.begin}-{reg.end}</li>'
+                                      for reg in regions)
+                            + '</ul>'
+                        ), request=rq,
+                    ), request=rq
+                )
+
+            case 'delete/confirm':
+
+                panelregion_ids = [int(x) for x in rq.POST.getall('panelregion-ids')]
+
+                sess = dbh.session()
+                count = 0
+                for pr_id in panelregion_ids:
+                    del panel.regions[pr_id]
+                    count += 1
+
+                sess.flush()
+                rq.session.flash(
+                    ('success', f'You have successfully remove {count} regions.')
+                )
+
+                return HTTPFound(location=rq.referer)
+
+        raise ValueError(f'Unknown method name: {_method}')
+
+    @m_roles(r.PUBLIC, not_roles(r.GUEST))
+    def variantaction(self):
+
+        rq = self.request
+        dbh = get_dbhandler()
+
+        _method = rq.params.get('_method')
+        panel_id = int(rq.params.get('panel_id'))
+        panel = self.get_object(obj_id=panel_id)
+
+        if not panel.can_modify(rq.identity):
+            raise AuthError("Your user account does not have the role for modifying this Panel.")
+
+        match _method:
+
+            case 'add-panelvariant':
+
+                species_id = int(rq.params.get('species_id'))
+
+                pos_info = rq.POST.get('pos_info').strip()
+                if bed_info:
+                    # parse to [(chrom, begin, end)]
+                    for line in bed_info.split('\n'):
+                        tokens = line.split()
+                        chrom, begin, end = tokens[0], int(tokens[1]), int(tokens[2])
+                        region = Region.get_or_create(
+                            type=PanelType.ASSAY.value,
+                            chrom=chrom, begin=begin, end=end,
+                            species_id=species_id
+                        )
+                        panel.regions[region.id] = region
+
+                return HTTPFound(location=rq.route_url(self.view_route, id=panel_id))
+
+            case 'delete':
+
+                panelvariant_ids = [int(x) for x in rq.POST.getall('panelvariant-ids')]
+                variants = [panel.variants[pv_id] for pv_id in panelvariant_ids]
+
+                if len(regions) == 0:
+                    return Response(modal_error(content="Please select region(s) to be removed"))
+
+                return Response(
+                    modal_delete(
+                        title='Remove region(s)',
+                        content=t.literal(
+                            'You are going to remove the following region(s): '
+                            '<ul>'
+                            + ''.join(f'<li>{reg.chrom} {reg.begin}-{reg.end}</li>'
+                                      for reg in regions)
+                            + '</ul>'
+                        ), request=rq,
+                    ), request=rq
+                )
+
+            case 'delete/confirm':
+
+                panelregion_ids = [int(x) for x in rq.POST.getall('panelregion-ids')]
+
+                sess = dbh.session()
+                count = 0
+                for pr_id in panelregion_ids:
+                    del panel.regions[pr_id]
+                    count += 1
+
+                sess.flush()
+                rq.session.flash(
+                    ('success', f'You have successfully remove {count} regions.')
+                )
+
+                return HTTPFound(location=rq.referer)
+
+        raise ValueError(f'Unknown method name: {_method}')
 
 
-def generate_panel_table(panels, request):
+    def update_object_XXX(self, obj, d):
+        pass
+
+    def edit_form_XXX(self, obj=None, create=False, readonly=False, update_dict=None):
+        pass
+
+
+# the following functions (generate_region_table and generate_variant_table) are still
+# templates and have not been tested properly
+
+def generate_region_table(viewer, html_anchor=None):
+    """ this appplies for ASSAY panels """
+
+    panel = viewer.obj
+    request = viewer.request
+    dbh = viewer.dbh
+
+    html = t.div(t.hr, t.h6('Regions'))
 
     table_body = t.tbody()
 
-    can_manage = request.user.has_roles(* PanelViewer.modifying_roles)
-
-    for panel in panels:
+    for pr_id, region in panel.regions.items():
         table_body.add(
             t.tr(
-                t.td(t.literal('<input type="checkbox" name="panel-ids" value="%d" />' % panel.id)
-                     if can_manage else ''),
-                t.td(t.a(panel.code, href=request.route_url('messy-panelseq.panel-view', id=panel.id))),
-                t.td(PanelType(panel.type).name),
-                t.td(panel.remark or '-'),
+                t.td(t.literal(f'<input type="checkbox" name="panelregion-ids" value="{pr_id}" />')),
+                t.td(region.code),
+                t.td(region.chrom),
+                t.td(region.begin),
+                t.td(region.end),
             )
         )
 
-    panel_table = t.table(class_='table table-condensed table-striped')[
+    region_table = t.table(class_='table table-condensed table-striped')[
         t.thead(
             t.tr(
                 t.th('', style="width: 2em"),
-                t.th('Panel code'),
-                t.th('Type'),
-                t.th('Remark'),
+                t.th('Region Code'),
+                t.th('Chrom'),
+                t.th('Begin'),
+                t.th('End'),
             )
         )
     ]
 
-    panel_table.add(table_body)
+    region_table += table_body
 
-    if can_manage:
-        add_button = ('New panel',
-                      request.route_url('messy-panelseq.panel-add'))
+    if panel.can_modify(request.identity):
 
-        bar = t.selection_bar('panel-ids', action=request.route_url('messy-panelseq.panel-action'),
-                              add=add_button)
-        html, code = bar.render(panel_table)
+        bar = t.selection_bar(
+            'panelregion-ids', action=request.route_url('messy-ngsmgr.panel-regionaction'),
+            name='regionselection_bar', delete_label='Remove',
+            others=t.button('Add region',
+                            class_='btn btn-sm btn-success',
+                            id='add-panelregion',
+                            name='_method',
+                            value='add_panelregion',
+                            type='button'),
+            hiddens=[('panel_id', panel.id), ]
+        )
+        region_html, region_jscode = bar.render(region_table)
 
-    else:
-        html = t.div(panel_table)
-        code = ''
+        # prepare popup for adding regions
+
+        popup_content = t.div(class_='form-group form-inline')[
+            t.div('BED File', t.literal('<input type="file" name="file_content">')),
+            t.input_select_ek('species_id', 'Species',
+                              value=panel.species_id,
+                              parent_ek=dbh.get_ekey('@SPECIES'),
+                              offset=2, size=3),
+            t.input_textarea(name='bed_info', label='BED Information',
+                             info='Format: CHROM&lt;TAB&gt;BEGIN&lt;TAB&gt;END'),
+        ]
+        submit_button = t.submit_bar('Add region', 'add-panelregion')
+
+        add_panelregion_form = t.form(name='add-panelregion-form', method=t.POST,
+                                      action=request.route_url('messy-ngsmgr.panel-regionaction'))[
+            popup_content,
+            t.input_hidden(name='panel_id', value=panel.id),
+            submit_button
+        ]
+
+        region_table = t.div(
+            t.div(
+                popup('Add region', add_panelregion_form, request=request),
+                id='add-panelregion-modal', class_='modal fade', tabindex='-1', role='dialog'
+            ),
+            region_html
+        )
+
+        region_jscode += "; $('#add-panelregion').click( function(e) {$('#add-panelregion-modal').modal('show');});"
+
+        return html.add(region_table), region_jscode
+
+    html = t.div(region_table)
+    code = ''
+
+    return html, code
+
+
+def generate_variant_table(viewer, html_anchor=None):
+    """ this appplies for ASSAY panels """
+
+    panel = viewer.obj
+    request = viewer.request
+    dbh = viewer.dbh
+
+    html = t.div(t.hr, t.h6('Variants'))
+
+    table_body = t.tbody()
+
+    for pv_id, variant in panel.variants.items():
+        table_body.add(
+            t.tr(
+                t.td(t.literal(f'<input type="checkbox" name="panelvariant-ids" value="{variant.id}" />')),
+                t.td(variant.code),
+                t.td(variant.chrom),
+                t.td(variant.pos),
+                t.td(variant.gene),
+            )
+        )
+
+    variant_table = t.table(class_='table table-condensed table-striped')[
+        t.thead(
+            t.tr(
+                t.th('', style="width: 2em"),
+                t.th('Variant Code'),
+                t.th('Chrom'),
+                t.th('Position'),
+                t.th('Gene'),
+            )
+        )
+    ]
+
+    variant_table += table_body
+
+    if panel.can_modify(request.identity):
+
+        bar = t.selection_bar(
+            'panelvariant-ids', action=request.route_url('messy-ngsmgr.panel-variantaction'),
+            name='variantselection_bar', delete_label='Remove',
+            others=t.button('Add variant',
+                            class_='btn btn-sm btn-success',
+                            id='add-panelvariant',
+                            name='_method',
+                            value='add_panelvariant',
+                            type='button'),
+            hiddens=[('panel_id', panel.id), ]
+        )
+        variant_html, variant_jscode = bar.render(variant_table)
+
+        # prepare popup for adding variants
+
+        popup_content = t.div(class_='form-group form-inline')[
+            t.div('Pos File', t.literal('<input type="file" name="file_content">')),
+            t.input_select_ek('species_id', 'Species',
+                              value=panel.species_id,
+                              parent_ek=dbh.get_ekey('@SPECIES'),
+                              offset=2, size=3),
+            t.input_textarea(name='pos_info', label='Pos Info',
+                             info='Format: CHROM&lt;TAB&gt;POSITION&lt;TAB&gt;'),
+        ]
+        submit_button = t.submit_bar('Add variant', 'add-panelvariant')
+
+        add_panelvariant_form = t.form(name='add-panelvariant-form', method=t.POST,
+                                      action=request.route_url('messy-ngsmgr.panel-variantaction'))[
+            popup_content,
+            submit_button
+        ]
+
+        variant_table = t.div(
+            t.div(
+                popup('Add variant', add_panelvariant_form, request=request),
+                id='add-panelvariant-modal', class_='modal fade', tabindex='-1', role='dialog'
+            ),
+            variant_html
+        )
+
+        variant_jscode += "; $('#add-panelvariant').click( function(e) {$('#add-panelvariant-modal').modal('show');});"
+
+        return html.add(variant_table), variant_jscode
+
+    html = t.div(variant_table)
+    code = ''
 
     return html, code
 
