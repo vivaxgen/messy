@@ -343,7 +343,7 @@ class NGSRunViewer(BaseViewer):
             note = rq.POST.get('messy-runplate-none', '')
 
             runplate = dbh.NGSRunPlate(
-                ngsrun_id=run_id,
+                ngsrun_id=ngsrun_id,
                 plate_id=plate_id,
                 adapterindex_id=adapterindex_id,
                 lane=lane,
@@ -354,7 +354,7 @@ class NGSRunViewer(BaseViewer):
             sess.flush([runplate])
             rq.session.flash(('success', 'New plate has been added.'))
 
-            return HTTPFound(location=rq.route_url(self.view_route, id=run_id))
+            return HTTPFound(location=rq.route_url(self.view_route, id=ngsrun_id))
 
         elif _method == 'delete':
 
