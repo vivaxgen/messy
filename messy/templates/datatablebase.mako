@@ -1,5 +1,7 @@
 <%inherit file="rhombus:templates/base.mako" />
 
+<!-- messy:datatablebase.mako -->
+
 % if html:
 ${ html }
 % else:
@@ -8,12 +10,13 @@ ${ content | n }
 
 ##
 <%def name="stylelinks()">
-        <link href="${request.static_url('rhombus:static/datatables/datatables.min.css')}" rel="stylesheet" />
+  <link href="/assets/rb/datatables/datatables.min.css" rel="stylesheet" />
 </%def>
 ##
 ##
 <%def name="jslinks()">
-        <script src="${request.static_url('rhombus:static/datatables/datatables.min.js')}"></script>
+  <script src="/assets/rb/datatables/datatables.min.js"></script>
+  <script src="/assets/rb/js/behave.js"></script>
 </%def>
 ##
 ##
