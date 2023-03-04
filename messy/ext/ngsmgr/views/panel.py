@@ -3,7 +3,7 @@ from rhombus.lib.utils import get_dbhandler
 from rhombus.views import boolean_checkbox
 from messy.views import (BaseViewer, t, render_to_response, error_page, form_submit_bar,
                          ParseFormError, generate_file_table, select2_lookup, Response,
-                         modal_error, HTTPFound, modal_delete)
+                         modal_error, HTTPFound, modal_delete, behave_editor)
 from messy.ext.ngsmgr.lib import roles as r
 from messy.ext.ngsmgr.models.schema import PanelType
 import sqlalchemy.exc
@@ -109,7 +109,7 @@ class PanelViewer(BaseViewer):
         dbh = self.dbh
 
         ff = self.ffn
-        eform = t.form(name='messy-collection', method=t.POST, enctype=t.FORM_MULTIPART,
+        eform = t.form(name='messy-ngsmgr-panel', method=t.POST, enctype=t.FORM_MULTIPART,
                        readonly=readonly, update_dict=update_dict)
         eform.add(
             self.hidden_fields(obj),
@@ -156,13 +156,13 @@ class PanelViewer(BaseViewer):
             ),
         )
 
-        jscode = ''
+        jscode = behave_editor(ff('json'))
 
         if not readonly:
-            jscode = select2_lookup(tag=ff('related_panel_id'), minlen=3,
-                                    placeholder="Type panel code",
-                                    parenttag="messy-ngsmgr-panel-fieldset", usetag=False,
-                                    url=self.request.route_url('messy-ngsmgr.panel-lookup'))
+            jscode += select2_lookup(tag=ff('related_panel_id'), minlen=3,
+                                     placeholder="Type panel code",
+                                     parenttag="messy-ngsmgr-panel-fieldset", usetag=False,
+                                     url=self.request.route_url('messy-ngsmgr.panel-lookup'))
 
         return t.div()[t.h2('Panel'), eform], jscode
 
