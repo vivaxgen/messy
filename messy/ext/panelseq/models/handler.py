@@ -100,7 +100,7 @@ def generate_handler_class(base_class):
             if chrom:
                 specs['variant_chrom'] = chrom
             if position:
-                specs['position_begin'] = str(position)
+                specs['variant_position'] = str(position)
 
             return self.get_variants(None, [specs])
 

@@ -39,6 +39,13 @@ class Variant(BaseMixIn, Base):
     gene = Column(types.String(16), nullable=False, server_default='')
     aachange = Column(types.String(8), nullable=False, server_default='')
 
+    panels = relationship(Panel,
+                          secondary='panels_variants',
+                          cascade='all, delete',
+                          collection_class=attribute_mapped_collection('id'),
+                          order_by=Panel.code
+                          )
+
     __table_args__ = (
         UniqueConstraint('chrom', 'position'),
     )
@@ -55,6 +62,34 @@ class Variant(BaseMixIn, Base):
             code = f"{chrom}:{position}"
         super().__init__(code=code, chrom=chrom, position=position, ref=ref, alt=alt,
                          gene=gene, aachange=aachange)
+
+    @classmethod
+    def from_dataframe(cls, df, dbh):
+
+        variants = []
+        for idx, row in df.iterrows():
+            code = row['CODE'] if 'CODE' in row else None
+            variant = cls.get_or_create(code=code, chrom=row.CHROM, position=row.POS, dbh=dbh)
+            variants.append(variant)
+
+        return variants
+
+    @classmethod
+    def get_or_create(cls, chrom, position, dbh, code=None):
+
+        variants = dbh.get_variants_by_position(chrom=chrom, position=position)
+        if not any(variants):
+            # create a new variant
+            variant = cls(code=code, chrom=chrom, position=position)
+            dbh.session().add(variant)
+            dbh.session().flush([variant])
+            return variant
+
+        variant = variants[0]
+        if code and variant.code != code:
+            raise ValueError(
+                "code {code} does not match with existing variant's code {variant.code}")
+        return variants[0]
 
 
 class Region(BaseMixIn, Base):

@@ -2,7 +2,7 @@
 from rhombus.lib.utils import cerr, get_dbhandler
 
 from messy.views import (form_submit_bar, render_to_response, ParseFormError, Response,
-                         m_roles, not_roles, AuthError, HTTPFound)
+                         m_roles, not_roles, AuthError, HTTPFound, behave_editor)
 from messy.ext.ngsmgr.views.panel import PanelViewer
 from messy.ext.panelseq.lib import roles as r
 from rhombus.lib import tags as t
@@ -10,6 +10,10 @@ from rhombus.lib.modals import popup, modal_error, modal_delete
 
 from messy.ext.ngsmgr.models.schema import PanelType
 from messy.ext.panelseq.models.schema import Region, Variant
+from messy.ext.panelseq.lib.inputparser import (
+    parse_regions,
+    parse_variants
+)
 import sqlalchemy.exc
 
 
@@ -135,17 +139,11 @@ class PanelSeqViewer(PanelViewer):
                 species_id = int(rq.params.get('species_id'))
 
                 pos_info = rq.POST.get('pos_info').strip()
-                if bed_info:
-                    # parse to [(chrom, begin, end)]
-                    for line in bed_info.split('\n'):
-                        tokens = line.split()
-                        chrom, begin, end = tokens[0], int(tokens[1]), int(tokens[2])
-                        region = Region.get_or_create(
-                            type=PanelType.ASSAY.value,
-                            chrom=chrom, begin=begin, end=end,
-                            species_id=species_id
-                        )
-                        panel.regions[region.id] = region
+                if pos_info:
+                    df = parse_variants(pos_info, header="CHROM\tPOS\n")
+                    variants = dbh.Variant.from_dataframe(df, dbh=dbh)
+                    for variant in variants:
+                        panel.variants[variant.id] = variant
 
                 return HTTPFound(location=rq.route_url(self.view_route, id=panel_id))
 
@@ -306,7 +304,7 @@ def generate_variant_table(viewer, html_anchor=None):
                 t.td(t.literal(f'<input type="checkbox" name="panelvariant-ids" value="{variant.id}" />')),
                 t.td(variant.code),
                 t.td(variant.chrom),
-                t.td(variant.pos),
+                t.td(variant.position),
                 t.td(variant.gene),
             )
         )
@@ -354,8 +352,9 @@ def generate_variant_table(viewer, html_anchor=None):
         submit_button = t.submit_bar('Add variant', 'add-panelvariant')
 
         add_panelvariant_form = t.form(name='add-panelvariant-form', method=t.POST,
-                                      action=request.route_url('messy-ngsmgr.panel-variantaction'))[
+                                       action=request.route_url('messy-ngsmgr.panel-variantaction'))[
             popup_content,
+            t.input_hidden(name='panel_id', value=panel.id),
             submit_button
         ]
 
@@ -368,6 +367,7 @@ def generate_variant_table(viewer, html_anchor=None):
         )
 
         variant_jscode += "; $('#add-panelvariant').click( function(e) {$('#add-panelvariant-modal').modal('show');});"
+        variant_jscode += behave_editor('pos_info', soft_tabs=False)
 
         return html.add(variant_table), variant_jscode
 
